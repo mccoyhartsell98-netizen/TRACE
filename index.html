@@ -1,3 +1,8 @@
+<!--
+  TRACE INVENTORY
+  © 2026 Mccoy Hartsell — All rights reserved.
+-->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -580,7 +585,7 @@ apiGet("/health")
   .then(d => console.log("API CONNECTED", d))
   .catch(e => console.error("API FAILED", e));
 
-  const STORAGE_KEY = "trace_simple_jobs_v1";
+const STORAGE_KEY = "trace_simple_jobs_v1";
 const DELETED_KEY = "trace_simple_deleted_v1";
 
 /* MACHINES (in your required order) */
@@ -638,8 +643,16 @@ const els = {
   fileInput: document.getElementById("fileInput"),
 };
 
-let inventory = loadInventory();
+let inventory = [];
 let deletedItems = loadDeleted();
+
+(async () => {
+  inventory = await loadInventory();
+  els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
+  buildLaneButtons();
+  buildMachineButtons();
+  renderGlobalSearch();
+})();
 
 let selectedLane = "Lane 1";
 let selectedMachine = MACHINES[0];
@@ -671,14 +684,16 @@ function saveInventory(){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory));
   els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
 }
-function loadInventory(){
+async function loadInventory(){
   try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return [];
-    const data = JSON.parse(raw);
+    const data = await apiGet("/items");
     return Array.isArray(data) ? data : [];
-  }catch{return [];}
+  }catch(err){
+    console.error("Failed to load inventory from API", err);
+    return [];
+  }
 }
+
 function saveDeleted(){ localStorage.setItem(DELETED_KEY, JSON.stringify(deletedItems)); }
 function loadDeleted(){
   try{
@@ -1414,16 +1429,26 @@ document.addEventListener("keydown", (e) => {
 });
 
 /* init */
-normalizeInventoryItems();
-saveInventory();
-buildLaneButtons();
-buildMachineButtons();
-selectLane("Lane 1");
-selectMachine(MACHINES[0]);
-setRole("forklift");
-renderGlobalSearch();
+let inventory = [];
+let deletedItems = loadDeleted();
+
+(async () => {
+  try{
+    inventory = await loadInventory();
+    els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
+
+    buildLaneButtons();
+    buildMachineButtons();
+    renderGlobalSearch();
+
+    selectLane("Lane 1");
+    selectMachine(MACHINES[0]);
+    setRole("forklift");
+  }catch(err){
+    console.error("Init failed:", err);
+  }
+})();
+
 </script>
 </body>
 </html>
-
-
