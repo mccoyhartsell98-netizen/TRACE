@@ -9,8 +9,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>TRACE</title>
-
-  <!-- PWA / App support -->
+ <!-- PWA / App support -->
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#0f1115">
 
@@ -19,7 +18,6 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="TRACE">
   <link rel="apple-touch-icon" href="./icon-192.png">
-
   <style>
     :root{
       --bg:#0f1115;
@@ -36,8 +34,12 @@
 
     *{box-sizing:border-box}
 
-    html, body{ height:100%; margin:0; }
+    html, body{
+      height:100%;
+      margin:0;
+    }
 
+    /* LOCK PAGE SCROLL — SCROLL INSIDE PANELS ONLY */
     body{
       overflow:hidden;
       font-family:Arial,Helvetica,sans-serif;
@@ -61,6 +63,7 @@
       gap:12px;
     }
 
+    /* TOP BAR */
     .top{
       display:grid;
       grid-template-columns: 1fr auto 1fr;
@@ -72,7 +75,7 @@
     .logo{
       grid-column:2;
       justify-self:center;
-      width:680px;
+      width:680px;         /* << change this if you want bigger */
       max-width:96vw;
       height:auto;
       display:block;
@@ -104,6 +107,7 @@
       white-space:nowrap;
     }
 
+    /* ROLE BAR */
     .rolebar{
       display:flex;
       gap:10px;
@@ -162,9 +166,10 @@
     .ghost{background:transparent}
     .ghost:hover{background:rgba(255,255,255,.06)}
 
+    /* GRID */
     .grid{
       flex:1 1 auto;
-      min-height:0;
+      min-height:0; /* IMPORTANT for internal scrolling */
       display:grid;
       grid-template-columns: 1.2fr .8fr;
       gap:14px;
@@ -189,13 +194,14 @@
       text-transform:uppercase;
     }
 
+    /* SCROLL AREAS (low-profile scrollbar) */
     .scroll{
       overflow:auto;
       padding-right:4px;
       min-height:0;
       flex:1 1 auto;
 
-      scrollbar-width: thin;
+      scrollbar-width: thin;                 /* Firefox */
       scrollbar-color: rgba(255,255,255,.18) transparent;
     }
     .scroll::-webkit-scrollbar{ width:8px; }
@@ -249,7 +255,11 @@
     .laneTitle{font-size:20px;font-weight:900;}
     .laneCount{color:var(--muted);font-size:13px;font-weight:800;}
 
-    .results{ display:flex; flex-direction:column; gap:10px; }
+    .results{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
 
     .resultItem{
       background:var(--panel2);
@@ -298,6 +308,7 @@
     }
     .formGrid .full{grid-column:1 / -1;}
 
+    /* MOVE OVERLAY */
     .overlay{
       position:fixed;
       inset:0;
@@ -349,8 +360,9 @@
       text-transform:uppercase;
     }
 
+    /* small screens */
     @media (max-width: 980px){
-      body{overflow:auto;}
+      body{overflow:auto;} /* on mobile, allow normal scroll */
       .wrap{height:auto;}
       .grid{grid-template-columns:1fr}
       .status{display:none}
@@ -359,7 +371,6 @@
     }
   </style>
 </head>
-
 <body>
   <div class="wrap">
 
@@ -396,13 +407,16 @@
       <div class="card">
         <h2>Search</h2>
 
+        <!-- IMPORTANT: keep .scroll so you can reach Machines -->
         <div class="scroll">
           <input id="globalSearch" type="text" placeholder="Search Job # (example: 400848)">
+
           <div class="results" id="globalResults" style="margin-top:10px;"></div>
 
           <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
 
           <h2 style="margin-top:0;">Lanes</h2>
+
           <div class="laneGrid" id="laneGrid"></div>
 
           <div class="laneHeader">
@@ -411,11 +425,13 @@
           </div>
 
           <input id="laneSearch" type="text" placeholder="Filter within this lane (optional)">
+
           <div class="results" id="laneResults" style="margin-top:10px;"></div>
 
           <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
 
           <h2 style="margin-top:0;">Machines</h2>
+
           <div class="laneGrid" id="machineGrid"></div>
 
           <div class="laneHeader">
@@ -424,6 +440,7 @@
           </div>
 
           <input id="machineSearch" type="text" placeholder="Filter within this machine (optional)">
+
           <div class="results" id="machineResults" style="margin-top:10px;"></div>
 
           <div class="hint">
@@ -527,9 +544,12 @@
    Roles: forklift / machine / admin
    Delete => History (restorable)
    ========================= */
-
 const API_BASE = "https://trace-api-sak3.onrender.com";
-
+async function apiGet(path){
+  const r = await fetch(`${API_BASE}${path}`);
+  if(!r.ok) throw new Error(`${path} -> ${r.status}`);
+  return r.json();
+}
 async function apiGet(path){
   const r = await fetch(`${API_BASE}${path}`);
   if(!r.ok) throw new Error(`${path} -> ${r.status}`);
@@ -561,7 +581,6 @@ async function apiDel(path){
   if(!r.ok) throw new Error(`${path} -> ${r.status}`);
   return r.json();
 }
-
 apiGet("/health")
   .then(d => console.log("API CONNECTED", d))
   .catch(e => console.error("API FAILED", e));
@@ -624,9 +643,16 @@ const els = {
   fileInput: document.getElementById("fileInput"),
 };
 
-/* ===== State (ONE copy only) ===== */
 let inventory = [];
 let deletedItems = loadDeleted();
+
+(async () => {
+  inventory = await loadInventory();
+  els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
+  buildLaneButtons();
+  buildMachineButtons();
+  renderGlobalSearch();
+})();
 
 let selectedLane = "Lane 1";
 let selectedMachine = MACHINES[0];
@@ -637,7 +663,6 @@ let adminUnlocked = false;
 
 let moveTargetId = null;
 
-/* ===== Helpers ===== */
 function uid(){ return Math.random().toString(16).slice(2) + Date.now().toString(16); }
 function normalize(s){ return (s ?? "").trim().toLowerCase(); }
 function nowStamp(){
@@ -654,9 +679,7 @@ function escapeHtml(s){
     .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
     .replaceAll('"',"&quot;").replaceAll("'","&#039;");
 }
-function onlyDigits(s){ return String(s ?? "").replace(/\D+/g, ""); }
 
-/* ===== Data ===== */
 function saveInventory(){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory));
   els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
@@ -670,6 +693,7 @@ async function loadInventory(){
     return [];
   }
 }
+
 function saveDeleted(){ localStorage.setItem(DELETED_KEY, JSON.stringify(deletedItems)); }
 function loadDeleted(){
   try{
@@ -680,7 +704,15 @@ function loadDeleted(){
   }catch{return [];}
 }
 
-/* ===== Role UI ===== */
+function normalizeInventoryItems(){
+  inventory = inventory.map(x => ({
+    ...x,
+    lane: String(x.lane ?? ""),
+    machine: String(x.machine ?? "")
+  }));
+  saveInventory();
+}
+
 function setRole(nextRole){
   role = nextRole;
 
@@ -720,7 +752,7 @@ function updateRoleUI(){
   els.newBtn.disabled = forklift;
 }
 
-/* ===== Lanes ===== */
+/* lanes */
 function buildLaneButtons(){
   els.laneGrid.innerHTML = "";
   for(let i=1;i<=12;i++){
@@ -743,7 +775,7 @@ function selectLane(lane){
   renderGlobalSearch();
 }
 
-/* ===== Machines ===== */
+/* machines */
 function buildMachineButtons(){
   els.machineGrid.innerHTML = "";
   MACHINES.forEach(m => {
@@ -765,7 +797,6 @@ function selectMachine(m){
   renderGlobalSearch();
 }
 
-/* ===== Lists ===== */
 function renderLaneList(){
   const q = normalize(els.laneSearch.value);
   const laneItemsAll = inventory.filter(x => x.lane === selectedLane);
@@ -926,7 +957,9 @@ function renderGlobalSearch(){
   });
 }
 
-/* ===== Form ===== */
+/* form */
+function onlyDigits(s){ return String(s ?? "").replace(/\D+/g, ""); }
+
 function clearForm(){
   selectedId = null;
   els.job.value = "";
@@ -1042,7 +1075,10 @@ function deleteSelected(){
 
   const toDelete = inventory.find(x => x.id === selectedId);
   if(toDelete){
-    deletedItems.unshift({ ...toDelete, deletedAt: nowStamp() });
+    deletedItems.unshift({
+      ...toDelete,
+      deletedAt: nowStamp()
+    });
     saveDeleted();
   }
 
@@ -1055,7 +1091,7 @@ function deleteSelected(){
   if(els.historyPanel.style.display !== "none") renderHistory();
 }
 
-/* ===== Move overlay ===== */
+/* move overlay */
 function openMoveOverlay(id){
   const item = inventory.find(x => x.id === id);
   if(!item) return;
@@ -1132,7 +1168,7 @@ function moveToMachine(id, machine){
   loadToForm(item.id);
 }
 
-/* ===== History ===== */
+/* history */
 function toggleHistory(){
   const open = els.historyPanel.style.display !== "none";
   els.historyPanel.style.display = open ? "none" : "block";
@@ -1209,7 +1245,10 @@ function restoreDeleted(id){
   deletedItems.splice(idx, 1);
   saveDeleted();
 
-  inventory.unshift({ ...item, deletedAt: undefined });
+  inventory.unshift({
+    ...item,
+    deletedAt: undefined
+  });
 
   saveInventory();
   renderLaneList();
@@ -1218,7 +1257,7 @@ function restoreDeleted(id){
   renderHistory();
 }
 
-/* ===== Backup ===== */
+/* backup */
 function exportJson(){
   const blob = new Blob([JSON.stringify(inventory, null, 2)], {type:"application/json"});
   const a = document.createElement("a");
@@ -1291,7 +1330,7 @@ function seedDemo(){
   renderGlobalSearch();
 }
 
-/* ===== Fullscreen ===== */
+/* fullscreen */
 function toggleFullscreen(){
   if(!document.fullscreenElement){
     document.documentElement.requestFullscreen().catch(()=>{});
@@ -1300,7 +1339,7 @@ function toggleFullscreen(){
   }
 }
 
-/* ===== Events ===== */
+/* events */
 els.globalSearch.addEventListener("input", renderGlobalSearch);
 els.laneSearch.addEventListener("input", renderLaneList);
 els.machineSearch.addEventListener("input", renderMachineList);
@@ -1326,10 +1365,14 @@ els.moveOverlay.addEventListener("click", (e) => {
   if(e.target === els.moveOverlay) closeMoveOverlay();
 });
 
+/* Role events */
 els.roleSelect.addEventListener("change", (e) => {
   const v = e.target.value;
-  if(v === "admin") setRole("admin");
-  else setRole(v);
+  if(v === "admin"){
+    setRole("admin");
+  }else{
+    setRole(v);
+  }
 });
 
 els.adminUnlockBtn.addEventListener("click", () => {
@@ -1385,7 +1428,10 @@ document.addEventListener("keydown", (e) => {
   });
 });
 
-/* ===== INIT (ONE block only) ===== */
+/* init */
+let inventory = [];
+let deletedItems = loadDeleted();
+
 (async () => {
   try{
     inventory = await loadInventory();
@@ -1393,19 +1439,16 @@ document.addEventListener("keydown", (e) => {
 
     buildLaneButtons();
     buildMachineButtons();
-
-    els.laneTitle.textContent = selectedLane;
-    els.machineTitle.textContent = `Machine: ${selectedMachine}`;
-
-    renderLaneList();
-    renderMachineList();
     renderGlobalSearch();
 
+    selectLane("Lane 1");
+    selectMachine(MACHINES[0]);
     setRole("forklift");
   }catch(err){
     console.error("Init failed:", err);
   }
 })();
+
 </script>
 </body>
 </html>
