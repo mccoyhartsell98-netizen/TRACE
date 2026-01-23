@@ -35,11 +35,7 @@
     }
 
     *{box-sizing:border-box}
-
-    html, body{
-      height:100%;
-      margin:0;
-    }
+    html, body{height:100%;margin:0;}
 
     body{
       overflow:hidden;
@@ -197,7 +193,6 @@
       padding-right:4px;
       min-height:0;
       flex:1 1 auto;
-
       scrollbar-width: thin;
       scrollbar-color: rgba(255,255,255,.18) transparent;
     }
@@ -273,10 +268,8 @@
 
     .big{font-size:18px;font-weight:900;}
     .meta{color:var(--muted);margin-top:6px;font-size:13px;line-height:1.35;}
-    .qty{color:var(--good);font-weight:900;margin-top:6px;font-size:14px;}
     .tiny{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.35;}
     .btnRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
-
     .hint{
       margin-top:12px;
       color:var(--muted);
@@ -284,7 +277,6 @@
       line-height:1.35;
       flex:0 0 auto;
     }
-
     .kbd{
       display:inline-block;
       padding:2px 6px;
@@ -389,7 +381,6 @@
 
         <div class="scroll">
           <input id="globalSearch" type="text" placeholder="Search Job # (example: 400848)">
-
           <div class="results" id="globalResults" style="margin-top:10px;"></div>
 
           <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
@@ -436,20 +427,8 @@
               <input id="job" type="text" inputmode="numeric" placeholder="Job # (numbers only, required)">
             </div>
 
-            <div>
-              <input id="qty" type="number" min="0" step="1" placeholder="Qty">
-            </div>
-
-            <div>
-              <input id="status" type="text" placeholder="Status (example: RUNNING)">
-            </div>
-
             <div class="full">
-              <input id="notes" type="text" placeholder="Notes (optional)">
-            </div>
-
-            <div class="full">
-              <input id="updatedBy" type="text" placeholder="Updated by (initials)">
+              <input id="description" type="text" placeholder="Description (optional)">
             </div>
 
             <div class="full btnRow">
@@ -464,13 +443,13 @@
             <ul>
               <li><b>Job #</b> is the unique key. Once created it is locked.</li>
               <li><b>Forklift</b>: can search + move jobs (no edit, no delete).</li>
-              <li><b>Machine</b>: can update qty/status/notes (cannot create new jobs, no delete, no move).</li>
-              <li><b>Admin</b>: can create jobs + delete (goes to History) + restore.</li>
+              <li><b>Machine</b>: can update description (cannot create new jobs, no delete, no move).</li>
+              <li><b>Admin</b>: can create jobs + delete (goes to History) + restore (local restore for now).</li>
             </ul>
           </div>
 
           <div id="historyPanel" style="display:none; margin-top:12px;">
-            <h2>Deleted History</h2>
+            <h2>Deleted History (local)</h2>
             <input id="historySearch" type="text" placeholder="Search deleted jobs...">
             <div class="results" id="historyResults" style="margin-top:10px;"></div>
           </div>
@@ -481,7 +460,6 @@
           <div class="btnRow">
             <button id="exportBtn">Export JSON</button>
             <button id="importBtn">Import JSON</button>
-            <button class="ghost" id="seedBtn">Load demo</button>
           </div>
           <input id="fileInput" type="file" accept="application/json" style="display:none;" />
         </div>
@@ -513,9 +491,8 @@
 
 <script>
 /* =========================
-   TRACE — OPERATIONAL BUILD
-   Buttons ALWAYS show.
-   Location selection ALWAYS correct.
+   TRACE — CLEAN (API ALIGNED)
+   Schema: items(item_id, job_number, description, location_id, created_at)
    ========================= */
 
 /* API */
@@ -550,10 +527,14 @@ async function apiDel(path){
   return r.json();
 }
 
-/* local deleted history */
+apiGet("/health")
+  .then(d => console.log("API CONNECTED", d))
+  .catch(e => console.error("API FAILED", e));
+
+/* local deleted history (still local for now) */
 const DELETED_KEY = "trace_simple_deleted_v1";
 
-/* MACHINES (UI labels only) */
+/* MACHINES (required order) */
 const MACHINES = ["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane"];
 
 /* CHANGE THIS PIN ANYTIME */
@@ -590,10 +571,7 @@ const els = {
   moveMachineGrid: document.getElementById("moveMachineGrid"),
 
   job: document.getElementById("job"),
-  qty: document.getElementById("qty"),
-  status: document.getElementById("status"),
-  notes: document.getElementById("notes"),
-  updatedBy: document.getElementById("updatedBy"),
+  description: document.getElementById("description"),
   saveBtn: document.getElementById("saveBtn"),
   newBtn: document.getElementById("newBtn"),
   deleteBtn: document.getElementById("deleteBtn"),
@@ -605,50 +583,32 @@ const els = {
 
   exportBtn: document.getElementById("exportBtn"),
   importBtn: document.getElementById("importBtn"),
-  seedBtn: document.getElementById("seedBtn"),
   fileInput: document.getElementById("fileInput"),
 };
 
-function assertEls(){
-  const missing = Object.entries(els).filter(([k,v]) => !v).map(([k]) => k);
-  if(missing.length) throw new Error("Missing DOM elements: " + missing.join(", "));
-}
-assertEls();
-
-/* STATE */
-let inventory = [];     // normalized items for UI
-let rawItems = [];      // raw /items response
-let locations = [];     // raw /locations response
-
-let deletedItems = loadDeleted();
-
-let selectedLane = "Lane 1";
-let selectedMachine = MACHINES[0];
-let locationMode = "lane"; // CRITICAL: prevents machine from overriding lane selection
-let selectedId = null;
-
-let role = "forklift";
-let adminUnlocked = false;
-
-let moveTargetId = null;
-
-/* helpers */
-function normalize(s){ return (s ?? "").trim().toLowerCase(); }
+function normalize(s){ return (s ?? "").toString().trim().toLowerCase(); }
 function onlyDigits(s){ return String(s ?? "").replace(/\D+/g, ""); }
 function escapeHtml(s){
   return String(s ?? "")
     .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
     .replaceAll('"',"&quot;").replaceAll("'","&#039;");
 }
-function nowStamp(){
-  const d = new Date();
-  const mm = String(d.getMonth()+1).padStart(2,'0');
-  const dd = String(d.getDate()).padStart(2,'0');
-  const yy = String(d.getFullYear()).slice(-2);
-  const hh = String(d.getHours()).padStart(2,'0');
-  const mi = String(d.getMinutes()).padStart(2,'0');
-  return `${mm}/${dd}/${yy} ${hh}:${mi}`;
-}
+
+/* STATE */
+let locations = [];
+let locationById = new Map(); // location_id -> {lane, machine, label}
+let inventory = [];           // decorated items for UI
+
+let deletedItems = loadDeleted();
+
+let selectedLane = "Lane 1";
+let selectedMachine = MACHINES[0];
+let selectedId = null;        // item_id
+
+let role = "forklift";
+let adminUnlocked = false;
+
+let moveTargetId = null;
 
 /* deleted history local */
 function saveDeleted(){ localStorage.setItem(DELETED_KEY, JSON.stringify(deletedItems)); }
@@ -659,6 +619,52 @@ function loadDeleted(){
     const data = JSON.parse(raw);
     return Array.isArray(data) ? data : [];
   }catch{return [];}
+}
+
+/* Build location map */
+function buildLocationMap(){
+  locationById = new Map();
+  locations.forEach(loc => {
+    const laneNum = (loc.lane === null || loc.lane === undefined) ? null : Number(loc.lane);
+    const machine = (loc.machine ?? "").toString().trim();
+    const label = machine ? `Machine: ${machine}` : (laneNum ? `Lane ${laneNum}` : "—");
+    locationById.set(Number(loc.location_id), { laneNum, machine, label });
+  });
+}
+
+function getLocationIdForLane(laneStr){
+  const laneNum = parseInt(String(laneStr).replace(/\D/g,""), 10);
+  const row = locations.find(l => Number(l.lane) === laneNum);
+  return row ? Number(row.location_id) : null;
+}
+function getLocationIdForMachine(machine){
+  const row = locations.find(l => String(l.machine ?? "") === String(machine));
+  return row ? Number(row.location_id) : null;
+}
+
+/* Load + decorate inventory */
+async function reloadInventory(){
+  const raw = await apiGet("/items");
+  const arr = Array.isArray(raw) ? raw : [];
+
+  inventory = arr.map(it => {
+    const loc = locationById.get(Number(it.location_id)) || { laneNum:null, machine:"", label:"—" };
+    const laneStr = loc.laneNum ? `Lane ${loc.laneNum}` : "";
+    const machineStr = loc.machine || "";
+
+    return {
+      id: Number(it.item_id),
+      job: String(it.job_number ?? ""),
+      description: String(it.description ?? ""),
+      createdAt: it.created_at ? String(it.created_at) : "",
+      location_id: Number(it.location_id),
+      lane: laneStr,
+      machine: machineStr,
+      locationLabel: loc.label
+    };
+  });
+
+  els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
 }
 
 /* ROLE */
@@ -672,10 +678,9 @@ function setRole(nextRole){
   }
 
   updateRoleUI();
-  renderLaneList();
-  renderMachineList();
-  renderGlobalSearch();
+  renderAll();
 }
+
 function updateRoleUI(){
   const effectiveRole = (role === "admin" && adminUnlocked) ? "ADMIN" : role.toUpperCase();
   els.rolePill.textContent = `ROLE: ${effectiveRole}`;
@@ -687,18 +692,20 @@ function updateRoleUI(){
   const machineRole = role === "machine";
   const admin = (role === "admin" && adminUnlocked);
 
+  // Admin can create (job editable when not selected)
   const canCreate = admin;
   const hasSelection = !!selectedId;
 
-  els.job.disabled = hasSelection || !canCreate;
+  // Machine role cannot create, only update existing
+  if(machineRole && !hasSelection){
+    els.saveBtn.disabled = true;
+  }else{
+    els.saveBtn.disabled = forklift;
+  }
 
-  els.qty.disabled = forklift;
-  els.status.disabled = forklift;
-  els.notes.disabled = forklift;
-  els.updatedBy.disabled = forklift;
-
-  els.saveBtn.disabled = forklift;
   els.newBtn.disabled = forklift;
+  els.job.disabled = hasSelection || !canCreate; // once created locked unless admin creating new
+  els.description.disabled = forklift;          // forklift cannot edit description
 }
 
 /* BUTTONS */
@@ -713,6 +720,7 @@ function buildLaneButtons(){
     els.laneGrid.appendChild(btn);
   }
 }
+
 function buildMachineButtons(){
   els.machineGrid.innerHTML = "";
   MACHINES.forEach(m => {
@@ -723,156 +731,36 @@ function buildMachineButtons(){
     els.machineGrid.appendChild(btn);
   });
 }
+
 function selectLane(lane){
-  locationMode = "lane";
   selectedLane = lane;
   selectedId = null;
-
-  buildLaneButtons();
   els.laneTitle.textContent = lane;
   els.laneSearch.value = "";
-  clearForm();
-
-  renderLaneList();
-  renderGlobalSearch();
+  buildLaneButtons();
+  clearForm(false);
+  renderAll();
 }
 function selectMachine(m){
-  locationMode = "machine";
   selectedMachine = m;
   selectedId = null;
-
-  buildMachineButtons();
   els.machineTitle.textContent = `Machine: ${m}`;
   els.machineSearch.value = "";
-  clearForm();
-
-  renderMachineList();
-  renderGlobalSearch();
-}
-
-/* LOCATION MAPS */
-function getLocationId(row){
-  return row?.location_id ?? row?.id ?? row?.locationId ?? null;
-}
-function laneNumFromLabel(laneLabel){
-  const n = parseInt(String(laneLabel||"").replace(/\D+/g,""), 10);
-  return Number.isFinite(n) ? n : null;
-}
-
-/* THIS IS THE FIX: locationMode decides what we use */
-function getSelectedLocationId(){
-  if(!Array.isArray(locations) || locations.length === 0) return null;
-
-  if(locationMode === "lane"){
-    const laneNum = laneNumFromLabel(selectedLane);
-    if(!laneNum) return null;
-
-    const row = locations.find(l =>
-      Number(l.lane) === laneNum ||
-      Number(l.lane_number) === laneNum ||
-      normalize(l.name) === normalize(`Lane ${laneNum}`)
-    );
-
-    return row ? getLocationId(row) : null;
-  }
-
-  // machine mode
-  const m = String(selectedMachine || "").trim();
-  if(!m) return null;
-
-  const row = locations.find(l =>
-    String(l.machine || "").trim() === m ||
-    normalize(l.name) === normalize(`Machine: ${m}`)
-  );
-
-  return row ? getLocationId(row) : null;
-}
-
-/* NORMALIZE API ITEMS FOR UI */
-function buildLocationLookup(){
-  const byId = new Map();
-  for(const l of (locations || [])){
-    const id = getLocationId(l);
-    if(id == null) continue;
-
-    const laneVal = l.lane ?? l.lane_number ?? null;
-    const machineVal = l.machine ?? null;
-    const nameVal = l.name ?? "";
-
-    let laneLabel = "";
-    let machineLabel = "";
-
-    if(laneVal != null && String(laneVal).trim() !== ""){
-      laneLabel = `Lane ${Number(laneVal)}`;
-    }else if(normalize(nameVal).startsWith("lane ")){
-      laneLabel = nameVal.trim();
-    }
-
-    if(machineVal != null && String(machineVal).trim() !== ""){
-      machineLabel = String(machineVal).trim();
-    }else if(normalize(nameVal).startsWith("machine:")){
-      machineLabel = nameVal.split(":")[1]?.trim() || "";
-    }
-
-    byId.set(id, { laneLabel, machineLabel, raw:l });
-  }
-  return byId;
-}
-
-function normalizeItemsForUI(itemsRaw){
-  const loc = buildLocationLookup();
-  return (itemsRaw || []).map(it => {
-    const id = it.item_id ?? it.id ?? it.itemId ?? it._id ?? null;
-
-    const job = it.job_number ?? it.job ?? it.jobNumber ?? "";
-    const qty = Number.isFinite(it.qty) ? it.qty : parseInt(it.qty || "0",10) || 0;
-    const status = it.status ?? "";
-    const notes = it.notes ?? it.description ?? ""; // fallback to description if notes not present
-    const updatedBy = it.updated_by ?? it.updatedBy ?? "";
-    const createdAt = it.created_at ?? it.createdAt ?? "";
-    const updatedAt = it.updated_at ?? it.updatedAt ?? "";
-
-    const location_id = it.location_id ?? it.locationId ?? null;
-    const locRow = (location_id != null) ? loc.get(location_id) : null;
-
-    const lane = locRow?.laneLabel || "";
-    const machine = locRow?.machineLabel || "";
-
-    return {
-      id,
-      job: String(job),
-      qty,
-      status: String(status),
-      notes: String(notes),
-      updatedBy: String(updatedBy),
-      createdAt: String(createdAt),
-      updatedAt: String(updatedAt),
-      location_id,
-      lane,
-      machine
-    };
-  }).filter(x => x.id != null && String(x.job).trim() !== "");
-}
-
-/* API LOAD */
-async function loadAll(){
-  // locations first
-  locations = await apiGet("/locations");
-  // items
-  rawItems = await apiGet("/items");
-  inventory = normalizeItemsForUI(Array.isArray(rawItems) ? rawItems : []);
+  buildMachineButtons();
+  clearForm(false);
+  renderAll();
 }
 
 /* RENDER */
 function renderLaneList(){
   const q = normalize(els.laneSearch.value);
-  const laneItemsAll = inventory.filter(x => String(x.lane ?? "") === selectedLane);
+  const laneItemsAll = inventory.filter(x => x.lane === selectedLane);
 
   let laneItems = laneItemsAll;
   if(q){
     laneItems = laneItemsAll.filter(x =>
       normalize(x.job).includes(q) ||
-      normalize(x.status).includes(q)
+      normalize(x.description).includes(q)
     );
   }
 
@@ -894,15 +782,10 @@ function renderLaneList(){
     const div = document.createElement("div");
     div.className = "resultItem" + (item.id===selectedId ? " active" : "");
 
-    const by = item.updatedBy ? ` • ${escapeHtml(item.updatedBy)}` : "";
-    const at = item.updatedAt ? ` • ${escapeHtml(item.updatedAt)}` : "";
-    const status = item.status ? escapeHtml(item.status) : "—";
-    const notes = item.notes ? escapeHtml(item.notes) : "—";
-
     div.innerHTML = `
       <div class="big">Job #${escapeHtml(item.job)}</div>
-      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
-      <div class="meta">${escapeHtml(item.lane)} • Notes: ${notes}${by}${at}</div>
+      <div class="meta">${escapeHtml(item.lane)} • ${escapeHtml(item.description || "—")}</div>
+      <div class="tiny">ID: ${item.id} • ${escapeHtml(item.createdAt || "")}</div>
     `;
     div.addEventListener("click", ()=> loadToForm(item.id));
     els.laneResults.appendChild(div);
@@ -911,13 +794,13 @@ function renderLaneList(){
 
 function renderMachineList(){
   const q = normalize(els.machineSearch.value);
-  const machineItemsAll = inventory.filter(x => String(x.machine ?? "") === selectedMachine);
+  const machineItemsAll = inventory.filter(x => x.machine === selectedMachine);
 
   let machineItems = machineItemsAll;
   if(q){
     machineItems = machineItemsAll.filter(x =>
       normalize(x.job).includes(q) ||
-      normalize(x.status).includes(q)
+      normalize(x.description).includes(q)
     );
   }
 
@@ -939,15 +822,10 @@ function renderMachineList(){
     const div = document.createElement("div");
     div.className = "resultItem" + (item.id===selectedId ? " active" : "");
 
-    const by = item.updatedBy ? ` • ${escapeHtml(item.updatedBy)}` : "";
-    const at = item.updatedAt ? ` • ${escapeHtml(item.updatedAt)}` : "";
-    const status = item.status ? escapeHtml(item.status) : "—";
-    const notes = item.notes ? escapeHtml(item.notes) : "—";
-
     div.innerHTML = `
       <div class="big">Job #${escapeHtml(item.job)}</div>
-      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
-      <div class="meta">Machine: ${escapeHtml(item.machine)} • Notes: ${notes}${by}${at}</div>
+      <div class="meta">Machine: ${escapeHtml(item.machine)} • ${escapeHtml(item.description || "—")}</div>
+      <div class="tiny">ID: ${item.id} • ${escapeHtml(item.createdAt || "")}</div>
     `;
     div.addEventListener("click", ()=> loadToForm(item.id));
     els.machineResults.appendChild(div);
@@ -965,7 +843,7 @@ function renderGlobalSearch(){
 
   const matches = inventory
     .filter(x => normalize(x.job).includes(q))
-    .slice(0, 15);
+    .slice(0, 20);
 
   if(matches.length === 0){
     els.globalResults.innerHTML = `<div style="color:var(--muted)">No match found.</div>`;
@@ -976,26 +854,12 @@ function renderGlobalSearch(){
     const div = document.createElement("div");
     div.className = "resultItem";
 
-    const created = item.createdAt ? escapeHtml(item.createdAt) : "—";
-    const updated = item.updatedAt ? escapeHtml(item.updatedAt) : "—";
-    const status = item.status ? escapeHtml(item.status) : "—";
-    const notes = item.notes ? escapeHtml(item.notes) : "—";
-
     const canMove = (role === "forklift") || (role === "admin" && adminUnlocked);
-
-    const location = item.machine
-      ? `Machine: ${escapeHtml(item.machine)}`
-      : (item.lane ? escapeHtml(item.lane) : "—");
 
     div.innerHTML = `
       <div class="big">Job #${escapeHtml(item.job)}</div>
-      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
-      <div class="meta">
-        ${location}
-        • Added: ${created}
-        • Updated: ${updated}
-        • Notes: ${notes}
-      </div>
+      <div class="meta">${escapeHtml(item.locationLabel)} • ${escapeHtml(item.description || "—")}</div>
+      <div class="tiny">ID: ${item.id}</div>
       ${canMove ? `
         <div class="btnRow" style="margin-top:10px;">
           <button class="primary" data-move="1">Move</button>
@@ -1012,11 +876,8 @@ function renderGlobalSearch(){
     }
 
     div.addEventListener("click", () => {
-      if(item.machine){
-        selectMachine(item.machine);
-      }else if(item.lane){
-        selectLane(item.lane);
-      }
+      if(item.machine) selectMachine(item.machine);
+      else if(item.lane) selectLane(item.lane);
       loadToForm(item.id);
     });
 
@@ -1024,42 +885,45 @@ function renderGlobalSearch(){
   });
 }
 
+function renderAll(){
+  renderLaneList();
+  renderMachineList();
+  renderGlobalSearch();
+  if(els.historyPanel && els.historyPanel.style.display !== "none") renderHistory();
+}
+
 /* FORM */
-function clearForm(){
-  selectedId = null;
+function clearForm(clearSelection=true){
+  if(clearSelection) selectedId = null;
   els.job.value = "";
-  els.qty.value = "";
-  els.status.value = "";
-  els.notes.value = "";
-  els.updatedBy.value = "";
+  els.description.value = "";
   updateRoleUI();
 }
+
 function loadToForm(id){
   const item = inventory.find(x => x.id === id);
   if(!item) return;
   selectedId = id;
 
   els.job.value = item.job ?? "";
-  els.qty.value = String(item.qty ?? 0);
-  els.status.value = item.status ?? "";
-  els.notes.value = item.notes ?? "";
-  els.updatedBy.value = item.updatedBy ?? "";
+  els.description.value = item.description ?? "";
 
   updateRoleUI();
-  renderLaneList();
-  renderMachineList();
+  renderAll();
 }
 
-/* SAVE/UPDATE (API) */
+/* CREATE/UPDATE */
 async function upsertItem(){
+  const forklift = role === "forklift";
   const machineRole = role === "machine";
   const admin = (role === "admin" && adminUnlocked);
 
-  if(!(machineRole || admin)){
+  if(forklift){
     alert("Forklift role cannot edit job details.");
     return;
   }
 
+  // Machine can only update selected
   if(machineRole && !selectedId){
     alert("Machine role cannot create new jobs. Ask Admin.");
     return;
@@ -1072,55 +936,55 @@ async function upsertItem(){
     return;
   }
 
-  const location_id = getSelectedLocationId();
+  const description = (els.description.value || "").trim().slice(0, 200);
+
+  // Pick location from current lane/machine selection:
+  // If machine tab is selected, we still allow lane selection to exist.
+  // Move operations should be used for changing location — but on create we must set something.
+  const currentLaneLoc = getLocationIdForLane(selectedLane);
+  const currentMachineLoc = getLocationIdForMachine(selectedMachine);
+
+  // Default create location: lane selection (lane 1..12)
+  // If you want default to machine instead, swap priority.
+  const location_id = currentLaneLoc || currentMachineLoc;
+
   if(!location_id){
-    alert("No location selected (pick a lane or machine).");
+    alert("No location found. Check /locations seeding.");
     return;
-  }
-
-  const payload = {
-    job_number: jobRaw,
-    // include optional fields; if backend ignores them, fine
-    qty: Math.max(0, parseInt(els.qty.value || "0", 10)),
-    status: (els.status.value || "").trim().slice(0, 40),
-    notes: (els.notes.value || "").trim().slice(0, 120),
-    updated_by: (els.updatedBy.value || "").trim().slice(0, 10),
-    location_id
-  };
-
-  // block duplicates only when creating
-  if(!selectedId){
-    const exists = inventory.some(x => normalize(x.job) === normalize(jobRaw));
-    if(exists){
-      alert("That Job # already exists. Search it and update it instead.");
-      return;
-    }
   }
 
   try{
     if(selectedId){
-      await apiPut(`/items/${selectedId}`, payload);
+      // UPDATE: description only (and optionally location if your API accepts it)
+      await apiPut(`/items/${selectedId}`, { description });
     }else{
-      await apiPost(`/items`, payload);
+      // CREATE: admin only
+      if(!admin){
+        alert("Only Admin can create new jobs.");
+        return;
+      }
+
+      // prevent duplicates in UI (DB should also enforce unique if you add it later)
+      const exists = inventory.some(x => normalize(x.job) === normalize(jobRaw));
+      if(exists){
+        alert("That Job # already exists. Search it and update it instead.");
+        return;
+      }
+
+      await apiPost(`/items`, { job_number: jobRaw, description, location_id });
     }
 
-    await loadAll();
-    els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
-
-    renderLaneList();
-    renderMachineList();
-    renderGlobalSearch();
-    if(els.historyPanel && els.historyPanel.style.display !== "none") renderHistory();
-
-    clearForm();
+    await reloadInventory();
+    clearForm(true);
+    renderAll();
   }catch(err){
     console.error("SAVE FAILED", err);
     alert("Save failed. Open DevTools → Network and check the /items request.");
   }
 }
 
-/* DELETE (LOCAL ONLY FOR NOW) */
-function deleteSelected(){
+/* DELETE */
+async function deleteSelected(){
   const admin = (role === "admin" && adminUnlocked);
   if(!admin){
     alert("Only Admin can delete.");
@@ -1129,26 +993,27 @@ function deleteSelected(){
   if(!selectedId) return;
 
   const item = inventory.find(x => x.id === selectedId);
-  const ok = confirm(`Delete Job #${item?.job ?? ""}? (It will go to History)`);
+  const ok = confirm(`Delete Job #${item?.job ?? ""}? (It will go to local History)`);
   if(!ok) return;
 
-  const toDelete = inventory.find(x => x.id === selectedId);
-  if(toDelete){
-    deletedItems.unshift({ ...toDelete, deletedAt: nowStamp() });
-    saveDeleted();
+  try{
+    await apiDel(`/items/${selectedId}`);
+
+    if(item){
+      deletedItems.unshift({ ...item, deletedAt: new Date().toISOString() });
+      saveDeleted();
+    }
+
+    await reloadInventory();
+    clearForm(true);
+    renderAll();
+  }catch(err){
+    console.error("DELETE FAILED", err);
+    alert("Delete failed. Check Network tab for DELETE /items/:id.");
   }
-
-  inventory = inventory.filter(x => x.id !== selectedId);
-  els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
-
-  clearForm();
-  renderLaneList();
-  renderMachineList();
-  renderGlobalSearch();
-  if(els.historyPanel.style.display !== "none") renderHistory();
 }
 
-/* MOVE OVERLAY (API MOVE VIA PUT location_id) */
+/* MOVE OVERLAY (DB WRITE) */
 function openMoveOverlay(id){
   const item = inventory.find(x => x.id === id);
   if(!item) return;
@@ -1169,7 +1034,7 @@ function openMoveOverlay(id){
     btn.className = "laneBtn";
     btn.textContent = lane;
     btn.addEventListener("click", async () => {
-      await moveItemToLane(moveTargetId, lane);
+      await moveToLane(moveTargetId, lane);
       closeMoveOverlay();
     });
     els.moveLaneGrid.appendChild(btn);
@@ -1181,7 +1046,7 @@ function openMoveOverlay(id){
     btn.className = "laneBtn";
     btn.textContent = m;
     btn.addEventListener("click", async () => {
-      await moveItemToMachine(moveTargetId, m);
+      await moveToMachine(moveTargetId, m);
       closeMoveOverlay();
     });
     els.moveMachineGrid.appendChild(btn);
@@ -1189,59 +1054,47 @@ function openMoveOverlay(id){
 
   els.moveOverlay.classList.add("show");
 }
+
 function closeMoveOverlay(){
   els.moveOverlay.classList.remove("show");
   moveTargetId = null;
 }
 
-async function moveItemToLane(id, laneLabel){
-  // set mode/lane for correct location lookup
-  locationMode = "lane";
-  selectedLane = laneLabel;
-  buildLaneButtons();
-  els.laneTitle.textContent = selectedLane;
-
-  const location_id = getSelectedLocationId();
-  if(!location_id){
-    alert("Lane not found in /locations. Check DB seed for lanes 1–12.");
+async function moveToLane(id, lane){
+  const locId = getLocationIdForLane(lane);
+  if(!locId){
+    alert("Lane location not found in /locations.");
     return;
   }
-
   try{
-    await apiPut(`/items/${id}`, { location_id });
-    await loadAll();
-    els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
-    selectLane(laneLabel);
+    await apiPut(`/items/${id}`, { location_id: locId });
+    await reloadInventory();
+    selectLane(lane);
+    loadToForm(id);
   }catch(err){
-    console.error("MOVE FAILED", err);
-    alert("Move failed. Check DevTools → Network for the PUT /items/:id request.");
+    console.error("MOVE TO LANE FAILED", err);
+    alert("Move failed. Check PUT /items/:id payload.");
   }
 }
 
-async function moveItemToMachine(id, machineLabel){
-  locationMode = "machine";
-  selectedMachine = machineLabel;
-  buildMachineButtons();
-  els.machineTitle.textContent = `Machine: ${selectedMachine}`;
-
-  const location_id = getSelectedLocationId();
-  if(!location_id){
-    alert("Machine not found in /locations. If you haven't seeded machine locations yet, machines cannot be saved/moved.");
+async function moveToMachine(id, machine){
+  const locId = getLocationIdForMachine(machine);
+  if(!locId){
+    alert("Machine location not found in /locations.");
     return;
   }
-
   try{
-    await apiPut(`/items/${id}`, { location_id });
-    await loadAll();
-    els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
-    selectMachine(machineLabel);
+    await apiPut(`/items/${id}`, { location_id: locId });
+    await reloadInventory();
+    selectMachine(machine);
+    loadToForm(id);
   }catch(err){
-    console.error("MOVE FAILED", err);
-    alert("Move failed. Check DevTools → Network for the PUT /items/:id request.");
+    console.error("MOVE TO MACHINE FAILED", err);
+    alert("Move failed. Check PUT /items/:id payload.");
   }
 }
 
-/* HISTORY */
+/* HISTORY (local only) */
 function toggleHistory(){
   const open = els.historyPanel.style.display !== "none";
   els.historyPanel.style.display = open ? "none" : "block";
@@ -1250,6 +1103,7 @@ function toggleHistory(){
     renderHistory();
   }
 }
+
 function renderHistory(){
   const q = normalize(els.historySearch.value);
   els.historyResults.innerHTML = "";
@@ -1268,63 +1122,17 @@ function renderHistory(){
     return;
   }
 
-  list.slice(0, 60).forEach(item => {
+  list.slice(0, 80).forEach(item => {
     const div = document.createElement("div");
     div.className = "resultItem";
 
-    const when = item.deletedAt ? escapeHtml(item.deletedAt) : "—";
-    const status = item.status ? escapeHtml(item.status) : "—";
-    const notes = item.notes ? escapeHtml(item.notes) : "—";
-
-    const wasWhere = item.machine
-      ? `Machine: ${escapeHtml(item.machine)}`
-      : `Was: ${escapeHtml(item.lane || "—")}`;
-
-    const canRestore = (role === "admin" && adminUnlocked);
-
     div.innerHTML = `
       <div class="big">Job #${escapeHtml(item.job)}</div>
-      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
-      <div class="meta">${wasWhere} • Deleted: ${when} • Notes: ${notes}</div>
-      ${canRestore ? `
-        <div class="btnRow" style="margin-top:10px;">
-          <button class="primary" data-restore="1">Restore</button>
-        </div>
-      ` : `<div class="tiny">Admin required to restore.</div>`}
+      <div class="meta">${escapeHtml(item.locationLabel || (item.lane || item.machine || "—"))} • ${escapeHtml(item.description || "—")}</div>
+      <div class="tiny">Deleted: ${escapeHtml(item.deletedAt || "—")}</div>
     `;
-
-    const restoreBtn = div.querySelector('[data-restore]');
-    if(restoreBtn){
-      restoreBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        restoreDeleted(item.id);
-      });
-    }
-
     els.historyResults.appendChild(div);
   });
-}
-function restoreDeleted(id){
-  const admin = (role === "admin" && adminUnlocked);
-  if(!admin){
-    alert("Only Admin can restore.");
-    return;
-  }
-
-  const idx = deletedItems.findIndex(x => x.id === id);
-  if(idx < 0) return;
-
-  const item = deletedItems[idx];
-  deletedItems.splice(idx, 1);
-  saveDeleted();
-
-  inventory.unshift({ ...item, deletedAt: undefined });
-
-  els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
-  renderLaneList();
-  renderMachineList();
-  renderGlobalSearch();
-  renderHistory();
 }
 
 /* BACKUP */
@@ -1338,58 +1146,35 @@ function exportJson(){
   a.remove();
   URL.revokeObjectURL(a.href);
 }
+
 function importJsonFile(file){
+  // This import is UI-only: it does NOT push to DB.
+  // Use it for offline review/testing.
   const reader = new FileReader();
   reader.onload = () => {
     try{
       const data = JSON.parse(reader.result);
       if(!Array.isArray(data)) throw new Error("Invalid file format.");
-
       inventory = data.map(x => ({
-        id: x.id,
-        job: onlyDigits(x.job ?? x.job_number ?? ""),
+        id: Number(x.id || x.item_id || 0),
+        job: String(x.job || x.job_number || ""),
+        description: String(x.description || ""),
+        createdAt: String(x.createdAt || x.created_at || ""),
+        location_id: Number(x.location_id || 0),
         lane: String(x.lane || ""),
         machine: String(x.machine || ""),
-        qty: Number.isFinite(x.qty) ? x.qty : parseInt(x.qty || "0",10) || 0,
-        status: String(x.status || ""),
-        notes: String(x.notes || ""),
-        updatedBy: String(x.updatedBy || "").slice(0,10),
-        createdAt: String(x.createdAt || ""),
-        updatedAt: String(x.updatedAt || "")
-      })).filter(x => String(x.job).length > 0);
+        locationLabel: String(x.locationLabel || "")
+      })).filter(x => x.job);
 
       els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
-      clearForm();
-      renderLaneList();
-      renderMachineList();
-      renderGlobalSearch();
-      alert("Import complete.");
+      clearForm(true);
+      renderAll();
+      alert("Import loaded into UI (not saved to DB).");
     }catch(e){
       alert("Import failed: " + e.message);
     }
   };
   reader.readAsText(file);
-}
-function seedDemo(){
-  const stamp = nowStamp();
-  inventory = [
-    { id:"demo1", job:"400848", lane:"Lane 7", machine:"", qty:12, status:"WAITING", notes:"", updatedBy:"TR", createdAt:stamp, updatedAt:stamp },
-    { id:"demo2", job:"70800",  lane:"", machine:"S8", qty:30, status:"RUNNING", notes:"", updatedBy:"TR", createdAt:stamp, updatedAt:stamp },
-    { id:"demo3", job:"123456", lane:"Lane 1", machine:"", qty:50, status:"READY",   notes:"", updatedBy:"TR", createdAt:stamp, updatedAt:stamp },
-    ...inventory
-  ];
-  const seen = new Set();
-  inventory = inventory.filter(x => {
-    const key = normalize(x.job);
-    if(seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-
-  els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
-  renderLaneList();
-  renderMachineList();
-  renderGlobalSearch();
 }
 
 /* FULLSCREEN */
@@ -1407,7 +1192,7 @@ els.laneSearch.addEventListener("input", renderLaneList);
 els.machineSearch.addEventListener("input", renderMachineList);
 
 els.saveBtn.addEventListener("click", upsertItem);
-els.newBtn.addEventListener("click", clearForm);
+els.newBtn.addEventListener("click", () => clearForm(true));
 els.deleteBtn.addEventListener("click", deleteSelected);
 
 els.exportBtn.addEventListener("click", exportJson);
@@ -1417,7 +1202,6 @@ els.fileInput.addEventListener("change", (e) => {
   if(file) importJsonFile(file);
   els.fileInput.value = "";
 });
-els.seedBtn.addEventListener("click", seedDemo);
 
 els.historyBtn.addEventListener("click", toggleHistory);
 els.historySearch.addEventListener("input", renderHistory);
@@ -1430,12 +1214,10 @@ els.moveOverlay.addEventListener("click", (e) => {
 /* Role events */
 els.roleSelect.addEventListener("change", (e) => {
   const v = e.target.value;
-  if(v === "admin"){
-    setRole("admin");
-  }else{
-    setRole(v);
-  }
+  if(v === "admin") setRole("admin");
+  else setRole(v);
 });
+
 els.adminUnlockBtn.addEventListener("click", () => {
   const pin = prompt("Enter Admin PIN:");
   if(pin === null) return;
@@ -1451,8 +1233,9 @@ els.adminUnlockBtn.addEventListener("click", () => {
   els.adminLockBtn.style.display = "inline-block";
   els.roleSelect.value = "admin";
   updateRoleUI();
-  renderGlobalSearch();
+  renderAll();
 });
+
 els.adminLockBtn.addEventListener("click", () => {
   adminUnlocked = false;
   els.adminLockBtn.style.display = "none";
@@ -1479,38 +1262,36 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-/* INIT — buttons first, API second */
+[els.job, els.description].forEach(el => {
+  el.addEventListener("keydown", (e) => {
+    if(e.key === "Enter"){
+      e.preventDefault();
+      if(!els.saveBtn.disabled) upsertItem();
+    }
+  });
+});
+
+/* INIT (ONLY ONCE) */
 (async () => {
-  console.log("TRACE INIT", new Date().toISOString());
-
-  // show UI instantly
-  buildLaneButtons();
-  buildMachineButtons();
-  els.laneTitle.textContent = selectedLane;
-  els.machineTitle.textContent = `Machine: ${selectedMachine}`;
-  locationMode = "lane";          // CRITICAL DEFAULT
-  setRole("forklift");
-
-  els.globalResults.innerHTML = `<div style="color:var(--muted)">Loading...</div>`;
+  console.log("INIT RUN", new Date().toISOString());
 
   try{
-    // quick health check
-    apiGet("/health").then(d => console.log("API CONNECTED", d)).catch(()=>{});
+    locations = await apiGet("/locations");
+    buildLocationMap();
 
-    await loadAll();
-    els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
+    await reloadInventory();
 
-    renderLaneList();
-    renderMachineList();
-    renderGlobalSearch();
+    buildLaneButtons();
+    buildMachineButtons();
+
+    els.laneTitle.textContent = selectedLane;
+    els.machineTitle.textContent = `Machine: ${selectedMachine}`;
+
+    setRole("forklift");
+    renderAll();
   }catch(err){
-    console.error("INIT FAILED", err);
-    els.globalResults.innerHTML = `
-      <div style="color:var(--bad); font-weight:900;">API ERROR</div>
-      <div style="color:var(--muted); margin-top:6px;">
-        Buttons still work. Open DevTools → Network and check /locations + /items.
-      </div>
-    `;
+    console.error("Init failed:", err);
+    alert("Init failed. Check console + Network. Most likely /locations or /items error.");
   }
 })();
 </script>
