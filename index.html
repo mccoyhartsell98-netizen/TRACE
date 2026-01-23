@@ -640,6 +640,7 @@ assertEls();
 
 /* STATE (ONLY ONCE) */
 let inventory = [];
+let locations = [];
 let deletedItems = loadDeleted();
 
 let selectedLane = "Lane 1";
@@ -974,15 +975,34 @@ function loadToForm(id){
    Your create/update/delete currently only changes local UI state.
    If you want, next step I’ll wire these to real API POST/PUT/DELETE endpoints.
 */
-function upsertItem(){
+function getSelectedLocationId(){
+  // If machine selected, match by machine value
+  if(selectedMachine){
+    const row = locations.find(l => String(l.machine || "") === String(selectedMachine));
+    return row ? row.location_id : null;
+  }
+
+  // If lane selected, match by lane number
+  const laneNum = selectedLane ? parseInt(String(selectedLane).replace(/\D/g, ""), 10) : null;
+  if(laneNum){
+    const row = locations.find(l => Number(l.lane) === laneNum);
+    return row ? row.location_id : null;
+  }
+
+  return null;
+}
+
+async function upsertItem(){
   const machineRole = role === "machine";
   const admin = (role === "admin" && adminUnlocked);
 
+  // Forklift role cannot edit job details
   if(!(machineRole || admin)){
     alert("Forklift role cannot edit job details.");
     return;
   }
 
+  // Machine role cannot create new jobs
   if(machineRole && !selectedId){
     alert("Machine role cannot create new jobs. Ask Admin.");
     return;
@@ -996,29 +1016,50 @@ function upsertItem(){
   }
 
   const qty = Math.max(0, parseInt(els.qty.value || "0", 10));
-  const status = els.status.value.trim().slice(0, 40);
-  const notes = els.notes.value.trim().slice(0, 120);
-  const updatedBy = els.updatedBy.value.trim().slice(0, 10);
-  const stamp = nowStamp();
+  const status = (els.status.value || "").trim().slice(0, 40);
+  const notes  = (els.notes.value  || "").trim().slice(0, 120);
+  const updatedBy = (els.updatedBy.value || "").trim().slice(0, 10);
 
-  if(selectedId){
-    const idx = inventory.findIndex(x => x.id === selectedId);
-    if(idx >= 0){
-      inventory[idx] = {
-        ...inventory[idx],
-        qty,
-        status,
-        notes,
-        updatedBy,
-        updatedAt: stamp
-      };
-      renderLaneList();
-      renderMachineList();
-      renderGlobalSearch();
-      return;
-    }
+  const location_id = getSelectedLocationId();
+  if(!location_id){
+    alert("No location selected (pick a lane or machine).");
+    return;
   }
 
+  const payload = {
+    job_number: jobRaw,
+    qty,
+    status,
+    notes,
+    updated_by: updatedBy,     // if your API ignores it, no harm
+    location_id
+  };
+
+  try{
+    if(selectedId){
+      // UPDATE existing item
+      await apiPut(`/items/${selectedId}`, payload);
+    }else{
+      // CREATE new item
+      await apiPost(`/items`, payload);
+    }
+
+    // THIS is what makes phone + PC match:
+    // always reload from DB after save
+    inventory = await loadInventory();
+    els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
+
+    renderLaneList();
+    renderMachineList();
+    renderGlobalSearch();
+    if(els.historyPanel && els.historyPanel.style.display !== "none") renderHistory();
+
+    clearForm();
+  }catch(err){
+    console.error("SAVE FAILED", err);
+    alert("Save failed. Open Network tab and check the /items request.");
+  }
+}
   const exists = inventory.some(x => normalize(x.job) === normalize(jobRaw));
   if(exists){
     alert("That Job # already exists. Search it and update it instead.");
@@ -1425,6 +1466,7 @@ document.addEventListener("keydown", (e) => {
   console.log("INIT RUN", new Date().toISOString()); // 
 
   try{
+    locations = await apiGet("/locations");
     inventory = await loadInventory();
     els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
 
