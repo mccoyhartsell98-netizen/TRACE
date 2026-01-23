@@ -513,7 +513,9 @@
 
 <script>
 /* =========================
-   TRACE — FIXED (BUTTONS ALWAYS SHOW)
+   TRACE — OPERATIONAL BUILD
+   Buttons ALWAYS show.
+   Location selection ALWAYS correct.
    ========================= */
 
 /* API */
@@ -548,14 +550,10 @@ async function apiDel(path){
   return r.json();
 }
 
-apiGet("/health")
-  .then(d => console.log("API CONNECTED", d))
-  .catch(e => console.error("API FAILED", e));
-
 /* local deleted history */
 const DELETED_KEY = "trace_simple_deleted_v1";
 
-/* MACHINES */
+/* MACHINES (UI labels only) */
 const MACHINES = ["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane"];
 
 /* CHANGE THIS PIN ANYTIME */
@@ -618,12 +616,15 @@ function assertEls(){
 assertEls();
 
 /* STATE */
-let inventory = [];
-let locations = [];
+let inventory = [];     // normalized items for UI
+let rawItems = [];      // raw /items response
+let locations = [];     // raw /locations response
+
 let deletedItems = loadDeleted();
 
 let selectedLane = "Lane 1";
 let selectedMachine = MACHINES[0];
+let locationMode = "lane"; // CRITICAL: prevents machine from overriding lane selection
 let selectedId = null;
 
 let role = "forklift";
@@ -634,7 +635,11 @@ let moveTargetId = null;
 /* helpers */
 function normalize(s){ return (s ?? "").trim().toLowerCase(); }
 function onlyDigits(s){ return String(s ?? "").replace(/\D+/g, ""); }
-
+function escapeHtml(s){
+  return String(s ?? "")
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
 function nowStamp(){
   const d = new Date();
   const mm = String(d.getMonth()+1).padStart(2,'0');
@@ -643,23 +648,6 @@ function nowStamp(){
   const hh = String(d.getHours()).padStart(2,'0');
   const mi = String(d.getMinutes()).padStart(2,'0');
   return `${mm}/${dd}/${yy} ${hh}:${mi}`;
-}
-
-function escapeHtml(s){
-  return String(s ?? "")
-    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
-}
-
-/* data load */
-async function loadInventory(){
-  try{
-    const data = await apiGet("/items");
-    return Array.isArray(data) ? data : [];
-  }catch(err){
-    console.error("Failed to load inventory from API", err);
-    return [];
-  }
 }
 
 /* deleted history local */
@@ -673,7 +661,7 @@ function loadDeleted(){
   }catch{return [];}
 }
 
-/* role */
+/* ROLE */
 function setRole(nextRole){
   role = nextRole;
 
@@ -688,7 +676,6 @@ function setRole(nextRole){
   renderMachineList();
   renderGlobalSearch();
 }
-
 function updateRoleUI(){
   const effectiveRole = (role === "admin" && adminUnlocked) ? "ADMIN" : role.toUpperCase();
   els.rolePill.textContent = `ROLE: ${effectiveRole}`;
@@ -714,7 +701,7 @@ function updateRoleUI(){
   els.newBtn.disabled = forklift;
 }
 
-/* lanes buttons */
+/* BUTTONS */
 function buildLaneButtons(){
   els.laneGrid.innerHTML = "";
   for(let i=1;i<=12;i++){
@@ -726,19 +713,6 @@ function buildLaneButtons(){
     els.laneGrid.appendChild(btn);
   }
 }
-
-function selectLane(lane){
-  selectedLane = lane;
-  selectedId = null;
-  buildLaneButtons();
-  els.laneTitle.textContent = lane;
-  els.laneSearch.value = "";
-  clearForm();
-  renderLaneList();
-  renderGlobalSearch();
-}
-
-/* machine buttons */
 function buildMachineButtons(){
   els.machineGrid.innerHTML = "";
   MACHINES.forEach(m => {
@@ -749,19 +723,147 @@ function buildMachineButtons(){
     els.machineGrid.appendChild(btn);
   });
 }
+function selectLane(lane){
+  locationMode = "lane";
+  selectedLane = lane;
+  selectedId = null;
 
+  buildLaneButtons();
+  els.laneTitle.textContent = lane;
+  els.laneSearch.value = "";
+  clearForm();
+
+  renderLaneList();
+  renderGlobalSearch();
+}
 function selectMachine(m){
+  locationMode = "machine";
   selectedMachine = m;
   selectedId = null;
+
   buildMachineButtons();
   els.machineTitle.textContent = `Machine: ${m}`;
   els.machineSearch.value = "";
   clearForm();
+
   renderMachineList();
   renderGlobalSearch();
 }
 
-/* render lists */
+/* LOCATION MAPS */
+function getLocationId(row){
+  return row?.location_id ?? row?.id ?? row?.locationId ?? null;
+}
+function laneNumFromLabel(laneLabel){
+  const n = parseInt(String(laneLabel||"").replace(/\D+/g,""), 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+/* THIS IS THE FIX: locationMode decides what we use */
+function getSelectedLocationId(){
+  if(!Array.isArray(locations) || locations.length === 0) return null;
+
+  if(locationMode === "lane"){
+    const laneNum = laneNumFromLabel(selectedLane);
+    if(!laneNum) return null;
+
+    const row = locations.find(l =>
+      Number(l.lane) === laneNum ||
+      Number(l.lane_number) === laneNum ||
+      normalize(l.name) === normalize(`Lane ${laneNum}`)
+    );
+
+    return row ? getLocationId(row) : null;
+  }
+
+  // machine mode
+  const m = String(selectedMachine || "").trim();
+  if(!m) return null;
+
+  const row = locations.find(l =>
+    String(l.machine || "").trim() === m ||
+    normalize(l.name) === normalize(`Machine: ${m}`)
+  );
+
+  return row ? getLocationId(row) : null;
+}
+
+/* NORMALIZE API ITEMS FOR UI */
+function buildLocationLookup(){
+  const byId = new Map();
+  for(const l of (locations || [])){
+    const id = getLocationId(l);
+    if(id == null) continue;
+
+    const laneVal = l.lane ?? l.lane_number ?? null;
+    const machineVal = l.machine ?? null;
+    const nameVal = l.name ?? "";
+
+    let laneLabel = "";
+    let machineLabel = "";
+
+    if(laneVal != null && String(laneVal).trim() !== ""){
+      laneLabel = `Lane ${Number(laneVal)}`;
+    }else if(normalize(nameVal).startsWith("lane ")){
+      laneLabel = nameVal.trim();
+    }
+
+    if(machineVal != null && String(machineVal).trim() !== ""){
+      machineLabel = String(machineVal).trim();
+    }else if(normalize(nameVal).startsWith("machine:")){
+      machineLabel = nameVal.split(":")[1]?.trim() || "";
+    }
+
+    byId.set(id, { laneLabel, machineLabel, raw:l });
+  }
+  return byId;
+}
+
+function normalizeItemsForUI(itemsRaw){
+  const loc = buildLocationLookup();
+  return (itemsRaw || []).map(it => {
+    const id = it.item_id ?? it.id ?? it.itemId ?? it._id ?? null;
+
+    const job = it.job_number ?? it.job ?? it.jobNumber ?? "";
+    const qty = Number.isFinite(it.qty) ? it.qty : parseInt(it.qty || "0",10) || 0;
+    const status = it.status ?? "";
+    const notes = it.notes ?? it.description ?? ""; // fallback to description if notes not present
+    const updatedBy = it.updated_by ?? it.updatedBy ?? "";
+    const createdAt = it.created_at ?? it.createdAt ?? "";
+    const updatedAt = it.updated_at ?? it.updatedAt ?? "";
+
+    const location_id = it.location_id ?? it.locationId ?? null;
+    const locRow = (location_id != null) ? loc.get(location_id) : null;
+
+    const lane = locRow?.laneLabel || "";
+    const machine = locRow?.machineLabel || "";
+
+    return {
+      id,
+      job: String(job),
+      qty,
+      status: String(status),
+      notes: String(notes),
+      updatedBy: String(updatedBy),
+      createdAt: String(createdAt),
+      updatedAt: String(updatedAt),
+      location_id,
+      lane,
+      machine
+    };
+  }).filter(x => x.id != null && String(x.job).trim() !== "");
+}
+
+/* API LOAD */
+async function loadAll(){
+  // locations first
+  locations = await apiGet("/locations");
+  // items
+  rawItems = await apiGet("/items");
+  inventory = normalizeItemsForUI(Array.isArray(rawItems) ? rawItems : []);
+}
+
+/* RENDER */
 function renderLaneList(){
   const q = normalize(els.laneSearch.value);
   const laneItemsAll = inventory.filter(x => String(x.lane ?? "") === selectedLane);
@@ -922,7 +1024,7 @@ function renderGlobalSearch(){
   });
 }
 
-/* form */
+/* FORM */
 function clearForm(){
   selectedId = null;
   els.job.value = "";
@@ -932,7 +1034,6 @@ function clearForm(){
   els.updatedBy.value = "";
   updateRoleUI();
 }
-
 function loadToForm(id){
   const item = inventory.find(x => x.id === id);
   if(!item) return;
@@ -949,24 +1050,7 @@ function loadToForm(id){
   renderMachineList();
 }
 
-/* location lookup */
-function getSelectedLocationId(){
-  // machine selected
-  if(selectedMachine){
-    const row = locations.find(l => String(l.machine || "") === String(selectedMachine));
-    if(row) return row.location_id;
-  }
-
-  // lane selected
-  const laneNum = selectedLane ? parseInt(String(selectedLane).replace(/\D/g, ""), 10) : null;
-  if(laneNum){
-    const row = locations.find(l => Number(l.lane) === laneNum);
-    if(row) return row.location_id;
-  }
-  return null;
-}
-
-/* SAVE/UPDATE (API ONLY) */
+/* SAVE/UPDATE (API) */
 async function upsertItem(){
   const machineRole = role === "machine";
   const admin = (role === "admin" && adminUnlocked);
@@ -988,11 +1072,6 @@ async function upsertItem(){
     return;
   }
 
-  const qty = Math.max(0, parseInt(els.qty.value || "0", 10));
-  const status = (els.status.value || "").trim().slice(0, 40);
-  const notes  = (els.notes.value  || "").trim().slice(0, 120);
-  const updatedBy = (els.updatedBy.value || "").trim().slice(0, 10);
-
   const location_id = getSelectedLocationId();
   if(!location_id){
     alert("No location selected (pick a lane or machine).");
@@ -1001,14 +1080,15 @@ async function upsertItem(){
 
   const payload = {
     job_number: jobRaw,
-    qty,
-    status,
-    notes,
-    updated_by: updatedBy,
+    // include optional fields; if backend ignores them, fine
+    qty: Math.max(0, parseInt(els.qty.value || "0", 10)),
+    status: (els.status.value || "").trim().slice(0, 40),
+    notes: (els.notes.value || "").trim().slice(0, 120),
+    updated_by: (els.updatedBy.value || "").trim().slice(0, 10),
     location_id
   };
 
-  // only block duplicates when creating
+  // block duplicates only when creating
   if(!selectedId){
     const exists = inventory.some(x => normalize(x.job) === normalize(jobRaw));
     if(exists){
@@ -1024,7 +1104,7 @@ async function upsertItem(){
       await apiPost(`/items`, payload);
     }
 
-    inventory = await loadInventory();
+    await loadAll();
     els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
 
     renderLaneList();
@@ -1068,7 +1148,7 @@ function deleteSelected(){
   if(els.historyPanel.style.display !== "none") renderHistory();
 }
 
-/* move overlay (LOCAL ONLY FOR NOW) */
+/* MOVE OVERLAY (API MOVE VIA PUT location_id) */
 function openMoveOverlay(id){
   const item = inventory.find(x => x.id === id);
   if(!item) return;
@@ -1088,8 +1168,8 @@ function openMoveOverlay(id){
     const btn = document.createElement("div");
     btn.className = "laneBtn";
     btn.textContent = lane;
-    btn.addEventListener("click", () => {
-      moveToLane(moveTargetId, lane);
+    btn.addEventListener("click", async () => {
+      await moveItemToLane(moveTargetId, lane);
       closeMoveOverlay();
     });
     els.moveLaneGrid.appendChild(btn);
@@ -1100,8 +1180,8 @@ function openMoveOverlay(id){
     const btn = document.createElement("div");
     btn.className = "laneBtn";
     btn.textContent = m;
-    btn.addEventListener("click", () => {
-      moveToMachine(moveTargetId, m);
+    btn.addEventListener("click", async () => {
+      await moveItemToMachine(moveTargetId, m);
       closeMoveOverlay();
     });
     els.moveMachineGrid.appendChild(btn);
@@ -1109,41 +1189,59 @@ function openMoveOverlay(id){
 
   els.moveOverlay.classList.add("show");
 }
-
 function closeMoveOverlay(){
   els.moveOverlay.classList.remove("show");
   moveTargetId = null;
 }
 
-function moveToLane(id, lane){
-  const item = inventory.find(x => x.id === id);
-  if(!item) return;
+async function moveItemToLane(id, laneLabel){
+  // set mode/lane for correct location lookup
+  locationMode = "lane";
+  selectedLane = laneLabel;
+  buildLaneButtons();
+  els.laneTitle.textContent = selectedLane;
 
-  item.lane = lane;
-  item.machine = "";
-  item.updatedAt = nowStamp();
+  const location_id = getSelectedLocationId();
+  if(!location_id){
+    alert("Lane not found in /locations. Check DB seed for lanes 1–12.");
+    return;
+  }
 
-  selectLane(lane);
-  renderMachineList();
-  renderGlobalSearch();
-  loadToForm(item.id);
+  try{
+    await apiPut(`/items/${id}`, { location_id });
+    await loadAll();
+    els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
+    selectLane(laneLabel);
+  }catch(err){
+    console.error("MOVE FAILED", err);
+    alert("Move failed. Check DevTools → Network for the PUT /items/:id request.");
+  }
 }
 
-function moveToMachine(id, machine){
-  const item = inventory.find(x => x.id === id);
-  if(!item) return;
+async function moveItemToMachine(id, machineLabel){
+  locationMode = "machine";
+  selectedMachine = machineLabel;
+  buildMachineButtons();
+  els.machineTitle.textContent = `Machine: ${selectedMachine}`;
 
-  item.machine = machine;
-  item.lane = "";
-  item.updatedAt = nowStamp();
+  const location_id = getSelectedLocationId();
+  if(!location_id){
+    alert("Machine not found in /locations. If you haven't seeded machine locations yet, machines cannot be saved/moved.");
+    return;
+  }
 
-  selectMachine(machine);
-  renderLaneList();
-  renderGlobalSearch();
-  loadToForm(item.id);
+  try{
+    await apiPut(`/items/${id}`, { location_id });
+    await loadAll();
+    els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
+    selectMachine(machineLabel);
+  }catch(err){
+    console.error("MOVE FAILED", err);
+    alert("Move failed. Check DevTools → Network for the PUT /items/:id request.");
+  }
 }
 
-/* history */
+/* HISTORY */
 function toggleHistory(){
   const open = els.historyPanel.style.display !== "none";
   els.historyPanel.style.display = open ? "none" : "block";
@@ -1152,7 +1250,6 @@ function toggleHistory(){
     renderHistory();
   }
 }
-
 function renderHistory(){
   const q = normalize(els.historySearch.value);
   els.historyResults.innerHTML = "";
@@ -1207,7 +1304,6 @@ function renderHistory(){
     els.historyResults.appendChild(div);
   });
 }
-
 function restoreDeleted(id){
   const admin = (role === "admin" && adminUnlocked);
   if(!admin){
@@ -1231,7 +1327,7 @@ function restoreDeleted(id){
   renderHistory();
 }
 
-/* backup */
+/* BACKUP */
 function exportJson(){
   const blob = new Blob([JSON.stringify(inventory, null, 2)], {type:"application/json"});
   const a = document.createElement("a");
@@ -1242,7 +1338,6 @@ function exportJson(){
   a.remove();
   URL.revokeObjectURL(a.href);
 }
-
 function importJsonFile(file){
   const reader = new FileReader();
   reader.onload = () => {
@@ -1275,7 +1370,6 @@ function importJsonFile(file){
   };
   reader.readAsText(file);
 }
-
 function seedDemo(){
   const stamp = nowStamp();
   inventory = [
@@ -1284,8 +1378,6 @@ function seedDemo(){
     { id:"demo3", job:"123456", lane:"Lane 1", machine:"", qty:50, status:"READY",   notes:"", updatedBy:"TR", createdAt:stamp, updatedAt:stamp },
     ...inventory
   ];
-
-  // de-dupe by job
   const seen = new Set();
   inventory = inventory.filter(x => {
     const key = normalize(x.job);
@@ -1300,7 +1392,7 @@ function seedDemo(){
   renderGlobalSearch();
 }
 
-/* fullscreen */
+/* FULLSCREEN */
 function toggleFullscreen(){
   if(!document.fullscreenElement){
     document.documentElement.requestFullscreen().catch(()=>{});
@@ -1309,7 +1401,7 @@ function toggleFullscreen(){
   }
 }
 
-/* events */
+/* EVENTS */
 els.globalSearch.addEventListener("input", renderGlobalSearch);
 els.laneSearch.addEventListener("input", renderLaneList);
 els.machineSearch.addEventListener("input", renderMachineList);
@@ -1344,7 +1436,6 @@ els.roleSelect.addEventListener("change", (e) => {
     setRole(v);
   }
 });
-
 els.adminUnlockBtn.addEventListener("click", () => {
   const pin = prompt("Enter Admin PIN:");
   if(pin === null) return;
@@ -1362,7 +1453,6 @@ els.adminUnlockBtn.addEventListener("click", () => {
   updateRoleUI();
   renderGlobalSearch();
 });
-
 els.adminLockBtn.addEventListener("click", () => {
   adminUnlocked = false;
   els.adminLockBtn.style.display = "none";
@@ -1389,34 +1479,36 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-/* INIT (BUTTONS FIRST, API SECOND) */
+/* INIT — buttons first, API second */
 (async () => {
-  console.log("INIT RUN", new Date().toISOString());
+  console.log("TRACE INIT", new Date().toISOString());
 
-  // Always show buttons immediately
+  // show UI instantly
   buildLaneButtons();
   buildMachineButtons();
   els.laneTitle.textContent = selectedLane;
   els.machineTitle.textContent = `Machine: ${selectedMachine}`;
+  locationMode = "lane";          // CRITICAL DEFAULT
   setRole("forklift");
 
   els.globalResults.innerHTML = `<div style="color:var(--muted)">Loading...</div>`;
 
   try{
-    locations = await apiGet("/locations");
-    inventory = await loadInventory();
+    // quick health check
+    apiGet("/health").then(d => console.log("API CONNECTED", d)).catch(()=>{});
 
+    await loadAll();
     els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
 
     renderLaneList();
     renderMachineList();
     renderGlobalSearch();
   }catch(err){
-    console.error("Init failed:", err);
+    console.error("INIT FAILED", err);
     els.globalResults.innerHTML = `
       <div style="color:var(--bad); font-weight:900;">API ERROR</div>
       <div style="color:var(--muted); margin-top:6px;">
-        Buttons should still show. Check DevTools → Network for /locations or /items failing.
+        Buttons still work. Open DevTools → Network and check /locations + /items.
       </div>
     `;
   }
