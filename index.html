@@ -1420,7 +1420,10 @@ document.addEventListener("keydown", (e) => {
 });
 
 /* INIT (ONLY ONCE) */
+/* INIT (ONLY ONCE) */
 (async () => {
+  console.log("INIT RUN", new Date().toISOString()); // 
+
   try{
     inventory = await loadInventory();
     els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
@@ -1439,6 +1442,7 @@ document.addEventListener("keydown", (e) => {
   }catch(err){
     console.error("Init failed:", err);
   }
+})();
 })();
 </script>
 </body>
