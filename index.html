@@ -1070,7 +1070,8 @@ function deleteSelected(){
   }
 
   inventory = inventory.filter(x => x.id !== selectedId);
-  els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
+ const totalQty = inventory.reduce((sum, it) => sum + (Number(it.qty) || 0), 0);
+els.itemsPill.textContent = `ITEMS: ${totalQty}`;
   clearForm();
   renderLaneList();
   renderMachineList();
