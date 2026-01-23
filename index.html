@@ -1034,33 +1034,39 @@ async function upsertItem(){
     updated_by: updatedBy,     // if your API ignores it, no harm
     location_id
   };
+const isUpdate = !!selectedId;
 
+// IMPORTANT: only block duplicates when CREATING new
+if(!isUpdate){
+  const exists = inventory.some(x => normalize(x.job) === normalize(jobRaw));
+  if(exists){
+    alert("That Job # already exists. Search it and update it instead.");
+    return;
+  }
+}
   try{
     if(selectedId){
       // UPDATE existing item
-      await apiPut(`/items/${selectedId}`, payload);
-    }else{
-      // CREATE new item
-      await apiPost(`/items`, payload);
-    }
-
-    // THIS is what makes phone + PC match:
-    // always reload from DB after save
-    inventory = await loadInventory();
-    els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
-
-    renderLaneList();
-    renderMachineList();
-    renderGlobalSearch();
-    if(els.historyPanel && els.historyPanel.style.display !== "none") renderHistory();
-
-    clearForm();
-  }catch(err){
-    console.error("SAVE FAILED", err);
-    alert("Save failed. Open Network tab and check the /items request.");
+        await apiPut(`/items/${selectedId}`, payload);
+  }else{
+    await apiPost(`/items`, payload);
   }
+
+  // always reload from DB so phone + PC match
+  inventory = await loadInventory();
+  els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
+
+  renderLaneList();
+  renderMachineList();
+  renderGlobalSearch();
+  if(els.historyPanel && els.historyPanel.style.display !== "none") renderHistory();
+
+  clearForm();
+}catch(err){
+  console.error("SAVE FAILED", err);
+  alert("Save failed. Open Network tab and check the /items request.");
 }
-  const exists = inventory.some(x => normalize(x.job) === normalize(jobRaw));
+const exists = inventory.some(x => normalize(x.job) === normalize(jobRaw));
   if(exists){
     alert("That Job # already exists. Search it and update it instead.");
     return;
