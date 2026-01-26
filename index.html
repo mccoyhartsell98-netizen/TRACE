@@ -847,21 +847,38 @@ function buildMachineButtons(){
 
 /* ========= SELECTORS ========= */
 
-function selectLane(laneNumber) {
-  // find matching location row from /locations
-  const loc = locations.find(l => l.lane === laneNumber);
+let selectedLocationId = null;
 
-  if (!loc) {
-    alert(`No DB mapping for Lane ${laneNumber}`);
+function selectLane(laneNumber){
+  selectedLane = `Lane ${laneNumber}`;
+
+  const loc = locations.find(l => Number(l.lane) === Number(laneNumber));
+  if(!loc){
+    alert(`No DB mapping for "${selectedLane}".`);
     return;
   }
 
-  selectedLocationId = loc.location_id;   
-  selectedLane = laneNumber;
+  selectedLocationId = loc.location_id;
 
-  renderLane(laneNumber);
+  selectedId = null;
+  buildLaneButtons();
+  els.laneTitle.textContent = selectedLane;
+  els.laneSearch.value = "";
+  clearForm();
+  renderLaneList();
+  renderGlobalSearch();
 }
 
+  selectedLocationId = loc.location_id;  // THIS is the key fix
+
+  selectedId = null;
+  buildLaneButtons();
+  els.laneTitle.textContent = selectedLane;
+  els.laneSearch.value = "";
+  clearForm();
+  renderLaneList();
+  renderGlobalSearch();
+}
 
 function selectMachine(m){
   selectedMachine = m;
@@ -1203,19 +1220,16 @@ function openMoveOverlay(id){
   moveTargetId = id;
   els.moveTitle.textContent = `Move Job #${item.job}`;
 
-  els.moveLaneGrid.innerHTML = "";
+ function buildLaneButtons(){
+  els.laneGrid.innerHTML = "";
   for(let i=1;i<=12;i++){
-    const lane = `Lane ${i}`;
     const btn = document.createElement("div");
-    btn.className = "laneBtn";
-    btn.textContent = lane;
-    btn.addEventListener("click", () => {
-      moveToLane(moveTargetId, lane);
-      closeMoveOverlay();
-    });
-    els.moveLaneGrid.appendChild(btn);
+    btn.className = "laneBtn" + (selectedLane === `Lane ${i}` ? " active" : "");
+    btn.textContent = `Lane ${i}`;
+    btn.addEventListener("click", () => selectLane(i)); // IMPORTANT: pass NUMBER
+    els.laneGrid.appendChild(btn);
   }
-
+}
   els.moveMachineGrid.innerHTML = "";
   MACHINES.forEach(m => {
     const btn = document.createElement("div");
