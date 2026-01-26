@@ -847,27 +847,8 @@ function buildMachineButtons(){
 
 /* ========= SELECTORS ========= */
 
-let selectedLocationId = null;
 
-function selectLane(laneNumber){
-  selectedLane = `Lane ${laneNumber}`;
 
-  const loc = locations.find(l => Number(l.lane) === Number(laneNumber));
-  if(!loc){
-    alert(`No DB mapping for "${selectedLane}".`);
-    return;
-  }
-
-  selectedLocationId = loc.location_id;
-
-  selectedId = null;
-  buildLaneButtons();
-  els.laneTitle.textContent = selectedLane;
-  els.laneSearch.value = "";
-  clearForm();
-  renderLaneList();
-  renderGlobalSearch();
-}
 
   selectedLocationId = loc.location_id;  // THIS is the key fix
 
