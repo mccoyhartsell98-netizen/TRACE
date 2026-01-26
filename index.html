@@ -847,19 +847,21 @@ function buildMachineButtons(){
 
 /* ========= SELECTORS ========= */
 
-function selectLane(lane){
-  selectedLane = lane;
-  selectedLocation = { type:"lane", value: lane }; // FIX: THIS is what Save uses
-  selectedId = null;
+function selectLane(laneNumber) {
+  // find matching location row from /locations
+  const loc = locations.find(l => l.lane === laneNumber);
 
-  buildLaneButtons();
-  els.laneTitle.textContent = lane;
-  els.laneSearch.value = "";
-  clearForm();
+  if (!loc) {
+    alert(`No DB mapping for Lane ${laneNumber}`);
+    return;
+  }
 
-  renderLaneList();
-  renderGlobalSearch();
+  selectedLocationId = loc.location_id;   
+  selectedLane = laneNumber;
+
+  renderLane(laneNumber);
 }
+
 
 function selectMachine(m){
   selectedMachine = m;
@@ -1105,8 +1107,8 @@ async function upsertItem(){
   const notes  = (els.notes.value  || "").trim().slice(0, 120);
   const updatedBy = (els.updatedBy.value || "").trim().slice(0, 10);
 
-  const location_id = getSelectedLocationId();
-  if(!location_id){
+ const location_id = selectedLocationId;   
+    if(!location_id){
     // give a REAL reason now:
     if(selectedLocation.type === "lane"){
       alert(`No DB mappingwhile Lane selected.\n\nSelected: ${selectedLocation.value}\nThis means /locations is missing that lane row or lane column names don't match.\n\nFix: ensure locations has lanes 1–12 with a valid location_id.`);
