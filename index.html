@@ -1,38 +1,545 @@
+<!--
+  TRACE INVENTORY
+  © 2026 Mccoy Hartsell — All rights reserved.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TRACE</title>
+
+  <!-- PWA / App support -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#0f1115">
+
+  <!-- iOS install support -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TRACE">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+
+  <style>
+    :root{
+      --bg:#0f1115;
+      --panel:rgba(22,26,34,.92);
+      --panel2:rgba(27,32,48,.92);
+      --text:#ffffff;
+      --muted:#b7c0d1;
+      --good:#8aff8a;
+      --bad:#ff6b6b;
+      --warn:#ffd166;
+      --stroke:#2b3143;
+      --focus:#3a7afe;
+    }
+
+    *{box-sizing:border-box}
+
+    html, body{
+      height:100%;
+      margin:0;
+    }
+
+    body{
+      overflow:hidden;
+      font-family:Arial,Helvetica,sans-serif;
+      color:var(--text);
+      background:
+        linear-gradient(rgba(15,17,21,0.55), rgba(15,17,21,0.55)),
+        url("759c4386-0d9e-4dd1-9589-07ef1c92643b.png");
+      background-size:cover;
+      background-position:center;
+      background-repeat:no-repeat;
+      background-attachment:fixed;
+    }
+
+    .wrap{
+      max-width:1100px;
+      height:100vh;
+      margin:0 auto;
+      padding:18px 18px 16px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .top{
+      display:grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items:center;
+      gap:10px;
+      flex:0 0 auto;
+    }
+
+    .logo{
+      grid-column:2;
+      justify-self:center;
+      width:680px;
+      max-width:96vw;
+      height:auto;
+      display:block;
+      filter:
+        drop-shadow(0 0 12px rgba(58,122,254,0.35))
+        drop-shadow(0 0 28px rgba(58,122,254,0.15));
+    }
+
+    .status{
+      grid-column:3;
+      justify-self:end;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      text-align:right;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.2;
+    }
+
+    .pill{
+      padding:6px 10px;
+      border:1px solid var(--stroke);
+      border-radius:999px;
+      background:rgba(255,255,255,.03);
+      color:var(--muted);
+      white-space:nowrap;
+    }
+
+    .rolebar{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      flex:0 0 auto;
+    }
+
+    .roleLeft{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    select, input[type="text"], input[type="number"]{
+      width:100%;
+      padding:14px 14px;
+      font-size:18px;
+      border-radius:10px;
+      border:1px solid var(--stroke);
+      background:var(--panel2);
+      color:var(--text);
+      outline:none;
+    }
+
+    select{
+      font-size:16px;
+      padding:10px 12px;
+      width:auto;
+      min-width:170px;
+    }
+
+    input[type="text"]:focus, input[type="number"]:focus, select:focus{
+      border-color: var(--focus);
+      box-shadow: 0 0 0 3px rgba(58,122,254,.18);
+    }
+
+    button{
+      border:none;
+      border-radius:10px;
+      padding:10px 12px;
+      font-size:14px;
+      font-weight:900;
+      color:var(--text);
+      background:rgba(255,255,255,.08);
+      cursor:pointer;
+      border:1px solid var(--stroke);
+      white-space:nowrap;
+    }
+    button:hover{background:rgba(255,255,255,.11)}
+    .primary{background:rgba(58,122,254,.24); border-color:rgba(58,122,254,.55)}
+    .primary:hover{background:rgba(58,122,254,.32)}
+    .danger{background:rgba(255,107,107,.16); border-color:rgba(255,107,107,.45)}
+    .danger:hover{background:rgba(255,107,107,.22)}
+    .ghost{background:transparent}
+    .ghost:hover{background:rgba(255,255,255,.06)}
+
+    .grid{
+      flex:1 1 auto;
+      min-height:0;
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:14px;
+    }
+
+    .card{
+      background:var(--panel);
+      border:1px solid var(--stroke);
+      border-radius:12px;
+      padding:14px;
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .card h2{
+      margin:0 0 10px 0;
+      font-size:15px;
+      letter-spacing:.5px;
+      color:var(--muted);
+      font-weight:900;
+      text-transform:uppercase;
+    }
+
+    .scroll{
+      overflow:auto;
+      padding-right:4px;
+      min-height:0;
+      flex:1 1 auto;
+
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,.18) transparent;
+    }
+    .scroll::-webkit-scrollbar{ width:8px; }
+    .scroll::-webkit-scrollbar-track{ background:transparent; }
+    .scroll::-webkit-scrollbar-thumb{
+      background: rgba(255,255,255,.14);
+      border-radius: 999px;
+      border: 2px solid transparent;
+      background-clip: content-box;
+    }
+    .scroll::-webkit-scrollbar-thumb:hover{
+      background: rgba(255,255,255,.22);
+      background-clip: content-box;
+    }
+
+    .laneGrid{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap:10px;
+      margin-top:10px;
+      margin-bottom:10px;
+      flex:0 0 auto;
+    }
+
+    .laneBtn{
+      background:var(--panel2);
+      border:1px solid var(--stroke);
+      border-radius:12px;
+      padding:12px 10px;
+      text-align:center;
+      font-weight:900;
+      letter-spacing:.4px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .laneBtn:hover{border-color:rgba(58,122,254,.45)}
+    .laneBtn.active{
+      border-color:rgba(58,122,254,.75);
+      box-shadow: 0 0 0 3px rgba(58,122,254,.18);
+    }
+
+    .laneHeader{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin:10px 0 8px 0;
+      flex:0 0 auto;
+    }
+
+    .laneTitle{font-size:20px;font-weight:900;}
+    .laneCount{color:var(--muted);font-size:13px;font-weight:800;}
+
+    .results{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .resultItem{
+      background:var(--panel2);
+      border:1px solid var(--stroke);
+      border-radius:12px;
+      padding:12px 12px;
+      cursor:pointer;
+    }
+    .resultItem:hover{border-color:rgba(58,122,254,.45)}
+    .resultItem.active{
+      border-color:rgba(58,122,254,.75);
+      box-shadow: 0 0 0 3px rgba(58,122,254,.18);
+    }
+
+    .big{font-size:18px;font-weight:900;}
+    .meta{color:var(--muted);margin-top:6px;font-size:13px;line-height:1.35;}
+    .qty{color:var(--good);font-weight:900;margin-top:6px;font-size:14px;}
+    .tiny{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.35;}
+    .btnRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+
+    .hint{
+      margin-top:12px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.35;
+      flex:0 0 auto;
+    }
+
+    .kbd{
+      display:inline-block;
+      padding:2px 6px;
+      border:1px solid var(--stroke);
+      border-bottom-width:2px;
+      border-radius:6px;
+      background:rgba(255,255,255,.03);
+      font-weight:900;
+      font-size:12px;
+      color:var(--muted);
+      margin:0 2px;
+    }
+
+    .formGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    .formGrid .full{grid-column:1 / -1;}
+
+    .overlay{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.62);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:99;
+      padding:18px;
+    }
+    .overlay.show{display:flex;}
+    .modal{
+      width:min(900px, 96vw);
+      max-height:min(80vh, 720px);
+      overflow:auto;
+      background:var(--panel);
+      border:1px solid var(--stroke);
+      border-radius:14px;
+      padding:14px;
+      box-shadow: 0 10px 40px rgba(0,0,0,.5);
+    }
+    .modalTop{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .modalTitle{
+      font-weight:900;
+      font-size:16px;
+      letter-spacing:.4px;
+      color:var(--muted);
+      text-transform:uppercase;
+    }
+
+    @media (max-width: 980px){
+      body{overflow:auto;}
+      .wrap{height:auto;}
+      .grid{grid-template-columns:1fr}
+      .status{display:none}
+      .laneGrid{grid-template-columns: repeat(3,1fr);}
+      .logo{width:520px; max-width:92vw;}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+
+    <div class="top">
+      <div></div>
+      <!-- DO NOT CHANGE: per your request, this is intentionally png.png -->
+      <img src="./trace-logo.png.png" alt="TRACE" class="logo">
+      <div class="status">
+        <div class="pill" id="rolePill">ROLE: FORKLIFT</div>
+        <div class="pill" id="itemsPill">ITEMS: 0</div>
+        <div class="pill">F = FULLSCREEN</div>
+      </div>
+    </div>
+
+    <div class="rolebar">
+      <div class="roleLeft">
+        <select id="roleSelect">
+          <option value="forklift">Forklift</option>
+          <option value="machine">Machine</option>
+          <option value="admin">Admin (locked)</option>
+        </select>
+        <button id="adminUnlockBtn" class="primary">Unlock Admin</button>
+        <button id="adminLockBtn" class="ghost" style="display:none;">Lock Admin</button>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:center;">
+        <button class="ghost" id="historyBtn">History</button>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- LEFT -->
+      <div class="card">
+        <h2>Search</h2>
+
+        <div class="scroll">
+          <input id="globalSearch" type="text" placeholder="Search Job # (example: 400848)">
+
+          <div class="results" id="globalResults" style="margin-top:10px;"></div>
+
+          <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
+
+          <h2 style="margin-top:0;">Lanes</h2>
+          <div class="laneGrid" id="laneGrid"></div>
+
+          <div class="laneHeader">
+            <div class="laneTitle" id="laneTitle">Lane 1</div>
+            <div class="laneCount" id="laneCount">0 items</div>
+          </div>
+
+          <input id="laneSearch" type="text" placeholder="Filter within this lane (optional)">
+          <div class="results" id="laneResults" style="margin-top:10px;"></div>
+
+          <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
+
+          <h2 style="margin-top:0;">Machines</h2>
+          <div class="laneGrid" id="machineGrid"></div>
+
+          <div class="laneHeader">
+            <div class="laneTitle" id="machineTitle">Machine: S8</div>
+            <div class="laneCount" id="machineCount">0 jobs</div>
+          </div>
+
+          <input id="machineSearch" type="text" placeholder="Filter within this machine (optional)">
+          <div class="results" id="machineResults" style="margin-top:10px;"></div>
+
+          <div class="hint">
+            Flow: <b>Search Job #</b> → <b>Move</b> → choose <b>Lane</b> or <b>Machine</b>.
+            <br/>
+            Keys: <span class="kbd">1–9</span> quick lanes • <span class="kbd">F</span> fullscreen • <span class="kbd">ESC</span> close move box
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="card">
+        <h2>Job Update</h2>
+
+        <div class="scroll">
+          <div class="formGrid">
+            <div class="full">
+              <input id="job" type="text" inputmode="numeric" placeholder="Job # (numbers only, required)">
+            </div>
+
+            <div>
+              <input id="qty" type="number" min="0" step="1" placeholder="Qty">
+            </div>
+
+            <div>
+              <input id="status" type="text" placeholder="Status (example: RUNNING)">
+            </div>
+
+            <div class="full">
+              <input id="notes" type="text" placeholder="Notes (optional)">
+            </div>
+
+            <div class="full">
+              <input id="updatedBy" type="text" placeholder="Updated by (initials)">
+            </div>
+
+            <div class="full btnRow">
+              <button class="primary" id="saveBtn">Save / Update</button>
+              <button id="newBtn">New</button>
+              <button class="danger" id="deleteBtn" disabled>Delete</button>
+            </div>
+          </div>
+
+          <div class="tiny" id="rulesBox">
+            <b>Rules:</b>
+            <ul>
+              <li><b>Job #</b> is the unique key. Once created it is locked.</li>
+              <li><b>Forklift</b>: can search + move jobs (no edit, no delete).</li>
+              <li><b>Machine</b>: can update qty/status/notes (cannot create new jobs, no delete, no move).</li>
+              <li><b>Admin</b>: can create jobs + delete (goes to History) + restore.</li>
+            </ul>
+          </div>
+
+          <div id="historyPanel" style="display:none; margin-top:12px;">
+            <h2>Deleted History</h2>
+            <input id="historySearch" type="text" placeholder="Search deleted jobs...">
+            <div class="results" id="historyResults" style="margin-top:10px;"></div>
+          </div>
+
+          <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
+
+          <h2>Backup</h2>
+          <div class="btnRow">
+            <button id="exportBtn">Export JSON</button>
+            <button id="importBtn">Import JSON</button>
+            <button class="ghost" id="seedBtn">Load demo</button>
+          </div>
+          <input id="fileInput" type="file" accept="application/json" style="display:none;" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOVE OVERLAY -->
+  <div class="overlay" id="moveOverlay">
+    <div class="modal">
+      <div class="modalTop">
+        <div class="modalTitle" id="moveTitle">Move Job</div>
+        <button class="ghost" id="moveCloseBtn">Close</button>
+      </div>
+
+      <div style="color:var(--muted); font-weight:900; margin-bottom:8px;">Move to Lane</div>
+      <div class="laneGrid" id="moveLaneGrid"></div>
+
+      <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
+
+      <div style="color:var(--muted); font-weight:900; margin-bottom:8px;">Move to Machine</div>
+      <div class="laneGrid" id="moveMachineGrid"></div>
+
+      <div class="tiny" style="margin-top:12px;">
+        Rule: Moving to a <b>Machine</b> clears the lane. Moving to a <b>Lane</b> clears the machine.
+      </div>
+    </div>
+  </div>
+
 <script>
 /* =========================
-   TRACE — STABLE BUILD (DB location_id ↔ UI lane/machine)
-   Fixes:
-   - Maps items using location_id + /locations
-   - Uses lastSelectedType so lane click actually counts
-   - Handles different API field names safely
+   TRACE — API + MAPPING FIX
    ========================= */
 
-/* API */
 const API_BASE = "https://trace-api-sak3.onrender.com";
 
-async function apiGet(path){
-  const r = await fetch(`${API_BASE}${path}`);
-  if(!r.ok) throw new Error(`${path} -> ${r.status}`);
-  return r.json();
+async function api(path, opts){
+  const r = await fetch(`${API_BASE}${path}`, opts);
+  const text = await r.text();
+  let data;
+  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+  if(!r.ok){
+    const msg = (data && data.error) ? data.error : text || `${r.status}`;
+    throw new Error(`${path} -> ${r.status} :: ${msg}`);
+  }
+  return data;
 }
-async function apiPost(path, body){
-  const r = await fetch(`${API_BASE}${path}`, {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify(body)
-  });
-  if(!r.ok) throw new Error(`${path} -> ${r.status}`);
-  return r.json();
-}
-async function apiPut(path, body){
-  const r = await fetch(`${API_BASE}${path}`, {
-    method:"PUT",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify(body)
-  });
-  if(!r.ok) throw new Error(`${path} -> ${r.status}`);
-  return r.json();
-}
+const apiGet = (p)=>api(p);
+const apiPost = (p,b)=>api(p,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)});
+const apiPut  = (p,b)=>api(p,{method:"PUT", headers:{"Content-Type":"application/json"},body:JSON.stringify(b)});
+const apiDel  = (p)=>api(p,{method:"DELETE"});
+
+window.addEventListener("error", (e)=> {
+  console.error("WINDOW ERROR:", e.error || e.message);
+});
+window.addEventListener("unhandledrejection", (e)=> {
+  console.error("PROMISE ERROR:", e.reason);
+});
 
 /* local deleted history */
 const DELETED_KEY = "trace_simple_deleted_v1";
@@ -101,16 +608,12 @@ assertEls();
 
 /* STATE */
 let inventory = [];
-let locationsRaw = [];
-let locations = []; // normalized locations
+let locations = [];
 let deletedItems = loadDeleted();
 
 let selectedLane = "Lane 1";
 let selectedMachine = MACHINES[0];
 let selectedId = null;
-
-// IMPORTANT: track what the user LAST clicked
-let lastSelectedType = "lane"; // "lane" | "machine"
 
 let role = "forklift";
 let adminUnlocked = false;
@@ -121,6 +624,25 @@ let moveTargetId = null;
 function normalize(s){ return (s ?? "").toString().trim().toLowerCase(); }
 function onlyDigits(s){ return String(s ?? "").replace(/\D+/g, ""); }
 
+function laneToNumber(laneLabel){
+  const n = parseInt(String(laneLabel||"").replace(/\D/g,""), 10);
+  return Number.isFinite(n) ? n : null;
+}
+function laneNumberToLabel(n){
+  const num = parseInt(n,10);
+  return Number.isFinite(num) ? `Lane ${num}` : "";
+}
+function normalizeLaneCell(v){
+  if(v === null || v === undefined) return null;
+  const s = String(v).trim();
+  const n = parseInt(s.replace(/\D/g,""), 10);
+  return Number.isFinite(n) ? n : null;
+}
+function normalizeMachineCell(v){
+  if(v === null || v === undefined) return "";
+  return String(v).trim();
+}
+
 function nowStamp(){
   const d = new Date();
   const mm = String(d.getMonth()+1).padStart(2,'0');
@@ -130,7 +652,6 @@ function nowStamp(){
   const mi = String(d.getMinutes()).padStart(2,'0');
   return `${mm}/${dd}/${yy} ${hh}:${mi}`;
 }
-
 function escapeHtml(s){
   return String(s ?? "")
     .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
@@ -148,66 +669,48 @@ function loadDeleted(){
   }catch{return [];}
 }
 
-/* =========================
-   NORMALIZE LOCATION + ITEM SHAPES
-   ========================= */
-
-function normalizeLocations(rows){
-  // Accepts lots of possible field names safely
-  // Expected minimum: location_id AND (lane OR machine)
-  return (Array.isArray(rows) ? rows : []).map(r => {
-    const location_id = r.location_id ?? r.id ?? r.locationId ?? r.locationID;
-
-    // lane could be: 1..12 OR "Lane 1" OR lane_name/label
-    const laneVal =
-      r.lane ?? r.lane_num ?? r.lane_number ?? r.laneNumber ??
-      r.lane_name ?? r.laneName ?? r.label ?? r.name;
-
-    // machine could be: "S8" etc
-    const machineVal =
-      r.machine ?? r.machine_name ?? r.machineName ?? r.machine_label ?? r.machineLabel;
-
-    let laneNum = null;
-    let laneLabel = "";
-    if(laneVal !== undefined && laneVal !== null && String(laneVal).trim() !== ""){
-      const raw = String(laneVal).trim();
-      const n = parseInt(raw.replace(/\D/g,""), 10);
-      if(Number.isFinite(n) && n > 0) laneNum = n;
-      laneLabel = raw.toLowerCase().startsWith("lane") ? `Lane ${n}` : (laneNum ? `Lane ${laneNum}` : raw);
-    }
-
-    let machineLabel = "";
-    if(machineVal !== undefined && machineVal !== null && String(machineVal).trim() !== ""){
-      machineLabel = String(machineVal).trim();
-    }
-
-    return { location_id, laneNum, laneLabel, machineLabel };
-  }).filter(x => x.location_id != null);
+/* -------------------------
+   DB -> UI mapping
+-------------------------- */
+function mapLocations(raw){
+  const arr = Array.isArray(raw) ? raw : [];
+  return arr.map(r => ({
+    location_id: r.location_id ?? r.id ?? r.locationId,
+    lane_num: normalizeLaneCell(r.lane),
+    machine_name: normalizeMachineCell(r.machine),
+  })).filter(x => x.location_id != null);
 }
 
-function mapItemsFromApi(itemsRows){
-  const rows = Array.isArray(itemsRows) ? itemsRows : [];
+function findLocationForLane(label){
+  const laneNum = laneToNumber(label);
+  if(!laneNum) return null;
+  return locations.find(l => l.lane_num === laneNum) || null;
+}
+function findLocationForMachine(machineLabel){
+  const m = normalize(machineLabel);
+  return locations.find(l => normalize(l.machine_name) === m) || null;
+}
 
-  return rows.map(r => {
-    const id = r.item_id ?? r.id ?? r.itemId;
-    const job = onlyDigits(r.job_number ?? r.job ?? r.jobNumber ?? "");
-    const qty = Number.isFinite(r.qty) ? r.qty : (parseInt(r.qty ?? "0",10) || 0);
-    const status = (r.status ?? "").toString();
-    const notes  = (r.notes ?? "").toString();
-    const updatedBy = (r.updated_by ?? r.updatedBy ?? "").toString();
-    const createdAt = (r.created_at ?? r.createdAt ?? "").toString();
-    const updatedAt = (r.updated_at ?? r.updatedAt ?? "").toString();
-    const location_id = r.location_id ?? r.locationId ?? null;
+function mapItemsToUI(rawItems){
+  const arr = Array.isArray(rawItems) ? rawItems : [];
+  return arr.map(it => {
+    const id = it.item_id ?? it.id ?? it.itemId;
+    const job = onlyDigits(it.job_number ?? it.job ?? it.jobNumber ?? "");
+    const qty = Number.isFinite(it.qty) ? it.qty : parseInt(it.qty || "0", 10) || 0;
+    const status = (it.status ?? "").toString();
+    const notes = (it.notes ?? "").toString();
+    const updatedBy = (it.updated_by ?? it.updatedBy ?? "").toString();
+    const createdAt = (it.created_at ?? it.createdAt ?? "").toString();
+    const updatedAt = (it.updated_at ?? it.updatedAt ?? "").toString();
+    const location_id = it.location_id ?? it.locationId ?? null;
 
-    // If API already provides lane/machine, keep them; otherwise derive from locations
-    let lane = (r.lane ?? "").toString();
-    let machine = (r.machine ?? "").toString();
-
-    if((!lane && !machine) && location_id != null){
+    let lane = "";
+    let machine = "";
+    if(location_id != null){
       const loc = locations.find(l => String(l.location_id) === String(location_id));
       if(loc){
-        lane = loc.laneLabel || "";
-        machine = loc.machineLabel || "";
+        if(loc.lane_num != null) lane = laneNumberToLabel(loc.lane_num);
+        if(loc.machine_name) machine = loc.machine_name;
       }
     }
 
@@ -224,25 +727,21 @@ function mapItemsFromApi(itemsRows){
       lane,
       machine
     };
-  }).filter(x => String(x.job).length > 0);
+  }).filter(x => x.id != null && x.job);
 }
 
 /* data load */
 async function loadLocations(){
-  const data = await apiGet("/locations");
-  locationsRaw = data;
-  locations = normalizeLocations(data);
+  const raw = await apiGet("/locations");
+  locations = mapLocations(raw);
 }
-
 async function loadInventory(){
-  const data = await apiGet("/items");
-  return mapItemsFromApi(data);
+  const raw = await apiGet("/items");
+  inventory = mapItemsToUI(raw);
+  els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
 }
 
-/* =========================
-   ROLE
-   ========================= */
-
+/* role */
 function setRole(nextRole){
   role = nextRole;
 
@@ -282,10 +781,7 @@ function updateRoleUI(){
   els.newBtn.disabled = forklift;
 }
 
-/* =========================
-   BUTTONS
-   ========================= */
-
+/* buttons */
 function buildLaneButtons(){
   els.laneGrid.innerHTML = "";
   for(let i=1;i<=12;i++){
@@ -297,16 +793,12 @@ function buildLaneButtons(){
     els.laneGrid.appendChild(btn);
   }
 }
-
 function selectLane(lane){
-  lastSelectedType = "lane";
   selectedLane = lane;
   selectedId = null;
-
   buildLaneButtons();
   els.laneTitle.textContent = lane;
   els.laneSearch.value = "";
-
   clearForm();
   renderLaneList();
   renderGlobalSearch();
@@ -322,28 +814,20 @@ function buildMachineButtons(){
     els.machineGrid.appendChild(btn);
   });
 }
-
 function selectMachine(m){
-  lastSelectedType = "machine";
   selectedMachine = m;
   selectedId = null;
-
   buildMachineButtons();
   els.machineTitle.textContent = `Machine: ${m}`;
   els.machineSearch.value = "";
-
   clearForm();
   renderMachineList();
   renderGlobalSearch();
 }
 
-/* =========================
-   RENDER LISTS
-   ========================= */
-
+/* render */
 function renderLaneList(){
   const q = normalize(els.laneSearch.value);
-
   const laneItemsAll = inventory.filter(x => String(x.lane ?? "") === selectedLane);
 
   let laneItems = laneItemsAll;
@@ -389,8 +873,7 @@ function renderLaneList(){
 
 function renderMachineList(){
   const q = normalize(els.machineSearch.value);
-
-  const machineItemsAll = inventory.filter(x => String(x.machine ?? "") === selectedMachine);
+  const machineItemsAll = inventory.filter(x => normalize(x.machine ?? "") === normalize(selectedMachine));
 
   let machineItems = machineItemsAll;
   if(q){
@@ -503,10 +986,7 @@ function renderGlobalSearch(){
   });
 }
 
-/* =========================
-   FORM
-   ========================= */
-
+/* form */
 function clearForm(){
   selectedId = null;
   els.job.value = "";
@@ -520,7 +1000,6 @@ function clearForm(){
 function loadToForm(id){
   const item = inventory.find(x => String(x.id) === String(id));
   if(!item) return;
-
   selectedId = item.id;
 
   els.job.value = item.job ?? "";
@@ -534,27 +1013,18 @@ function loadToForm(id){
   renderMachineList();
 }
 
-/* =========================
-   LOCATION LOOKUP (THE BIG FIX)
-   ========================= */
-
+/* location lookup (FIXED) */
 function getSelectedLocationId(){
-  // Use what user LAST clicked, not whichever variable happens to be non-empty
-  if(lastSelectedType === "machine"){
-    const row = locations.find(l => normalize(l.machineLabel) === normalize(selectedMachine));
-    return row ? row.location_id : null;
-  }
+  const laneRow = findLocationForLane(selectedLane);
+  if(laneRow) return laneRow.location_id;
 
-  // lane
-  const laneNum = parseInt(String(selectedLane).replace(/\D/g, ""), 10);
-  const row = locations.find(l => Number(l.laneNum) === laneNum || normalize(l.laneLabel) === normalize(selectedLane));
-  return row ? row.location_id : null;
+  const machineRow = findLocationForMachine(selectedMachine);
+  if(machineRow) return machineRow.location_id;
+
+  return null;
 }
 
-/* =========================
-   SAVE/UPDATE (API)
-   ========================= */
-
+/* SAVE/UPDATE (API) */
 async function upsertItem(){
   const machineRole = role === "machine";
   const admin = (role === "admin" && adminUnlocked);
@@ -563,7 +1033,6 @@ async function upsertItem(){
     alert("Forklift role cannot edit job details.");
     return;
   }
-
   if(machineRole && !selectedId){
     alert("Machine role cannot create new jobs. Ask Admin.");
     return;
@@ -583,29 +1052,18 @@ async function upsertItem(){
 
   const location_id = getSelectedLocationId();
   if(!location_id){
-    alert(`No DB mapping for ${lastSelectedType === "lane" ? `"${selectedLane}"` : `"${selectedMachine}"`}.
-Fix /locations seeding OR field names.`);
+    alert(`No DB mapping for "${selectedLane}".\n\nYour /locations must include lanes 1–12 (lane=1..12).`);
     return;
   }
 
   const payload = {
     job_number: jobRaw,
-    description: "",           // safe default if backend expects it
     qty,
     status,
     notes,
     updated_by: updatedBy,
     location_id
   };
-
-  // only block duplicates when creating
-  if(!selectedId){
-    const exists = inventory.some(x => normalize(x.job) === normalize(jobRaw));
-    if(exists){
-      alert("That Job # already exists. Search it and update it instead.");
-      return;
-    }
-  }
 
   try{
     if(selectedId){
@@ -614,19 +1072,14 @@ Fix /locations seeding OR field names.`);
       await apiPost(`/items`, payload);
     }
 
-    // reload
-    inventory = await loadInventory();
-    els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
-
+    await loadInventory();
     renderLaneList();
     renderMachineList();
     renderGlobalSearch();
-    if(els.historyPanel && els.historyPanel.style.display !== "none") renderHistory();
-
     clearForm();
   }catch(err){
     console.error("SAVE FAILED", err);
-    alert("Save failed. Open DevTools → Network and check the /items request.");
+    alert("Save failed. Open DevTools → Network and click the /items request.\n\n" + err.message);
   }
 }
 
@@ -656,10 +1109,9 @@ function deleteSelected(){
   renderLaneList();
   renderMachineList();
   renderGlobalSearch();
-  if(els.historyPanel.style.display !== "none") renderHistory();
 }
 
-/* move overlay (LOCAL ONLY FOR NOW) */
+/* move overlay */
 function openMoveOverlay(id){
   const item = inventory.find(x => String(x.id) === String(id));
   if(!item) return;
@@ -680,15 +1132,7 @@ function openMoveOverlay(id){
     btn.className = "laneBtn";
     btn.textContent = lane;
     btn.addEventListener("click", () => {
-      // LOCAL move only (UI). Real move should update location_id on backend later.
-      item.lane = lane;
-      item.machine = "";
-      item.updatedAt = nowStamp();
-      lastSelectedType = "lane";
-      selectLane(lane);
-      renderMachineList();
-      renderGlobalSearch();
-      loadToForm(item.id);
+      moveToLane(moveTargetId, lane);
       closeMoveOverlay();
     });
     els.moveLaneGrid.appendChild(btn);
@@ -700,14 +1144,7 @@ function openMoveOverlay(id){
     btn.className = "laneBtn";
     btn.textContent = m;
     btn.addEventListener("click", () => {
-      item.machine = m;
-      item.lane = "";
-      item.updatedAt = nowStamp();
-      lastSelectedType = "machine";
-      selectMachine(m);
-      renderLaneList();
-      renderGlobalSearch();
-      loadToForm(item.id);
+      moveToMachine(moveTargetId, m);
       closeMoveOverlay();
     });
     els.moveMachineGrid.appendChild(btn);
@@ -715,102 +1152,51 @@ function openMoveOverlay(id){
 
   els.moveOverlay.classList.add("show");
 }
-
 function closeMoveOverlay(){
   els.moveOverlay.classList.remove("show");
   moveTargetId = null;
 }
+els.moveCloseBtn.addEventListener("click", closeMoveOverlay);
+els.moveOverlay.addEventListener("click", (e) => {
+  if(e.target === els.moveOverlay) closeMoveOverlay();
+});
 
-/* history */
-function toggleHistory(){
-  const open = els.historyPanel.style.display !== "none";
-  els.historyPanel.style.display = open ? "none" : "block";
-  if(!open){
-    els.historySearch.value = "";
-    renderHistory();
-  }
-}
-
-function renderHistory(){
-  const q = normalize(els.historySearch.value);
-  els.historyResults.innerHTML = "";
-
-  let list = deletedItems;
-  if(q){
-    list = deletedItems.filter(x =>
-      normalize(x.job).includes(q) ||
-      normalize(x.lane).includes(q) ||
-      normalize(x.machine).includes(q)
-    );
-  }
-
-  if(list.length === 0){
-    els.historyResults.innerHTML = `<div style="color:var(--muted)">No deleted jobs.</div>`;
-    return;
-  }
-
-  list.slice(0, 60).forEach(item => {
-    const div = document.createElement("div");
-    div.className = "resultItem";
-
-    const when = item.deletedAt ? escapeHtml(item.deletedAt) : "—";
-    const status = item.status ? escapeHtml(item.status) : "—";
-    const notes = item.notes ? escapeHtml(item.notes) : "—";
-
-    const wasWhere = item.machine
-      ? `Machine: ${escapeHtml(item.machine)}`
-      : `Was: ${escapeHtml(item.lane || "—")}`;
-
-    const canRestore = (role === "admin" && adminUnlocked);
-
-    div.innerHTML = `
-      <div class="big">Job #${escapeHtml(item.job)}</div>
-      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
-      <div class="meta">${wasWhere} • Deleted: ${when} • Notes: ${notes}</div>
-      ${canRestore ? `
-        <div class="btnRow" style="margin-top:10px;">
-          <button class="primary" data-restore="1">Restore</button>
-        </div>
-      ` : `<div class="tiny">Admin required to restore.</div>`}
-    `;
-
-    const restoreBtn = div.querySelector('[data-restore]');
-    if(restoreBtn){
-      restoreBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        restoreDeleted(item.id);
-      });
-    }
-
-    els.historyResults.appendChild(div);
-  });
-}
-
-function restoreDeleted(id){
-  const admin = (role === "admin" && adminUnlocked);
-  if(!admin){
-    alert("Only Admin can restore.");
-    return;
-  }
-
-  const idx = deletedItems.findIndex(x => String(x.id) === String(id));
-  if(idx < 0) return;
-
-  const item = deletedItems[idx];
-  deletedItems.splice(idx, 1);
-  saveDeleted();
-
-  inventory.unshift({ ...item, deletedAt: undefined });
-
-  els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
-  renderLaneList();
+function moveToLane(id, lane){
+  const item = inventory.find(x => String(x.id) === String(id));
+  if(!item) return;
+  item.lane = lane;
+  item.machine = "";
+  item.updatedAt = nowStamp();
+  selectLane(lane);
   renderMachineList();
   renderGlobalSearch();
-  renderHistory();
+  loadToForm(item.id);
+}
+function moveToMachine(id, machine){
+  const item = inventory.find(x => String(x.id) === String(id));
+  if(!item) return;
+  item.machine = machine;
+  item.lane = "";
+  item.updatedAt = nowStamp();
+  selectMachine(machine);
+  renderLaneList();
+  renderGlobalSearch();
+  loadToForm(item.id);
 }
 
-/* backup */
-function exportJson(){
+/* helper finders */
+function findLocationForLane(label){
+  const laneNum = laneToNumber(label);
+  if(!laneNum) return null;
+  return locations.find(l => l.lane_num === laneNum) || null;
+}
+function findLocationForMachine(machineLabel){
+  const m = normalize(machineLabel);
+  return locations.find(l => normalize(l.machine_name) === m) || null;
+}
+
+/* backup buttons still wired */
+els.exportBtn.addEventListener("click", () => {
   const blob = new Blob([JSON.stringify(inventory, null, 2)], {type:"application/json"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -819,42 +1205,12 @@ function exportJson(){
   a.click();
   a.remove();
   URL.revokeObjectURL(a.href);
-}
-
-function importJsonFile(file){
-  const reader = new FileReader();
-  reader.onload = () => {
-    try{
-      const data = JSON.parse(reader.result);
-      if(!Array.isArray(data)) throw new Error("Invalid file format.");
-
-      inventory = data.map(x => ({
-        id: x.id,
-        job: onlyDigits(x.job ?? x.job_number ?? ""),
-        lane: String(x.lane || ""),
-        machine: String(x.machine || ""),
-        qty: Number.isFinite(x.qty) ? x.qty : parseInt(x.qty || "0",10) || 0,
-        status: String(x.status || ""),
-        notes: String(x.notes || ""),
-        updatedBy: String(x.updatedBy || "").slice(0,10),
-        createdAt: String(x.createdAt || ""),
-        updatedAt: String(x.updatedAt || "")
-      })).filter(x => String(x.job).length > 0);
-
-      els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
-      clearForm();
-      renderLaneList();
-      renderMachineList();
-      renderGlobalSearch();
-      alert("Import complete.");
-    }catch(e){
-      alert("Import failed: " + e.message);
-    }
-  };
-  reader.readAsText(file);
-}
-
-function seedDemo(){
+});
+els.importBtn.addEventListener("click", () => els.fileInput.click());
+els.fileInput.addEventListener("change", (e) => {
+  els.fileInput.value = "";
+});
+els.seedBtn.addEventListener("click", () => {
   const stamp = nowStamp();
   inventory = [
     { id:"demo1", job:"400848", lane:"Lane 7", machine:"", qty:12, status:"WAITING", notes:"", updatedBy:"TR", createdAt:stamp, updatedAt:stamp },
@@ -862,31 +1218,13 @@ function seedDemo(){
     { id:"demo3", job:"123456", lane:"Lane 1", machine:"", qty:50, status:"READY",   notes:"", updatedBy:"TR", createdAt:stamp, updatedAt:stamp },
     ...inventory
   ];
-
-  const seen = new Set();
-  inventory = inventory.filter(x => {
-    const key = normalize(x.job);
-    if(seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-
   els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
   renderLaneList();
   renderMachineList();
   renderGlobalSearch();
-}
+});
 
-/* fullscreen */
-function toggleFullscreen(){
-  if(!document.fullscreenElement){
-    document.documentElement.requestFullscreen().catch(()=>{});
-  }else{
-    document.exitFullscreen().catch(()=>{});
-  }
-}
-
-/* events */
+/* inputs */
 els.globalSearch.addEventListener("input", renderGlobalSearch);
 els.laneSearch.addEventListener("input", renderLaneList);
 els.machineSearch.addEventListener("input", renderMachineList);
@@ -895,31 +1233,10 @@ els.saveBtn.addEventListener("click", upsertItem);
 els.newBtn.addEventListener("click", clearForm);
 els.deleteBtn.addEventListener("click", deleteSelected);
 
-els.exportBtn.addEventListener("click", exportJson);
-els.importBtn.addEventListener("click", () => els.fileInput.click());
-els.fileInput.addEventListener("change", (e) => {
-  const file = e.target.files?.[0];
-  if(file) importJsonFile(file);
-  els.fileInput.value = "";
-});
-els.seedBtn.addEventListener("click", seedDemo);
-
-els.historyBtn.addEventListener("click", toggleHistory);
-els.historySearch.addEventListener("input", renderHistory);
-
-els.moveCloseBtn.addEventListener("click", closeMoveOverlay);
-els.moveOverlay.addEventListener("click", (e) => {
-  if(e.target === els.moveOverlay) closeMoveOverlay();
-});
-
-/* Role events */
 els.roleSelect.addEventListener("change", (e) => {
   const v = e.target.value;
-  if(v === "admin"){
-    setRole("admin");
-  }else{
-    setRole(v);
-  }
+  if(v === "admin") setRole("admin");
+  else setRole(v);
 });
 
 els.adminUnlockBtn.addEventListener("click", () => {
@@ -939,7 +1256,6 @@ els.adminUnlockBtn.addEventListener("click", () => {
   updateRoleUI();
   renderGlobalSearch();
 });
-
 els.adminLockBtn.addEventListener("click", () => {
   adminUnlocked = false;
   els.adminLockBtn.style.display = "none";
@@ -953,7 +1269,10 @@ els.job.addEventListener("input", () => {
 });
 
 document.addEventListener("keydown", (e) => {
-  if (e.key.toLowerCase() === "f") toggleFullscreen();
+  if (e.key.toLowerCase() === "f") {
+    if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+    else document.exitFullscreen().catch(()=>{});
+  }
   if(e.key === "Escape") closeMoveOverlay();
 
   const tag = document.activeElement?.tagName?.toLowerCase();
@@ -968,14 +1287,8 @@ document.addEventListener("keydown", (e) => {
 
 /* INIT */
 (async () => {
-  console.log("INIT RUN", new Date().toISOString());
-
-  // show buttons immediately
   buildLaneButtons();
   buildMachineButtons();
-
-  // start on lane mode
-  lastSelectedType = "lane";
   els.laneTitle.textContent = selectedLane;
   els.machineTitle.textContent = `Machine: ${selectedMachine}`;
   setRole("forklift");
@@ -983,21 +1296,22 @@ document.addEventListener("keydown", (e) => {
   els.globalResults.innerHTML = `<div style="color:var(--muted)">Loading...</div>`;
 
   try{
+    await apiGet("/health");
     await loadLocations();
-    inventory = await loadInventory();
+    await loadInventory();
 
-    els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
     renderLaneList();
     renderMachineList();
     renderGlobalSearch();
   }catch(err){
-    console.error("Init failed:", err);
+    console.error("INIT FAILED:", err);
     els.globalResults.innerHTML = `
       <div style="color:var(--bad); font-weight:900;">API ERROR</div>
-      <div style="color:var(--muted); margin-top:6px;">
-        Check DevTools → Network for /locations or /items failing.
-      </div>
+      <div style="color:var(--muted); margin-top:6px;">${escapeHtml(err.message)}</div>
     `;
   }
 })();
 </script>
+
+</body>
+</html>
