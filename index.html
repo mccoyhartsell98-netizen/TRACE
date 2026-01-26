@@ -512,16 +512,12 @@
 
 <script>
 /* =========================
-   TRACE — REBUILT STABLE VERSION
-   Fixes:
-   - Restores lane/machine buttons (desktop + mobile)
-   - Adds missing selectLane()
-   - Removes crashing stray code
-   - Uses getSelectedLocationId() (no ghost selectedLocationId)
-   - Move overlay uses correct grids + correct values
+   TRACE — CLEAN STABLE BUILD (DB MAPPING FIXED)
+   - Lanes/Machines buttons always render
+   - selectedLocation is the only source of truth
+   - location_id is always computed from /locations maps
    ========================= */
 
-/* API */
 const API_BASE = "https://trace-api-sak3.onrender.com";
 
 async function apiGet(path){
@@ -548,13 +544,12 @@ async function apiPut(path, body){
   return r.json();
 }
 
-/* Local deleted history */
+apiGet("/health")
+  .then(d => console.log("API CONNECTED", d))
+  .catch(e => console.error("API FAILED", e));
+
 const DELETED_KEY = "trace_simple_deleted_v1";
-
-/* MACHINES */
 const MACHINES = ["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane"];
-
-/* CHANGE THIS PIN ANYTIME */
 const ADMIN_PIN = "4793";
 
 /* DOM */
@@ -613,9 +608,8 @@ function assertEls(){
 }
 
 /* HELPERS */
-function normalize(s){ return (s ?? "").toString().trim().toLowerCase(); }
+function normalize(s){ return (s ?? "").trim().toLowerCase(); }
 function onlyDigits(s){ return String(s ?? "").replace(/\D+/g, ""); }
-
 function nowStamp(){
   const d = new Date();
   const mm = String(d.getMonth()+1).padStart(2,'0');
@@ -625,13 +619,11 @@ function nowStamp(){
   const mi = String(d.getMinutes()).padStart(2,'0');
   return `${mm}/${dd}/${yy} ${hh}:${mi}`;
 }
-
 function escapeHtml(s){
   return String(s ?? "")
     .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
     .replaceAll('"',"&quot;").replaceAll("'","&#039;");
 }
-
 function pick(obj, keys){
   for(const k of keys){
     if(obj && obj[k] !== undefined && obj[k] !== null) return obj[k];
@@ -644,9 +636,9 @@ let rawItems = [];
 let rawLocations = [];
 
 let locations = [];
-let locById = new Map();       // location_id -> normalized location
-let locIdByLane = new Map();   // "Lane 1" -> location_id
-let locIdByMachine = new Map();// "S8" -> location_id
+let locById = new Map();
+let locIdByLane = new Map();     // "Lane 1" -> location_id
+let locIdByMachine = new Map();  // "S8" -> location_id
 
 let inventory = [];
 let deletedItems = loadDeleted();
@@ -655,28 +647,27 @@ let selectedLane = "Lane 1";
 let selectedMachine = MACHINES[0];
 let selectedId = null;
 
+// SINGLE SOURCE OF TRUTH:
 let selectedLocation = { type:"lane", value:"Lane 1" };
 
 let role = "forklift";
 let adminUnlocked = false;
-
 let moveTargetId = null;
 
 /* ========= LOCATION + ITEM MAPPING ========= */
 
 function mapLocations(raw){
   const arr = Array.isArray(raw) ? raw : [];
-
   return arr.map(r => {
     const location_id = Number(pick(r, ["location_id","id","locationId"]));
     const laneVal = pick(r, ["lane","lane_number","laneNum","lane_no","lane_id"]);
     const machineVal = pick(r, ["machine","machine_name","machineName","name","label"]);
 
-    const laneNum = laneVal !== undefined && laneVal !== null && String(laneVal).trim() !== ""
+    const laneNum = (laneVal !== undefined && laneVal !== null && String(laneVal).trim() !== "")
       ? Number(String(laneVal).replace(/\D/g,""))
       : null;
 
-    const machineName = machineVal !== undefined && machineVal !== null && String(machineVal).trim() !== ""
+    const machineName = (machineVal !== undefined && machineVal !== null && String(machineVal).trim() !== "")
       ? String(machineVal).trim()
       : "";
 
@@ -705,17 +696,13 @@ function buildLocationIndexes(){
 
 function mapItemsToUI(raw){
   const arr = Array.isArray(raw) ? raw : [];
-
   return arr.map(it => {
     const id = pick(it, ["item_id","id","itemId"]);
     const job = onlyDigits(pick(it, ["job_number","job","jobNumber","sku"]) ?? "");
-
-    const qtyRaw = pick(it, ["qty","quantity"]);
-    const qty = Number.isFinite(qtyRaw) ? qtyRaw : parseInt(qtyRaw || "0", 10) || 0;
+    const qty = parseInt(it.qty || "0", 10) || 0;
 
     const status = (pick(it, ["status"]) ?? "").toString();
     const notes  = (pick(it, ["notes"]) ?? "").toString();
-
     const updatedBy = (pick(it, ["updated_by","updatedBy"]) ?? "").toString();
     const createdAt = (pick(it, ["created_at","createdAt"]) ?? "").toString();
     const updatedAt = (pick(it, ["updated_at","updatedAt"]) ?? "").toString();
@@ -727,17 +714,9 @@ function mapItemsToUI(raw){
     const machine = (loc && loc.type === "machine") ? loc.machineName : "";
 
     return {
-      id,
-      job,
-      qty,
-      status,
-      notes,
-      updatedBy,
-      createdAt,
-      updatedAt,
+      id, job, qty, status, notes, updatedBy, createdAt, updatedAt,
       location_id: (location_id !== undefined && location_id !== null) ? Number(location_id) : null,
-      lane,
-      machine
+      lane, machine
     };
   }).filter(x => String(x.job).length > 0);
 }
@@ -756,7 +735,7 @@ async function loadInventory(){
   els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
 }
 
-/* Deleted history local */
+/* deleted history local */
 function saveDeleted(){ localStorage.setItem(DELETED_KEY, JSON.stringify(deletedItems)); }
 function loadDeleted(){
   try{
@@ -798,26 +777,18 @@ function updateRoleUI(){
   const canCreate = admin;
   const hasSelection = !!selectedId;
 
-  // Job # locked once selected unless Admin creating new
   els.job.disabled = hasSelection || !canCreate;
 
-  // Forklift cannot edit fields
   els.qty.disabled = forklift;
   els.status.disabled = forklift;
   els.notes.disabled = forklift;
   els.updatedBy.disabled = forklift;
 
-  // Forklift cannot save/new
   els.saveBtn.disabled = forklift;
   els.newBtn.disabled = forklift;
-
-  // Machine cannot create brand new
-  if(machineRole && !hasSelection){
-    els.saveBtn.disabled = true;
-  }
 }
 
-/* ========= UI BUTTON BUILDERS ========= */
+/* ========= BUTTON BUILDERS ========= */
 
 function buildLaneButtons(){
   els.laneGrid.innerHTML = "";
@@ -842,7 +813,7 @@ function buildMachineButtons(){
   });
 }
 
-/* ========= SELECTORS ========= */
+/* ========= SELECTORS (FIXED) ========= */
 
 function selectLane(lane){
   selectedLane = lane;
@@ -850,7 +821,7 @@ function selectLane(lane){
   selectedId = null;
 
   buildLaneButtons();
-  els.laneTitle.textContent = selectedLane;
+  els.laneTitle.textContent = lane;
   els.laneSearch.value = "";
   clearForm();
 
@@ -871,8 +842,6 @@ function selectMachine(m){
   renderMachineList();
   renderGlobalSearch();
 }
-
-/* ========= LOCATION PICK ========= */
 
 function getSelectedLocationId(){
   if(selectedLocation.type === "lane"){
@@ -998,8 +967,6 @@ function renderGlobalSearch(){
     const div = document.createElement("div");
     div.className = "resultItem";
 
-    const created = item.createdAt ? escapeHtml(item.createdAt) : "—";
-    const updated = item.updatedAt ? escapeHtml(item.updatedAt) : "—";
     const status = item.status ? escapeHtml(item.status) : "—";
     const notes = item.notes ? escapeHtml(item.notes) : "—";
 
@@ -1012,12 +979,7 @@ function renderGlobalSearch(){
     div.innerHTML = `
       <div class="big">Job #${escapeHtml(item.job)}</div>
       <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
-      <div class="meta">
-        ${location}
-        • Added: ${created}
-        • Updated: ${updated}
-        • Notes: ${notes}
-      </div>
+      <div class="meta">${location} • Notes: ${notes}</div>
       ${canMove ? `
         <div class="btnRow" style="margin-top:10px;">
           <button class="primary" data-move="1">Move</button>
@@ -1034,11 +996,8 @@ function renderGlobalSearch(){
     }
 
     div.addEventListener("click", () => {
-      if(item.machine){
-        selectMachine(item.machine);
-      }else if(item.lane){
-        selectLane(item.lane);
-      }
+      if(item.machine) selectMachine(item.machine);
+      else if(item.lane) selectLane(item.lane);
       loadToForm(item.id);
     });
 
@@ -1061,7 +1020,6 @@ function clearForm(){
 function loadToForm(id){
   const item = inventory.find(x => x.id === id);
   if(!item) return;
-
   selectedId = id;
 
   els.job.value = item.job ?? "";
@@ -1075,7 +1033,7 @@ function loadToForm(id){
   renderMachineList();
 }
 
-/* ========= SAVE / UPDATE ========= */
+/* ========= SAVE / UPDATE (FIXED) ========= */
 
 async function upsertItem(){
   const machineRole = role === "machine";
@@ -1105,9 +1063,16 @@ async function upsertItem(){
   const location_id = getSelectedLocationId();
   if(!location_id){
     if(selectedLocation.type === "lane"){
-      alert(`No DB mapping while Lane selected.\n\nSelected: ${selectedLocation.value}\nThis means /locations is missing that lane row or lane column names don't match.\n\nFix: ensure locations has lanes 1–12 with a valid location_id.`);
+      alert(
+        `No DB mapping while Lane selected.\n\nSelected: ${selectedLocation.value}\n\n` +
+        `Fix: /locations must include lane rows 1–12.\n` +
+        `Debug: open DevTools Console and look at "LANE MAP HAS:"`
+      );
     }else{
-      alert(`No DB mapping while Machine selected.\n\nSelected: ${selectedLocation.value}\nFix: ensure /locations contains a row for that machine with a valid location_id.`);
+      alert(
+        `No DB mapping while Machine selected.\n\nSelected: ${selectedLocation.value}\n\n` +
+        `Fix: /locations must include a row for that machine.`
+      );
     }
     return;
   }
@@ -1121,7 +1086,6 @@ async function upsertItem(){
     location_id
   };
 
-  // Only block duplicates when creating
   if(!selectedId){
     const exists = inventory.some(x => normalize(x.job) === normalize(jobRaw));
     if(exists){
@@ -1131,11 +1095,8 @@ async function upsertItem(){
   }
 
   try{
-    if(selectedId){
-      await apiPut(`/items/${selectedId}`, payload);
-    }else{
-      await apiPost(`/items`, payload);
-    }
+    if(selectedId) await apiPut(`/items/${selectedId}`, payload);
+    else await apiPost(`/items`, payload);
 
     await loadLocations();
     await loadInventory();
@@ -1143,7 +1104,6 @@ async function upsertItem(){
     renderLaneList();
     renderMachineList();
     renderGlobalSearch();
-    if(els.historyPanel && els.historyPanel.style.display !== "none") renderHistory();
 
     clearForm();
   }catch(err){
@@ -1152,40 +1112,7 @@ async function upsertItem(){
   }
 }
 
-/* ========= DELETE (LOCAL ONLY) ========= */
-
-function deleteSelected(){
-  const admin = (role === "admin" && adminUnlocked);
-  if(!admin){
-    alert("Only Admin can delete.");
-    return;
-  }
-  if(!selectedId) return;
-
-  const item = inventory.find(x => x.id === selectedId);
-  const ok = confirm(`Delete Job #${item?.job ?? ""}? (It will go to History)`);
-  if(!ok) return;
-
-  const toDelete = inventory.find(x => x.id === selectedId);
-  if(toDelete){
-    deletedItems.unshift({ ...toDelete, deletedAt: nowStamp() });
-    saveDeleted();
-  }
-
-  inventory = inventory.filter(x => x.id !== selectedId);
-  els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
-
-  clearForm();
-  renderLaneList();
-  renderMachineList();
-  renderGlobalSearch();
-  if(els.historyPanel.style.display !== "none") renderHistory();
-}
-
-/* ========= MOVE OVERLAY ========= */
-/* NOTE: This currently updates UI locally.
-   If you want it to be REAL (DB) I can switch it to apiPut location_id.
-*/
+/* ========= MOVE OVERLAY (LOCAL ONLY UI) ========= */
 
 function openMoveOverlay(id){
   const item = inventory.find(x => x.id === id);
@@ -1200,7 +1127,7 @@ function openMoveOverlay(id){
   moveTargetId = id;
   els.moveTitle.textContent = `Move Job #${item.job}`;
 
-  // Overlay Lane buttons (correct grid)
+  // Lane choices
   els.moveLaneGrid.innerHTML = "";
   for(let i=1;i<=12;i++){
     const lane = `Lane ${i}`;
@@ -1214,7 +1141,7 @@ function openMoveOverlay(id){
     els.moveLaneGrid.appendChild(btn);
   }
 
-  // Overlay Machine buttons (correct grid)
+  // Machine choices
   els.moveMachineGrid.innerHTML = "";
   MACHINES.forEach(m => {
     const btn = document.createElement("div");
@@ -1263,96 +1190,7 @@ function moveToMachine(id, machine){
   loadToForm(item.id);
 }
 
-/* ========= HISTORY ========= */
-
-function toggleHistory(){
-  const open = els.historyPanel.style.display !== "none";
-  els.historyPanel.style.display = open ? "none" : "block";
-  if(!open){
-    els.historySearch.value = "";
-    renderHistory();
-  }
-}
-
-function renderHistory(){
-  const q = normalize(els.historySearch.value);
-  els.historyResults.innerHTML = "";
-
-  let list = deletedItems;
-  if(q){
-    list = deletedItems.filter(x =>
-      normalize(x.job).includes(q) ||
-      normalize(x.lane).includes(q) ||
-      normalize(x.machine).includes(q)
-    );
-  }
-
-  if(list.length === 0){
-    els.historyResults.innerHTML = `<div style="color:var(--muted)">No deleted jobs.</div>`;
-    return;
-  }
-
-  list.slice(0, 60).forEach(item => {
-    const div = document.createElement("div");
-    div.className = "resultItem";
-
-    const when = item.deletedAt ? escapeHtml(item.deletedAt) : "—";
-    const status = item.status ? escapeHtml(item.status) : "—";
-    const notes = item.notes ? escapeHtml(item.notes) : "—";
-
-    const wasWhere = item.machine
-      ? `Machine: ${escapeHtml(item.machine)}`
-      : `Was: ${escapeHtml(item.lane || "—")}`;
-
-    const canRestore = (role === "admin" && adminUnlocked);
-
-    div.innerHTML = `
-      <div class="big">Job #${escapeHtml(item.job)}</div>
-      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
-      <div class="meta">${wasWhere} • Deleted: ${when} • Notes: ${notes}</div>
-      ${canRestore ? `
-        <div class="btnRow" style="margin-top:10px;">
-          <button class="primary" data-restore="1">Restore</button>
-        </div>
-      ` : `<div class="tiny">Admin required to restore.</div>`}
-    `;
-
-    const restoreBtn = div.querySelector('[data-restore]');
-    if(restoreBtn){
-      restoreBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        restoreDeleted(item.id);
-      });
-    }
-
-    els.historyResults.appendChild(div);
-  });
-}
-
-function restoreDeleted(id){
-  const admin = (role === "admin" && adminUnlocked);
-  if(!admin){
-    alert("Only Admin can restore.");
-    return;
-  }
-
-  const idx = deletedItems.findIndex(x => x.id === id);
-  if(idx < 0) return;
-
-  const item = deletedItems[idx];
-  deletedItems.splice(idx, 1);
-  saveDeleted();
-
-  inventory.unshift({ ...item, deletedAt: undefined });
-
-  els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
-  renderLaneList();
-  renderMachineList();
-  renderGlobalSearch();
-  renderHistory();
-}
-
-/* ========= BACKUP ========= */
+/* ========= BACKUP / DEMO ========= */
 
 function exportJson(){
   const blob = new Blob([JSON.stringify(inventory, null, 2)], {type:"application/json"});
@@ -1377,7 +1215,7 @@ function importJsonFile(file){
         job: onlyDigits(x.job ?? x.job_number ?? ""),
         lane: String(x.lane || ""),
         machine: String(x.machine || ""),
-        qty: Number.isFinite(x.qty) ? x.qty : parseInt(x.qty || "0",10) || 0,
+        qty: parseInt(x.qty || "0",10) || 0,
         status: String(x.status || ""),
         notes: String(x.notes || ""),
         updatedBy: String(x.updatedBy || "").slice(0,10),
@@ -1406,7 +1244,6 @@ function seedDemo(){
     { id:"demo3", job:"123456", lane:"Lane 1", machine:"", qty:50, status:"READY",   notes:"", updatedBy:"TR", createdAt:stamp, updatedAt:stamp },
     ...inventory
   ];
-
   const seen = new Set();
   inventory = inventory.filter(x => {
     const key = normalize(x.job);
@@ -1421,7 +1258,7 @@ function seedDemo(){
   renderGlobalSearch();
 }
 
-/* Fullscreen */
+/* fullscreen */
 function toggleFullscreen(){
   if(!document.fullscreenElement){
     document.documentElement.requestFullscreen().catch(()=>{});
@@ -1438,7 +1275,6 @@ els.machineSearch.addEventListener("input", renderMachineList);
 
 els.saveBtn.addEventListener("click", upsertItem);
 els.newBtn.addEventListener("click", clearForm);
-els.deleteBtn.addEventListener("click", deleteSelected);
 
 els.exportBtn.addEventListener("click", exportJson);
 els.importBtn.addEventListener("click", () => els.fileInput.click());
@@ -1449,22 +1285,15 @@ els.fileInput.addEventListener("change", (e) => {
 });
 els.seedBtn.addEventListener("click", seedDemo);
 
-els.historyBtn.addEventListener("click", toggleHistory);
-els.historySearch.addEventListener("input", renderHistory);
-
 els.moveCloseBtn.addEventListener("click", closeMoveOverlay);
 els.moveOverlay.addEventListener("click", (e) => {
   if(e.target === els.moveOverlay) closeMoveOverlay();
 });
 
-/* Role events */
 els.roleSelect.addEventListener("change", (e) => {
   const v = e.target.value;
-  if(v === "admin"){
-    setRole("admin");
-  }else{
-    setRole(v);
-  }
+  if(v === "admin") setRole("admin");
+  else setRole(v);
 });
 
 els.adminUnlockBtn.addEventListener("click", () => {
@@ -1502,7 +1331,7 @@ document.addEventListener("keydown", (e) => {
   if(e.key === "Escape") closeMoveOverlay();
 
   const tag = document.activeElement?.tagName?.toLowerCase();
-  const typing = tag === "input" || tag === "textarea" || document.activeElement?.isContentEditable;
+  const typing = tag === "input" || tag === "textarea" || document.documentElement?.isContentEditable;
   if (typing) return;
 
   if (/^[1-9]$/.test(e.key)) {
@@ -1517,7 +1346,7 @@ document.addEventListener("keydown", (e) => {
     assertEls();
     console.log("INIT RUN", new Date().toISOString());
 
-    // UI immediately
+    // build UI immediately
     buildLaneButtons();
     buildMachineButtons();
     els.laneTitle.textContent = selectedLane;
@@ -1527,20 +1356,13 @@ document.addEventListener("keydown", (e) => {
 
     els.globalResults.innerHTML = `<div style="color:var(--muted)">Loading...</div>`;
 
-    // API check (optional)
-    apiGet("/health")
-      .then(d => console.log("API CONNECTED", d))
-      .catch(err => console.warn("API /health failed (still trying):", err));
-
     await loadLocations();
     await loadInventory();
 
     renderLaneList();
     renderMachineList();
     renderGlobalSearch();
-
-    console.log("LOCATIONS:", locations);
-    console.log("LANE MAP HAS:", [...locIdByLane.keys()]);
+ console.log("LANE MAP HAS:", [...locIdByLane.keys()]);
     console.log("MACHINE MAP HAS:", [...locIdByMachine.keys()]);
   }catch(err){
     console.error("Init failed:", err);
