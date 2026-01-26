@@ -389,7 +389,6 @@
 
         <div class="scroll">
           <input id="globalSearch" type="text" placeholder="Search Job # (example: 400848)">
-
           <div class="results" id="globalResults" style="margin-top:10px;"></div>
 
           <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
@@ -513,11 +512,13 @@
 
 <script>
 /* =========================
-   TRACE — STABLE DB MAPPING FIX
+   TRACE — REBUILT STABLE VERSION
    Fixes:
-   - Lane vs Machine selection confusion
-   - location_id mapping via /locations
-   - item.location_id -> lane/machine UI fields
+   - Restores lane/machine buttons (desktop + mobile)
+   - Adds missing selectLane()
+   - Removes crashing stray code
+   - Uses getSelectedLocationId() (no ghost selectedLocationId)
+   - Move overlay uses correct grids + correct values
    ========================= */
 
 /* API */
@@ -546,17 +547,8 @@ async function apiPut(path, body){
   if(!r.ok) throw new Error(`${path} -> ${r.status}`);
   return r.json();
 }
-async function apiDel(path){
-  const r = await fetch(`${API_BASE}${path}`, { method:"DELETE" });
-  if(!r.ok) throw new Error(`${path} -> ${r.status}`);
-  return r.json();
-}
 
-apiGet("/health")
-  .then(d => console.log("API CONNECTED", d))
-  .catch(e => console.error("API FAILED", e));
-
-/* local deleted history */
+/* Local deleted history */
 const DELETED_KEY = "trace_simple_deleted_v1";
 
 /* MACHINES */
@@ -621,7 +613,7 @@ function assertEls(){
 }
 
 /* HELPERS */
-function normalize(s){ return (s ?? "").trim().toLowerCase(); }
+function normalize(s){ return (s ?? "").toString().trim().toLowerCase(); }
 function onlyDigits(s){ return String(s ?? "").replace(/\D+/g, ""); }
 
 function nowStamp(){
@@ -640,23 +632,30 @@ function escapeHtml(s){
     .replaceAll('"',"&quot;").replaceAll("'","&#039;");
 }
 
+function pick(obj, keys){
+  for(const k of keys){
+    if(obj && obj[k] !== undefined && obj[k] !== null) return obj[k];
+  }
+  return undefined;
+}
+
 /* STATE */
 let rawItems = [];
 let rawLocations = [];
 
-let locations = [];                 // normalized locations
-let locById = new Map();            // location_id -> location obj
-let locIdByLane = new Map();        // "Lane 1" -> location_id
-let locIdByMachine = new Map();     // "S8" -> location_id
+let locations = [];
+let locById = new Map();       // location_id -> normalized location
+let locIdByLane = new Map();   // "Lane 1" -> location_id
+let locIdByMachine = new Map();// "S8" -> location_id
 
-let inventory = [];                 // mapped UI items
+let inventory = [];
 let deletedItems = loadDeleted();
 
 let selectedLane = "Lane 1";
 let selectedMachine = MACHINES[0];
 let selectedId = null;
 
-let selectedLocation = { type:"lane", value:"Lane 1" }; // <-- SINGLE SOURCE OF TRUTH
+let selectedLocation = { type:"lane", value:"Lane 1" };
 
 let role = "forklift";
 let adminUnlocked = false;
@@ -665,17 +664,10 @@ let moveTargetId = null;
 
 /* ========= LOCATION + ITEM MAPPING ========= */
 
-function pick(obj, keys){
-  for(const k of keys){
-    if(obj && obj[k] !== undefined && obj[k] !== null) return obj[k];
-  }
-  return undefined;
-}
-
 function mapLocations(raw){
   const arr = Array.isArray(raw) ? raw : [];
 
-  const mapped = arr.map(r => {
+  return arr.map(r => {
     const location_id = Number(pick(r, ["location_id","id","locationId"]));
     const laneVal = pick(r, ["lane","lane_number","laneNum","lane_no","lane_id"]);
     const machineVal = pick(r, ["machine","machine_name","machineName","name","label"]);
@@ -688,15 +680,11 @@ function mapLocations(raw){
       ? String(machineVal).trim()
       : "";
 
-    // Determine type
     const type = machineName ? "machine" : (laneNum ? "lane" : "unknown");
-
     const label = type === "lane" ? `Lane ${laneNum}` : (type === "machine" ? machineName : "");
 
     return { location_id, type, laneNum, machineName, label, raw:r };
   }).filter(x => Number.isFinite(x.location_id));
-
-  return mapped;
 }
 
 function buildLocationIndexes(){
@@ -706,7 +694,6 @@ function buildLocationIndexes(){
 
   locations.forEach(l => {
     locById.set(l.location_id, l);
-
     if(l.type === "lane" && l.laneNum){
       locIdByLane.set(`Lane ${l.laneNum}`, l.location_id);
     }
@@ -722,7 +709,9 @@ function mapItemsToUI(raw){
   return arr.map(it => {
     const id = pick(it, ["item_id","id","itemId"]);
     const job = onlyDigits(pick(it, ["job_number","job","jobNumber","sku"]) ?? "");
-    const qty = Number.isFinite(it.qty) ? it.qty : parseInt(it.qty || "0", 10) || 0;
+
+    const qtyRaw = pick(it, ["qty","quantity"]);
+    const qty = Number.isFinite(qtyRaw) ? qtyRaw : parseInt(qtyRaw || "0", 10) || 0;
 
     const status = (pick(it, ["status"]) ?? "").toString();
     const notes  = (pick(it, ["notes"]) ?? "").toString();
@@ -767,7 +756,7 @@ async function loadInventory(){
   els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
 }
 
-/* deleted history local */
+/* Deleted history local */
 function saveDeleted(){ localStorage.setItem(DELETED_KEY, JSON.stringify(deletedItems)); }
 function loadDeleted(){
   try{
@@ -809,15 +798,23 @@ function updateRoleUI(){
   const canCreate = admin;
   const hasSelection = !!selectedId;
 
+  // Job # locked once selected unless Admin creating new
   els.job.disabled = hasSelection || !canCreate;
 
+  // Forklift cannot edit fields
   els.qty.disabled = forklift;
   els.status.disabled = forklift;
   els.notes.disabled = forklift;
   els.updatedBy.disabled = forklift;
 
+  // Forklift cannot save/new
   els.saveBtn.disabled = forklift;
   els.newBtn.disabled = forklift;
+
+  // Machine cannot create brand new
+  if(machineRole && !hasSelection){
+    els.saveBtn.disabled = true;
+  }
 }
 
 /* ========= UI BUTTON BUILDERS ========= */
@@ -847,23 +844,23 @@ function buildMachineButtons(){
 
 /* ========= SELECTORS ========= */
 
-
-
-
-  selectedLocationId = loc.location_id;  // THIS is the key fix
-
+function selectLane(lane){
+  selectedLane = lane;
+  selectedLocation = { type:"lane", value: lane };
   selectedId = null;
+
   buildLaneButtons();
   els.laneTitle.textContent = selectedLane;
   els.laneSearch.value = "";
   clearForm();
+
   renderLaneList();
   renderGlobalSearch();
 }
 
 function selectMachine(m){
   selectedMachine = m;
-  selectedLocation = { type:"machine", value: m }; // FIX: THIS is what Save uses
+  selectedLocation = { type:"machine", value: m };
   selectedId = null;
 
   buildMachineButtons();
@@ -873,6 +870,18 @@ function selectMachine(m){
 
   renderMachineList();
   renderGlobalSearch();
+}
+
+/* ========= LOCATION PICK ========= */
+
+function getSelectedLocationId(){
+  if(selectedLocation.type === "lane"){
+    return locIdByLane.get(selectedLocation.value) ?? null;
+  }
+  if(selectedLocation.type === "machine"){
+    return locIdByMachine.get(selectedLocation.value) ?? null;
+  }
+  return null;
 }
 
 /* ========= RENDER LISTS ========= */
@@ -1052,6 +1061,7 @@ function clearForm(){
 function loadToForm(id){
   const item = inventory.find(x => x.id === id);
   if(!item) return;
+
   selectedId = id;
 
   els.job.value = item.job ?? "";
@@ -1065,18 +1075,6 @@ function loadToForm(id){
   renderMachineList();
 }
 
-/* ========= LOCATION PICK (FIXED) ========= */
-
-function getSelectedLocationId(){
-  if(selectedLocation.type === "lane"){
-    return locIdByLane.get(selectedLocation.value) ?? null;
-  }
-  if(selectedLocation.type === "machine"){
-    return locIdByMachine.get(selectedLocation.value) ?? null;
-  }
-  return null;
-}
-
 /* ========= SAVE / UPDATE ========= */
 
 async function upsertItem(){
@@ -1087,7 +1085,6 @@ async function upsertItem(){
     alert("Forklift role cannot edit job details.");
     return;
   }
-
   if(machineRole && !selectedId){
     alert("Machine role cannot create new jobs. Ask Admin.");
     return;
@@ -1105,11 +1102,10 @@ async function upsertItem(){
   const notes  = (els.notes.value  || "").trim().slice(0, 120);
   const updatedBy = (els.updatedBy.value || "").trim().slice(0, 10);
 
- const location_id = selectedLocationId;   
-    if(!location_id){
-    // give a REAL reason now:
+  const location_id = getSelectedLocationId();
+  if(!location_id){
     if(selectedLocation.type === "lane"){
-      alert(`No DB mappingwhile Lane selected.\n\nSelected: ${selectedLocation.value}\nThis means /locations is missing that lane row or lane column names don't match.\n\nFix: ensure locations has lanes 1–12 with a valid location_id.`);
+      alert(`No DB mapping while Lane selected.\n\nSelected: ${selectedLocation.value}\nThis means /locations is missing that lane row or lane column names don't match.\n\nFix: ensure locations has lanes 1–12 with a valid location_id.`);
     }else{
       alert(`No DB mapping while Machine selected.\n\nSelected: ${selectedLocation.value}\nFix: ensure /locations contains a row for that machine with a valid location_id.`);
     }
@@ -1125,7 +1121,7 @@ async function upsertItem(){
     location_id
   };
 
-  // only block duplicates when creating
+  // Only block duplicates when creating
   if(!selectedId){
     const exists = inventory.some(x => normalize(x.job) === normalize(jobRaw));
     if(exists){
@@ -1156,7 +1152,7 @@ async function upsertItem(){
   }
 }
 
-/* ========= DELETE (LOCAL ONLY FOR NOW) ========= */
+/* ========= DELETE (LOCAL ONLY) ========= */
 
 function deleteSelected(){
   const admin = (role === "admin" && adminUnlocked);
@@ -1186,7 +1182,10 @@ function deleteSelected(){
   if(els.historyPanel.style.display !== "none") renderHistory();
 }
 
-/* ========= MOVE OVERLAY (LOCAL ONLY FOR NOW) ========= */
+/* ========= MOVE OVERLAY ========= */
+/* NOTE: This currently updates UI locally.
+   If you want it to be REAL (DB) I can switch it to apiPut location_id.
+*/
 
 function openMoveOverlay(id){
   const item = inventory.find(x => x.id === id);
@@ -1201,16 +1200,21 @@ function openMoveOverlay(id){
   moveTargetId = id;
   els.moveTitle.textContent = `Move Job #${item.job}`;
 
- function buildLaneButtons(){
-  els.laneGrid.innerHTML = "";
+  // Overlay Lane buttons (correct grid)
+  els.moveLaneGrid.innerHTML = "";
   for(let i=1;i<=12;i++){
+    const lane = `Lane ${i}`;
     const btn = document.createElement("div");
-    btn.className = "laneBtn" + (selectedLane === `Lane ${i}` ? " active" : "");
-    btn.textContent = `Lane ${i}`;
-    btn.addEventListener("click", () => selectLane(i)); // IMPORTANT: pass NUMBER
-    els.laneGrid.appendChild(btn);
+    btn.className = "laneBtn";
+    btn.textContent = lane;
+    btn.addEventListener("click", () => {
+      moveToLane(moveTargetId, lane);
+      closeMoveOverlay();
+    });
+    els.moveLaneGrid.appendChild(btn);
   }
-}
+
+  // Overlay Machine buttons (correct grid)
   els.moveMachineGrid.innerHTML = "";
   MACHINES.forEach(m => {
     const btn = document.createElement("div");
@@ -1232,7 +1236,6 @@ function closeMoveOverlay(){
 }
 
 function moveToLane(id, lane){
-  // LOCAL UI ONLY, doesn't hit API yet
   const item = inventory.find(x => x.id === id);
   if(!item) return;
 
@@ -1247,7 +1250,6 @@ function moveToLane(id, lane){
 }
 
 function moveToMachine(id, machine){
-  // LOCAL UI ONLY, doesn't hit API yet
   const item = inventory.find(x => x.id === id);
   if(!item) return;
 
@@ -1419,7 +1421,7 @@ function seedDemo(){
   renderGlobalSearch();
 }
 
-/* fullscreen */
+/* Fullscreen */
 function toggleFullscreen(){
   if(!document.fullscreenElement){
     document.documentElement.requestFullscreen().catch(()=>{});
@@ -1515,15 +1517,20 @@ document.addEventListener("keydown", (e) => {
     assertEls();
     console.log("INIT RUN", new Date().toISOString());
 
-    // show UI immediately
+    // UI immediately
     buildLaneButtons();
     buildMachineButtons();
     els.laneTitle.textContent = selectedLane;
     els.machineTitle.textContent = `Machine: ${selectedMachine}`;
-    selectedLocation = { type:"lane", value:selectedLane }; // default lane selection
+    selectedLocation = { type:"lane", value:selectedLane };
     setRole("forklift");
 
     els.globalResults.innerHTML = `<div style="color:var(--muted)">Loading...</div>`;
+
+    // API check (optional)
+    apiGet("/health")
+      .then(d => console.log("API CONNECTED", d))
+      .catch(err => console.warn("API /health failed (still trying):", err));
 
     await loadLocations();
     await loadInventory();
@@ -1532,7 +1539,6 @@ document.addEventListener("keydown", (e) => {
     renderMachineList();
     renderGlobalSearch();
 
-    // Quick sanity logs:
     console.log("LOCATIONS:", locations);
     console.log("LANE MAP HAS:", [...locIdByLane.keys()]);
     console.log("MACHINE MAP HAS:", [...locIdByMachine.keys()]);
