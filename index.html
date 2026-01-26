@@ -513,33 +513,48 @@
 
 <script>
 /* =========================
-   TRACE — API + MAPPING FIX
+   TRACE — STABLE DB MAPPING FIX
+   Fixes:
+   - Lane vs Machine selection confusion
+   - location_id mapping via /locations
+   - item.location_id -> lane/machine UI fields
    ========================= */
 
+/* API */
 const API_BASE = "https://trace-api-sak3.onrender.com";
 
-async function api(path, opts){
-  const r = await fetch(`${API_BASE}${path}`, opts);
-  const text = await r.text();
-  let data;
-  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
-  if(!r.ok){
-    const msg = (data && data.error) ? data.error : text || `${r.status}`;
-    throw new Error(`${path} -> ${r.status} :: ${msg}`);
-  }
-  return data;
+async function apiGet(path){
+  const r = await fetch(`${API_BASE}${path}`);
+  if(!r.ok) throw new Error(`${path} -> ${r.status}`);
+  return r.json();
 }
-const apiGet = (p)=>api(p);
-const apiPost = (p,b)=>api(p,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)});
-const apiPut  = (p,b)=>api(p,{method:"PUT", headers:{"Content-Type":"application/json"},body:JSON.stringify(b)});
-const apiDel  = (p)=>api(p,{method:"DELETE"});
+async function apiPost(path, body){
+  const r = await fetch(`${API_BASE}${path}`, {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify(body)
+  });
+  if(!r.ok) throw new Error(`${path} -> ${r.status}`);
+  return r.json();
+}
+async function apiPut(path, body){
+  const r = await fetch(`${API_BASE}${path}`, {
+    method:"PUT",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify(body)
+  });
+  if(!r.ok) throw new Error(`${path} -> ${r.status}`);
+  return r.json();
+}
+async function apiDel(path){
+  const r = await fetch(`${API_BASE}${path}`, { method:"DELETE" });
+  if(!r.ok) throw new Error(`${path} -> ${r.status}`);
+  return r.json();
+}
 
-window.addEventListener("error", (e)=> {
-  console.error("WINDOW ERROR:", e.error || e.message);
-});
-window.addEventListener("unhandledrejection", (e)=> {
-  console.error("PROMISE ERROR:", e.reason);
-});
+apiGet("/health")
+  .then(d => console.log("API CONNECTED", d))
+  .catch(e => console.error("API FAILED", e));
 
 /* local deleted history */
 const DELETED_KEY = "trace_simple_deleted_v1";
@@ -604,44 +619,10 @@ function assertEls(){
   const missing = Object.entries(els).filter(([k,v]) => !v).map(([k]) => k);
   if(missing.length) throw new Error("Missing DOM elements: " + missing.join(", "));
 }
-assertEls();
 
-/* STATE */
-let inventory = [];
-let locations = [];
-let deletedItems = loadDeleted();
-
-let selectedLane = "Lane 1";
-let selectedMachine = MACHINES[0];
-let selectedId = null;
-
-let role = "forklift";
-let adminUnlocked = false;
-
-let moveTargetId = null;
-
-/* helpers */
-function normalize(s){ return (s ?? "").toString().trim().toLowerCase(); }
+/* HELPERS */
+function normalize(s){ return (s ?? "").trim().toLowerCase(); }
 function onlyDigits(s){ return String(s ?? "").replace(/\D+/g, ""); }
-
-function laneToNumber(laneLabel){
-  const n = parseInt(String(laneLabel||"").replace(/\D/g,""), 10);
-  return Number.isFinite(n) ? n : null;
-}
-function laneNumberToLabel(n){
-  const num = parseInt(n,10);
-  return Number.isFinite(num) ? `Lane ${num}` : "";
-}
-function normalizeLaneCell(v){
-  if(v === null || v === undefined) return null;
-  const s = String(v).trim();
-  const n = parseInt(s.replace(/\D/g,""), 10);
-  return Number.isFinite(n) ? n : null;
-}
-function normalizeMachineCell(v){
-  if(v === null || v === undefined) return "";
-  return String(v).trim();
-}
 
 function nowStamp(){
   const d = new Date();
@@ -652,10 +633,138 @@ function nowStamp(){
   const mi = String(d.getMinutes()).padStart(2,'0');
   return `${mm}/${dd}/${yy} ${hh}:${mi}`;
 }
+
 function escapeHtml(s){
   return String(s ?? "")
     .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
     .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+
+/* STATE */
+let rawItems = [];
+let rawLocations = [];
+
+let locations = [];                 // normalized locations
+let locById = new Map();            // location_id -> location obj
+let locIdByLane = new Map();        // "Lane 1" -> location_id
+let locIdByMachine = new Map();     // "S8" -> location_id
+
+let inventory = [];                 // mapped UI items
+let deletedItems = loadDeleted();
+
+let selectedLane = "Lane 1";
+let selectedMachine = MACHINES[0];
+let selectedId = null;
+
+let selectedLocation = { type:"lane", value:"Lane 1" }; // <-- SINGLE SOURCE OF TRUTH
+
+let role = "forklift";
+let adminUnlocked = false;
+
+let moveTargetId = null;
+
+/* ========= LOCATION + ITEM MAPPING ========= */
+
+function pick(obj, keys){
+  for(const k of keys){
+    if(obj && obj[k] !== undefined && obj[k] !== null) return obj[k];
+  }
+  return undefined;
+}
+
+function mapLocations(raw){
+  const arr = Array.isArray(raw) ? raw : [];
+
+  const mapped = arr.map(r => {
+    const location_id = Number(pick(r, ["location_id","id","locationId"]));
+    const laneVal = pick(r, ["lane","lane_number","laneNum","lane_no","lane_id"]);
+    const machineVal = pick(r, ["machine","machine_name","machineName","name","label"]);
+
+    const laneNum = laneVal !== undefined && laneVal !== null && String(laneVal).trim() !== ""
+      ? Number(String(laneVal).replace(/\D/g,""))
+      : null;
+
+    const machineName = machineVal !== undefined && machineVal !== null && String(machineVal).trim() !== ""
+      ? String(machineVal).trim()
+      : "";
+
+    // Determine type
+    const type = machineName ? "machine" : (laneNum ? "lane" : "unknown");
+
+    const label = type === "lane" ? `Lane ${laneNum}` : (type === "machine" ? machineName : "");
+
+    return { location_id, type, laneNum, machineName, label, raw:r };
+  }).filter(x => Number.isFinite(x.location_id));
+
+  return mapped;
+}
+
+function buildLocationIndexes(){
+  locById = new Map();
+  locIdByLane = new Map();
+  locIdByMachine = new Map();
+
+  locations.forEach(l => {
+    locById.set(l.location_id, l);
+
+    if(l.type === "lane" && l.laneNum){
+      locIdByLane.set(`Lane ${l.laneNum}`, l.location_id);
+    }
+    if(l.type === "machine" && l.machineName){
+      locIdByMachine.set(l.machineName, l.location_id);
+    }
+  });
+}
+
+function mapItemsToUI(raw){
+  const arr = Array.isArray(raw) ? raw : [];
+
+  return arr.map(it => {
+    const id = pick(it, ["item_id","id","itemId"]);
+    const job = onlyDigits(pick(it, ["job_number","job","jobNumber","sku"]) ?? "");
+    const qty = Number.isFinite(it.qty) ? it.qty : parseInt(it.qty || "0", 10) || 0;
+
+    const status = (pick(it, ["status"]) ?? "").toString();
+    const notes  = (pick(it, ["notes"]) ?? "").toString();
+
+    const updatedBy = (pick(it, ["updated_by","updatedBy"]) ?? "").toString();
+    const createdAt = (pick(it, ["created_at","createdAt"]) ?? "").toString();
+    const updatedAt = (pick(it, ["updated_at","updatedAt"]) ?? "").toString();
+
+    const location_id = pick(it, ["location_id","locationId"]);
+    const loc = locById.get(Number(location_id));
+
+    const lane = (loc && loc.type === "lane") ? `Lane ${loc.laneNum}` : "";
+    const machine = (loc && loc.type === "machine") ? loc.machineName : "";
+
+    return {
+      id,
+      job,
+      qty,
+      status,
+      notes,
+      updatedBy,
+      createdAt,
+      updatedAt,
+      location_id: (location_id !== undefined && location_id !== null) ? Number(location_id) : null,
+      lane,
+      machine
+    };
+  }).filter(x => String(x.job).length > 0);
+}
+
+/* ========= LOADERS ========= */
+
+async function loadLocations(){
+  rawLocations = await apiGet("/locations");
+  locations = mapLocations(rawLocations);
+  buildLocationIndexes();
+}
+
+async function loadInventory(){
+  rawItems = await apiGet("/items");
+  inventory = mapItemsToUI(rawItems);
+  els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
 }
 
 /* deleted history local */
@@ -669,79 +778,8 @@ function loadDeleted(){
   }catch{return [];}
 }
 
-/* -------------------------
-   DB -> UI mapping
--------------------------- */
-function mapLocations(raw){
-  const arr = Array.isArray(raw) ? raw : [];
-  return arr.map(r => ({
-    location_id: r.location_id ?? r.id ?? r.locationId,
-    lane_num: normalizeLaneCell(r.lane),
-    machine_name: normalizeMachineCell(r.machine),
-  })).filter(x => x.location_id != null);
-}
+/* ========= ROLE ========= */
 
-function findLocationForLane(label){
-  const laneNum = laneToNumber(label);
-  if(!laneNum) return null;
-  return locations.find(l => l.lane_num === laneNum) || null;
-}
-function findLocationForMachine(machineLabel){
-  const m = normalize(machineLabel);
-  return locations.find(l => normalize(l.machine_name) === m) || null;
-}
-
-function mapItemsToUI(rawItems){
-  const arr = Array.isArray(rawItems) ? rawItems : [];
-  return arr.map(it => {
-    const id = it.item_id ?? it.id ?? it.itemId;
-    const job = onlyDigits(it.job_number ?? it.job ?? it.jobNumber ?? "");
-    const qty = Number.isFinite(it.qty) ? it.qty : parseInt(it.qty || "0", 10) || 0;
-    const status = (it.status ?? "").toString();
-    const notes = (it.notes ?? "").toString();
-    const updatedBy = (it.updated_by ?? it.updatedBy ?? "").toString();
-    const createdAt = (it.created_at ?? it.createdAt ?? "").toString();
-    const updatedAt = (it.updated_at ?? it.updatedAt ?? "").toString();
-    const location_id = it.location_id ?? it.locationId ?? null;
-
-    let lane = "";
-    let machine = "";
-    if(location_id != null){
-      const loc = locations.find(l => String(l.location_id) === String(location_id));
-      if(loc){
-        if(loc.lane_num != null) lane = laneNumberToLabel(loc.lane_num);
-        if(loc.machine_name) machine = loc.machine_name;
-      }
-    }
-
-    return {
-      id,
-      job,
-      qty,
-      status,
-      notes,
-      updatedBy,
-      createdAt,
-      updatedAt,
-      location_id,
-      lane,
-      machine
-    };
-  }).filter(x => x.id != null && x.job);
-}
-
-/* data load */
-async function loadLocations(){
-  const raw = await apiGet("/locations");
-  locations = mapLocations(raw);
-}
-async function loadInventory(){
-  const raw = await apiGet("/items");
-  inventory = mapItemsToUI(raw);
-  els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
-}
-
-/* role */
 function setRole(nextRole){
   role = nextRole;
 
@@ -765,6 +803,7 @@ function updateRoleUI(){
   els.deleteBtn.disabled = !canDelete || !selectedId;
 
   const forklift = role === "forklift";
+  const machineRole = role === "machine";
   const admin = (role === "admin" && adminUnlocked);
 
   const canCreate = admin;
@@ -781,7 +820,8 @@ function updateRoleUI(){
   els.newBtn.disabled = forklift;
 }
 
-/* buttons */
+/* ========= UI BUTTON BUILDERS ========= */
+
 function buildLaneButtons(){
   els.laneGrid.innerHTML = "";
   for(let i=1;i<=12;i++){
@@ -792,16 +832,6 @@ function buildLaneButtons(){
     btn.addEventListener("click", () => selectLane(lane));
     els.laneGrid.appendChild(btn);
   }
-}
-function selectLane(lane){
-  selectedLane = lane;
-  selectedId = null;
-  buildLaneButtons();
-  els.laneTitle.textContent = lane;
-  els.laneSearch.value = "";
-  clearForm();
-  renderLaneList();
-  renderGlobalSearch();
 }
 
 function buildMachineButtons(){
@@ -814,18 +844,39 @@ function buildMachineButtons(){
     els.machineGrid.appendChild(btn);
   });
 }
+
+/* ========= SELECTORS ========= */
+
+function selectLane(lane){
+  selectedLane = lane;
+  selectedLocation = { type:"lane", value: lane }; // FIX: THIS is what Save uses
+  selectedId = null;
+
+  buildLaneButtons();
+  els.laneTitle.textContent = lane;
+  els.laneSearch.value = "";
+  clearForm();
+
+  renderLaneList();
+  renderGlobalSearch();
+}
+
 function selectMachine(m){
   selectedMachine = m;
+  selectedLocation = { type:"machine", value: m }; // FIX: THIS is what Save uses
   selectedId = null;
+
   buildMachineButtons();
   els.machineTitle.textContent = `Machine: ${m}`;
   els.machineSearch.value = "";
   clearForm();
+
   renderMachineList();
   renderGlobalSearch();
 }
 
-/* render */
+/* ========= RENDER LISTS ========= */
+
 function renderLaneList(){
   const q = normalize(els.laneSearch.value);
   const laneItemsAll = inventory.filter(x => String(x.lane ?? "") === selectedLane);
@@ -873,7 +924,7 @@ function renderLaneList(){
 
 function renderMachineList(){
   const q = normalize(els.machineSearch.value);
-  const machineItemsAll = inventory.filter(x => normalize(x.machine ?? "") === normalize(selectedMachine));
+  const machineItemsAll = inventory.filter(x => String(x.machine ?? "") === selectedMachine);
 
   let machineItems = machineItemsAll;
   if(q){
@@ -986,7 +1037,8 @@ function renderGlobalSearch(){
   });
 }
 
-/* form */
+/* ========= FORM ========= */
+
 function clearForm(){
   selectedId = null;
   els.job.value = "";
@@ -998,9 +1050,9 @@ function clearForm(){
 }
 
 function loadToForm(id){
-  const item = inventory.find(x => String(x.id) === String(id));
+  const item = inventory.find(x => x.id === id);
   if(!item) return;
-  selectedId = item.id;
+  selectedId = id;
 
   els.job.value = item.job ?? "";
   els.qty.value = String(item.qty ?? 0);
@@ -1013,18 +1065,20 @@ function loadToForm(id){
   renderMachineList();
 }
 
-/* location lookup (FIXED) */
+/* ========= LOCATION PICK (FIXED) ========= */
+
 function getSelectedLocationId(){
-  const laneRow = findLocationForLane(selectedLane);
-  if(laneRow) return laneRow.location_id;
-
-  const machineRow = findLocationForMachine(selectedMachine);
-  if(machineRow) return machineRow.location_id;
-
+  if(selectedLocation.type === "lane"){
+    return locIdByLane.get(selectedLocation.value) ?? null;
+  }
+  if(selectedLocation.type === "machine"){
+    return locIdByMachine.get(selectedLocation.value) ?? null;
+  }
   return null;
 }
 
-/* SAVE/UPDATE (API) */
+/* ========= SAVE / UPDATE ========= */
+
 async function upsertItem(){
   const machineRole = role === "machine";
   const admin = (role === "admin" && adminUnlocked);
@@ -1033,6 +1087,7 @@ async function upsertItem(){
     alert("Forklift role cannot edit job details.");
     return;
   }
+
   if(machineRole && !selectedId){
     alert("Machine role cannot create new jobs. Ask Admin.");
     return;
@@ -1052,7 +1107,12 @@ async function upsertItem(){
 
   const location_id = getSelectedLocationId();
   if(!location_id){
-    alert(`No DB mapping for "${selectedLane}".\n\nYour /locations must include lanes 1–12 (lane=1..12).`);
+    // give a REAL reason now:
+    if(selectedLocation.type === "lane"){
+      alert(`No DB mappingwhile Lane selected.\n\nSelected: ${selectedLocation.value}\nThis means /locations is missing that lane row or lane column names don't match.\n\nFix: ensure locations has lanes 1–12 with a valid location_id.`);
+    }else{
+      alert(`No DB mapping while Machine selected.\n\nSelected: ${selectedLocation.value}\nFix: ensure /locations contains a row for that machine with a valid location_id.`);
+    }
     return;
   }
 
@@ -1065,6 +1125,15 @@ async function upsertItem(){
     location_id
   };
 
+  // only block duplicates when creating
+  if(!selectedId){
+    const exists = inventory.some(x => normalize(x.job) === normalize(jobRaw));
+    if(exists){
+      alert("That Job # already exists. Search it and update it instead.");
+      return;
+    }
+  }
+
   try{
     if(selectedId){
       await apiPut(`/items/${selectedId}`, payload);
@@ -1072,18 +1141,23 @@ async function upsertItem(){
       await apiPost(`/items`, payload);
     }
 
+    await loadLocations();
     await loadInventory();
+
     renderLaneList();
     renderMachineList();
     renderGlobalSearch();
+    if(els.historyPanel && els.historyPanel.style.display !== "none") renderHistory();
+
     clearForm();
   }catch(err){
     console.error("SAVE FAILED", err);
-    alert("Save failed. Open DevTools → Network and click the /items request.\n\n" + err.message);
+    alert("Save failed. Open DevTools → Network and check the /items request.");
   }
 }
 
-/* DELETE (LOCAL ONLY FOR NOW) */
+/* ========= DELETE (LOCAL ONLY FOR NOW) ========= */
+
 function deleteSelected(){
   const admin = (role === "admin" && adminUnlocked);
   if(!admin){
@@ -1092,28 +1166,30 @@ function deleteSelected(){
   }
   if(!selectedId) return;
 
-  const item = inventory.find(x => String(x.id) === String(selectedId));
+  const item = inventory.find(x => x.id === selectedId);
   const ok = confirm(`Delete Job #${item?.job ?? ""}? (It will go to History)`);
   if(!ok) return;
 
-  const toDelete = inventory.find(x => String(x.id) === String(selectedId));
+  const toDelete = inventory.find(x => x.id === selectedId);
   if(toDelete){
     deletedItems.unshift({ ...toDelete, deletedAt: nowStamp() });
     saveDeleted();
   }
 
-  inventory = inventory.filter(x => String(x.id) !== String(selectedId));
+  inventory = inventory.filter(x => x.id !== selectedId);
   els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
 
   clearForm();
   renderLaneList();
   renderMachineList();
   renderGlobalSearch();
+  if(els.historyPanel.style.display !== "none") renderHistory();
 }
 
-/* move overlay */
+/* ========= MOVE OVERLAY (LOCAL ONLY FOR NOW) ========= */
+
 function openMoveOverlay(id){
-  const item = inventory.find(x => String(x.id) === String(id));
+  const item = inventory.find(x => x.id === id);
   if(!item) return;
 
   const allowed = (role === "forklift") || (role === "admin" && adminUnlocked);
@@ -1122,7 +1198,7 @@ function openMoveOverlay(id){
     return;
   }
 
-  moveTargetId = item.id;
+  moveTargetId = id;
   els.moveTitle.textContent = `Move Job #${item.job}`;
 
   els.moveLaneGrid.innerHTML = "";
@@ -1152,51 +1228,134 @@ function openMoveOverlay(id){
 
   els.moveOverlay.classList.add("show");
 }
+
 function closeMoveOverlay(){
   els.moveOverlay.classList.remove("show");
   moveTargetId = null;
 }
-els.moveCloseBtn.addEventListener("click", closeMoveOverlay);
-els.moveOverlay.addEventListener("click", (e) => {
-  if(e.target === els.moveOverlay) closeMoveOverlay();
-});
 
 function moveToLane(id, lane){
-  const item = inventory.find(x => String(x.id) === String(id));
+  // LOCAL UI ONLY, doesn't hit API yet
+  const item = inventory.find(x => x.id === id);
   if(!item) return;
+
   item.lane = lane;
   item.machine = "";
   item.updatedAt = nowStamp();
+
   selectLane(lane);
   renderMachineList();
   renderGlobalSearch();
   loadToForm(item.id);
 }
+
 function moveToMachine(id, machine){
-  const item = inventory.find(x => String(x.id) === String(id));
+  // LOCAL UI ONLY, doesn't hit API yet
+  const item = inventory.find(x => x.id === id);
   if(!item) return;
+
   item.machine = machine;
   item.lane = "";
   item.updatedAt = nowStamp();
+
   selectMachine(machine);
   renderLaneList();
   renderGlobalSearch();
   loadToForm(item.id);
 }
 
-/* helper finders */
-function findLocationForLane(label){
-  const laneNum = laneToNumber(label);
-  if(!laneNum) return null;
-  return locations.find(l => l.lane_num === laneNum) || null;
-}
-function findLocationForMachine(machineLabel){
-  const m = normalize(machineLabel);
-  return locations.find(l => normalize(l.machine_name) === m) || null;
+/* ========= HISTORY ========= */
+
+function toggleHistory(){
+  const open = els.historyPanel.style.display !== "none";
+  els.historyPanel.style.display = open ? "none" : "block";
+  if(!open){
+    els.historySearch.value = "";
+    renderHistory();
+  }
 }
 
-/* backup buttons still wired */
-els.exportBtn.addEventListener("click", () => {
+function renderHistory(){
+  const q = normalize(els.historySearch.value);
+  els.historyResults.innerHTML = "";
+
+  let list = deletedItems;
+  if(q){
+    list = deletedItems.filter(x =>
+      normalize(x.job).includes(q) ||
+      normalize(x.lane).includes(q) ||
+      normalize(x.machine).includes(q)
+    );
+  }
+
+  if(list.length === 0){
+    els.historyResults.innerHTML = `<div style="color:var(--muted)">No deleted jobs.</div>`;
+    return;
+  }
+
+  list.slice(0, 60).forEach(item => {
+    const div = document.createElement("div");
+    div.className = "resultItem";
+
+    const when = item.deletedAt ? escapeHtml(item.deletedAt) : "—";
+    const status = item.status ? escapeHtml(item.status) : "—";
+    const notes = item.notes ? escapeHtml(item.notes) : "—";
+
+    const wasWhere = item.machine
+      ? `Machine: ${escapeHtml(item.machine)}`
+      : `Was: ${escapeHtml(item.lane || "—")}`;
+
+    const canRestore = (role === "admin" && adminUnlocked);
+
+    div.innerHTML = `
+      <div class="big">Job #${escapeHtml(item.job)}</div>
+      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
+      <div class="meta">${wasWhere} • Deleted: ${when} • Notes: ${notes}</div>
+      ${canRestore ? `
+        <div class="btnRow" style="margin-top:10px;">
+          <button class="primary" data-restore="1">Restore</button>
+        </div>
+      ` : `<div class="tiny">Admin required to restore.</div>`}
+    `;
+
+    const restoreBtn = div.querySelector('[data-restore]');
+    if(restoreBtn){
+      restoreBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        restoreDeleted(item.id);
+      });
+    }
+
+    els.historyResults.appendChild(div);
+  });
+}
+
+function restoreDeleted(id){
+  const admin = (role === "admin" && adminUnlocked);
+  if(!admin){
+    alert("Only Admin can restore.");
+    return;
+  }
+
+  const idx = deletedItems.findIndex(x => x.id === id);
+  if(idx < 0) return;
+
+  const item = deletedItems[idx];
+  deletedItems.splice(idx, 1);
+  saveDeleted();
+
+  inventory.unshift({ ...item, deletedAt: undefined });
+
+  els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
+  renderLaneList();
+  renderMachineList();
+  renderGlobalSearch();
+  renderHistory();
+}
+
+/* ========= BACKUP ========= */
+
+function exportJson(){
   const blob = new Blob([JSON.stringify(inventory, null, 2)], {type:"application/json"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -1205,12 +1364,42 @@ els.exportBtn.addEventListener("click", () => {
   a.click();
   a.remove();
   URL.revokeObjectURL(a.href);
-});
-els.importBtn.addEventListener("click", () => els.fileInput.click());
-els.fileInput.addEventListener("change", (e) => {
-  els.fileInput.value = "";
-});
-els.seedBtn.addEventListener("click", () => {
+}
+
+function importJsonFile(file){
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const data = JSON.parse(reader.result);
+      if(!Array.isArray(data)) throw new Error("Invalid file format.");
+
+      inventory = data.map(x => ({
+        id: x.id,
+        job: onlyDigits(x.job ?? x.job_number ?? ""),
+        lane: String(x.lane || ""),
+        machine: String(x.machine || ""),
+        qty: Number.isFinite(x.qty) ? x.qty : parseInt(x.qty || "0",10) || 0,
+        status: String(x.status || ""),
+        notes: String(x.notes || ""),
+        updatedBy: String(x.updatedBy || "").slice(0,10),
+        createdAt: String(x.createdAt || ""),
+        updatedAt: String(x.updatedAt || "")
+      })).filter(x => String(x.job).length > 0);
+
+      els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
+      clearForm();
+      renderLaneList();
+      renderMachineList();
+      renderGlobalSearch();
+      alert("Import complete.");
+    }catch(e){
+      alert("Import failed: " + e.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function seedDemo(){
   const stamp = nowStamp();
   inventory = [
     { id:"demo1", job:"400848", lane:"Lane 7", machine:"", qty:12, status:"WAITING", notes:"", updatedBy:"TR", createdAt:stamp, updatedAt:stamp },
@@ -1218,13 +1407,32 @@ els.seedBtn.addEventListener("click", () => {
     { id:"demo3", job:"123456", lane:"Lane 1", machine:"", qty:50, status:"READY",   notes:"", updatedBy:"TR", createdAt:stamp, updatedAt:stamp },
     ...inventory
   ];
+
+  const seen = new Set();
+  inventory = inventory.filter(x => {
+    const key = normalize(x.job);
+    if(seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
   els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
   renderLaneList();
   renderMachineList();
   renderGlobalSearch();
-});
+}
 
-/* inputs */
+/* fullscreen */
+function toggleFullscreen(){
+  if(!document.fullscreenElement){
+    document.documentElement.requestFullscreen().catch(()=>{});
+  }else{
+    document.exitFullscreen().catch(()=>{});
+  }
+}
+
+/* ========= EVENTS ========= */
+
 els.globalSearch.addEventListener("input", renderGlobalSearch);
 els.laneSearch.addEventListener("input", renderLaneList);
 els.machineSearch.addEventListener("input", renderMachineList);
@@ -1233,10 +1441,31 @@ els.saveBtn.addEventListener("click", upsertItem);
 els.newBtn.addEventListener("click", clearForm);
 els.deleteBtn.addEventListener("click", deleteSelected);
 
+els.exportBtn.addEventListener("click", exportJson);
+els.importBtn.addEventListener("click", () => els.fileInput.click());
+els.fileInput.addEventListener("change", (e) => {
+  const file = e.target.files?.[0];
+  if(file) importJsonFile(file);
+  els.fileInput.value = "";
+});
+els.seedBtn.addEventListener("click", seedDemo);
+
+els.historyBtn.addEventListener("click", toggleHistory);
+els.historySearch.addEventListener("input", renderHistory);
+
+els.moveCloseBtn.addEventListener("click", closeMoveOverlay);
+els.moveOverlay.addEventListener("click", (e) => {
+  if(e.target === els.moveOverlay) closeMoveOverlay();
+});
+
+/* Role events */
 els.roleSelect.addEventListener("change", (e) => {
   const v = e.target.value;
-  if(v === "admin") setRole("admin");
-  else setRole(v);
+  if(v === "admin"){
+    setRole("admin");
+  }else{
+    setRole(v);
+  }
 });
 
 els.adminUnlockBtn.addEventListener("click", () => {
@@ -1256,6 +1485,7 @@ els.adminUnlockBtn.addEventListener("click", () => {
   updateRoleUI();
   renderGlobalSearch();
 });
+
 els.adminLockBtn.addEventListener("click", () => {
   adminUnlocked = false;
   els.adminLockBtn.style.display = "none";
@@ -1269,10 +1499,7 @@ els.job.addEventListener("input", () => {
 });
 
 document.addEventListener("keydown", (e) => {
-  if (e.key.toLowerCase() === "f") {
-    if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
-    else document.exitFullscreen().catch(()=>{});
-  }
+  if (e.key.toLowerCase() === "f") toggleFullscreen();
   if(e.key === "Escape") closeMoveOverlay();
 
   const tag = document.activeElement?.tagName?.toLowerCase();
@@ -1285,29 +1512,40 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-/* INIT */
+/* ========= INIT ========= */
 (async () => {
-  buildLaneButtons();
-  buildMachineButtons();
-  els.laneTitle.textContent = selectedLane;
-  els.machineTitle.textContent = `Machine: ${selectedMachine}`;
-  setRole("forklift");
-
-  els.globalResults.innerHTML = `<div style="color:var(--muted)">Loading...</div>`;
-
   try{
-    await apiGet("/health");
+    assertEls();
+    console.log("INIT RUN", new Date().toISOString());
+
+    // show UI immediately
+    buildLaneButtons();
+    buildMachineButtons();
+    els.laneTitle.textContent = selectedLane;
+    els.machineTitle.textContent = `Machine: ${selectedMachine}`;
+    selectedLocation = { type:"lane", value:selectedLane }; // default lane selection
+    setRole("forklift");
+
+    els.globalResults.innerHTML = `<div style="color:var(--muted)">Loading...</div>`;
+
     await loadLocations();
     await loadInventory();
 
     renderLaneList();
     renderMachineList();
     renderGlobalSearch();
+
+    // Quick sanity logs:
+    console.log("LOCATIONS:", locations);
+    console.log("LANE MAP HAS:", [...locIdByLane.keys()]);
+    console.log("MACHINE MAP HAS:", [...locIdByMachine.keys()]);
   }catch(err){
-    console.error("INIT FAILED:", err);
+    console.error("Init failed:", err);
     els.globalResults.innerHTML = `
-      <div style="color:var(--bad); font-weight:900;">API ERROR</div>
-      <div style="color:var(--muted); margin-top:6px;">${escapeHtml(err.message)}</div>
+      <div style="color:var(--bad); font-weight:900;">API / INIT ERROR</div>
+      <div style="color:var(--muted); margin-top:6px;">
+        Check DevTools → Console + Network for /locations and /items.
+      </div>
     `;
   }
 })();
