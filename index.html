@@ -1211,32 +1211,58 @@ function closeMoveOverlay(){
   moveTargetId = null;
 }
 
-function moveToLane(id, lane){
+async function moveToLane(id, lane){
   const item = inventory.find(x => x.id === id);
   if(!item) return;
 
-  item.lane = lane;
-  item.machine = "";
-  item.updatedAt = nowStamp();
+  const location_id = locIdByLane.get(lane) ?? null;
+  if(!location_id){
+    alert(`No DB mapping for ${lane}. Check /locations seed.`);
+    return;
+  }
 
-  selectLane(lane);
-  renderMachineList();
-  renderGlobalSearch();
-  loadToForm(item.id);
+  try{
+    await apiPut(`/items/${id}`, { location_id });
+
+    await loadLocations();
+    await loadInventory();
+
+    selectLane(lane);
+    renderLaneList();
+    renderMachineList();
+    renderGlobalSearch();
+    loadToForm(id);
+  }catch(err){
+    console.error("MOVE TO LANE FAILED", err);
+    alert("Move failed. Check DevTools → Network.");
+  }
 }
 
-function moveToMachine(id, machine){
+async function moveToMachine(id, machine){
   const item = inventory.find(x => x.id === id);
   if(!item) return;
 
-  item.machine = machine;
-  item.lane = "";
-  item.updatedAt = nowStamp();
+  const location_id = locIdByMachine.get(machine) ?? null;
+  if(!location_id){
+    alert(`No DB mapping for machine ${machine}. Check /locations seed.`);
+    return;
+  }
 
-  selectMachine(machine);
-  renderLaneList();
-  renderGlobalSearch();
-  loadToForm(item.id);
+  try{
+    await apiPut(`/items/${id}`, { location_id });
+
+    await loadLocations();
+    await loadInventory();
+
+    selectMachine(machine);
+    renderLaneList();
+    renderMachineList();
+    renderGlobalSearch();
+    loadToForm(id);
+  }catch(err){
+    console.error("MOVE TO MACHINE FAILED", err);
+    alert("Move failed. Check DevTools → Network.");
+  }
 }
 
 /* ========= BACKUP / DEMO ========= */
