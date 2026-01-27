@@ -767,7 +767,7 @@ function mapItemsToUI(raw){
       location_id: (location_id !== undefined && location_id !== null) ? Number(location_id) : null,
       lane, machine
     };
-  }).filter(x => String(x.job).length > 0);
+  }).filter(x => String(x.job).length > 0 && normalize(x.status) !== "deleted");
 }
 
 /* ========= LOADERS ========= */
@@ -1264,6 +1264,40 @@ async function moveToMachine(id, machine){
     alert("Move failed. Check DevTools → Network.");
   }
 }
+  async function deleteSelected(){
+  if(role !== "admin" || !adminUnlocked){
+    alert("Admin only.");
+    return;
+  }
+  if(!selectedId){
+    alert("Select a job first.");
+    return;
+  }
+
+  const item = inventory.find(x => x.id === selectedId);
+  if(!item) return;
+
+  const ok = confirm(`Delete Job #${item.job}?`);
+  if(!ok) return;
+
+  try{
+    await apiPut(`/items/${item.id}`, {
+      status: "DELETED",
+      updated_by: els.updatedBy.value || "ADMIN"
+    });
+
+    await loadInventory();
+    await loadLocations();
+
+    clearForm();
+    renderLaneList();
+    renderMachineList();
+    renderGlobalSearch();
+  }catch(err){
+    console.error(err);
+    alert("Delete failed");
+  }
+}
 
 /* ========= BACKUP / DEMO ========= */
 
@@ -1350,6 +1384,7 @@ els.machineSearch.addEventListener("input", renderMachineList);
 
 els.saveBtn.addEventListener("click", upsertItem);
 els.newBtn.addEventListener("click", clearForm);
+els.deleteBtn.addEventListener("click", deleteSelected);
 
 els.exportBtn.addEventListener("click", exportJson);
 els.importBtn.addEventListener("click", () => els.fileInput.click());
