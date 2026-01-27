@@ -1475,13 +1475,6 @@ function toggleFullscreen(){
 
 /* ========= EVENTS ========= */
 
-els.historyBtn.addEventListener("click", () => {
-  const show = els.historyPanel.style.display === "none";
-  els.historyPanel.style.display = show ? "block" : "none";
-  if(show) renderHistory();
-});
-
-els.historySearch.addEventListener("input", renderHistory);
 els.globalSearch.addEventListener("input", renderGlobalSearch);
 els.laneSearch.addEventListener("input", renderLaneList);
 els.machineSearch.addEventListener("input", renderMachineList);
