@@ -1003,7 +1003,6 @@ function renderMachineList(){
     els.machineResults.appendChild(div);
   });
 }
-
 function renderGlobalSearch(){
   const q = normalize(els.globalSearch.value);
   els.globalResults.innerHTML = "";
@@ -1012,7 +1011,59 @@ function renderGlobalSearch(){
     els.globalResults.innerHTML = `<div style="color:var(--muted)">Type a Job # to search all lanes/machines.</div>`;
     return;
   }
-function renderHistory(){
+
+  const matches = inventory
+    .filter(x => normalize(x.job).includes(q))
+    .slice(0, 15);
+
+  if(matches.length === 0){
+    els.globalResults.innerHTML = `<div style="color:var(--muted)">No match found.</div>`;
+    return;
+  }
+
+  matches.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "resultItem";
+
+    const status = item.status ? escapeHtml(item.status) : "—";
+    const notes = item.notes ? escapeHtml(item.notes) : "—";
+
+    const canMove = (role === "forklift") || (role === "admin" && adminUnlocked);
+
+    const location = item.machine
+      ? `Machine: ${escapeHtml(item.machine)}`
+      : (item.lane ? escapeHtml(item.lane) : "—");
+
+    div.innerHTML = `
+      <div class="big">Job #${escapeHtml(item.job)}</div>
+      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
+      <div class="meta">${location} • Notes: ${notes}</div>
+      ${canMove ? `
+        <div class="btnRow" style="margin-top:10px;">
+          <button class="primary" data-move="1">Move</button>
+        </div>
+      ` : ``}
+    `;
+
+    const moveBtn = div.querySelector('[data-move]');
+    if(moveBtn){
+      moveBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openMoveOverlay(item.id);
+      });
+    }
+
+    div.addEventListener("click", () => {
+      if(item.machine) selectMachine(item.machine);
+      else if(item.lane) selectLane(item.lane);
+      loadToForm(item.id);
+    });
+
+    els.globalResults.appendChild(div);
+  });
+}
+
+  function renderHistory(){
   const q = normalize(els.historySearch?.value || "");
   let list = deletedItems;
 
@@ -1048,6 +1099,7 @@ function renderHistory(){
     els.historyResults.appendChild(div);
   });
 }
+
   const matches = inventory
     .filter(x => normalize(x.job).includes(q))
     .slice(0, 15);
@@ -1205,44 +1257,7 @@ async function upsertItem(){
     alert("Save failed. Open DevTools → Network and check the /items request.");
   }
 }
-async function deleteSelected(){
-  const admin = (role === "admin" && adminUnlocked);
-  if(!admin){
-    alert("Admin only.");
-    return;
-  }
-  if(!selectedId){
-    alert("Select a job first.");
-    return;
-  }
 
-  const item = inventory.find(x => x.id === selectedId);
-  if(!item){
-    alert("Could not find selected job.");
-    return;
-  }
-
-  if(!confirm(`Delete Job #${item.job}?`)) return;
-
-  try{
-       const r = await fetch(`${API_BASE}/items/${selectedId}`, { method:"DELETE" });
-    if(!r.ok) throw new Error(`DELETE /items/${selectedId} -> ${r.status}`);
-
-    addToDeletedHistory(item);
-
-    await loadLocations();
-    await loadInventory();
-
-    clearForm();
-    renderLaneList();
-    renderMachineList();
-    renderGlobalSearch();
-    renderHistory();
-  }catch(err){
-    console.error("DELETE FAILED", err);
-    alert("Delete failed. Check DevTools → Network.");
-  }
-}
 /* ========= MOVE OVERLAY (LOCAL ONLY UI) ========= */
 
 function openMoveOverlay(id){
@@ -1460,6 +1475,13 @@ function toggleFullscreen(){
 
 /* ========= EVENTS ========= */
 
+els.historyBtn.addEventListener("click", () => {
+  const show = els.historyPanel.style.display === "none";
+  els.historyPanel.style.display = show ? "block" : "none";
+  if(show) renderHistory();
+});
+
+els.historySearch.addEventListener("input", renderHistory);
 els.globalSearch.addEventListener("input", renderGlobalSearch);
 els.laneSearch.addEventListener("input", renderLaneList);
 els.machineSearch.addEventListener("input", renderMachineList);
