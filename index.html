@@ -106,21 +106,23 @@
       color:var(--muted);
       white-space:nowrap;
     }
-      .versionBadge{
-  position:fixed;
-  top:12px;
-  left:12px;
-  z-index:120;
-  padding:6px 10px;
-  border:1px solid var(--stroke);
-  border-radius:999px;
-  background:rgba(0,0,0,.35);
-  color:var(--muted);
-  font-size:12px;
-  font-weight:900;
-  letter-spacing:.3px;
-  backdrop-filter: blur(6px);
-}
+
+    .versionBadge{
+      position:fixed;
+      top:12px;
+      left:12px;
+      z-index:120;
+      padding:6px 10px;
+      border:1px solid var(--stroke);
+      border-radius:999px;
+      background:rgba(0,0,0,.35);
+      color:var(--muted);
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.3px;
+      backdrop-filter: blur(6px);
+    }
+
     .rolebar{
       display:flex;
       gap:10px;
@@ -355,54 +357,52 @@
       text-transform:uppercase;
     }
 
-   @media (max-width: 980px){
-  body{overflow:auto;}
-  .wrap{height:auto;}
-  .grid{grid-template-columns:1fr;}
+    @media (max-width: 980px){
+      body{overflow:auto;}
+      .wrap{height:auto;}
+      .grid{grid-template-columns:1fr;}
 
-  /* Stack logo + status on mobile */
-  .top{
-    grid-template-columns:1fr;
-    justify-items:center;
-    gap:10px;
-  }
+      .top{
+        grid-template-columns:1fr;
+        justify-items:center;
+        gap:10px;
+      }
 
-  .logo{
-    grid-column:1;
-    justify-self:center;
-    width:520px;
-    max-width:92vw;
-  }
+      .logo{
+        grid-column:1;
+        justify-self:center;
+        width:520px;
+        max-width:92vw;
+      }
 
-  .status{
-    display:flex;
-    grid-column:1;
-    justify-self:center;
-    justify-content:center;
-    text-align:center;
-    gap:8px;
-    font-size:12px;
-    flex-wrap:wrap;
-  }
+      .status{
+        display:flex;
+        grid-column:1;
+        justify-self:center;
+        justify-content:center;
+        text-align:center;
+        gap:8px;
+        font-size:12px;
+        flex-wrap:wrap;
+      }
 
-  .pill{
-    padding:5px 9px;
-    font-size:12px;
-  }
+      .pill{
+        padding:5px 9px;
+        font-size:12px;
+      }
 
-  .laneGrid{
-    grid-template-columns: repeat(3,1fr);
-  }
-}
-
-</style>
+      .laneGrid{
+        grid-template-columns: repeat(3,1fr);
+      }
+    }
+  </style>
 </head>
 
 <body>
- 
-<div class="versionBadge">TRACE v0.8 • Internal Beta</div> 
 
-<div class="wrap">
+  <div class="versionBadge">TRACE v0.8 • Internal Beta</div>
+
+  <div class="wrap">
 
     <div class="top">
       <div></div>
@@ -561,10 +561,7 @@
 
 <script>
 /* =========================
-   TRACE — CLEAN STABLE BUILD (DB MAPPING FIXED)
-   - Lanes/Machines buttons always render
-   - selectedLocation is the only source of truth
-   - location_id is always computed from /locations maps
+   TRACE — CLEAN STABLE BUILD (LANES FIXED + HISTORY FIXED)
    ========================= */
 
 const API_BASE = "https://trace-api-sak3.onrender.com";
@@ -872,7 +869,7 @@ function buildMachineButtons(){
   });
 }
 
-/* ========= SELECTORS (FIXED) ========= */
+/* ========= SELECTORS ========= */
 
 function selectLane(lane){
   selectedLane = lane;
@@ -1012,42 +1009,7 @@ function renderGlobalSearch(){
     els.globalResults.innerHTML = `<div style="color:var(--muted)">Type a Job # to search all lanes/machines.</div>`;
     return;
   }
-function renderHistory(){
-  const q = normalize(els.historySearch?.value || "");
-  let list = deletedItems;
 
-  if(q){
-    list = list.filter(x =>
-      normalize(x.job).includes(q) ||
-      normalize(x.status).includes(q) ||
-      normalize(x.notes).includes(q) ||
-      normalize(x.deletedBy).includes(q)
-    );
-  }
-
-  els.historyResults.innerHTML = "";
-
-  if(list.length === 0){
-    els.historyResults.innerHTML = `<div style="color:var(--muted)">No deleted jobs yet.</div>`;
-    return;
-  }
-
-  list.slice(0, 60).forEach(item => {
-    const div = document.createElement("div");
-    div.className = "resultItem";
-    div.innerHTML = `
-      <div class="big">Job #${escapeHtml(item.job)}</div>
-      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${escapeHtml(item.status || "—")}</div>
-      <div class="meta">
-        Deleted: ${escapeHtml(item.deletedAt || "")}
-        ${item.deletedBy ? ` • By: ${escapeHtml(item.deletedBy)}` : ""}
-        • From: ${item.machine ? `Machine ${escapeHtml(item.machine)}` : escapeHtml(item.lane || "—")}
-      </div>
-      <div class="meta">Notes: ${escapeHtml(item.notes || "—")}</div>
-    `;
-    els.historyResults.appendChild(div);
-  });
-}
   const matches = inventory
     .filter(x => normalize(x.job).includes(q))
     .slice(0, 15);
@@ -1099,6 +1061,45 @@ function renderHistory(){
   });
 }
 
+/* ========= HISTORY (FIXED + NO CRASH) ========= */
+
+function renderHistory(){
+  const q = normalize(els.historySearch?.value || "");
+  let list = deletedItems;
+
+  if(q){
+    list = list.filter(x =>
+      normalize(x.job).includes(q) ||
+      normalize(x.status).includes(q) ||
+      normalize(x.notes).includes(q) ||
+      normalize(x.deletedBy).includes(q)
+    );
+  }
+
+  els.historyResults.innerHTML = "";
+
+  if(list.length === 0){
+    els.historyResults.innerHTML = `<div style="color:var(--muted)">No deleted jobs yet.</div>`;
+    return;
+  }
+
+  list.slice(0, 60).forEach(item => {
+    const div = document.createElement("div");
+    div.className = "resultItem";
+    div.innerHTML = `
+      <div class="big">Job #${escapeHtml(item.job)}</div>
+      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${escapeHtml(item.status || "—")}</div>
+      <div class="meta">
+        Deleted: ${escapeHtml(item.deletedAt || "")}
+        ${item.deletedBy ? ` • By: ${escapeHtml(item.deletedBy)}` : ""}
+        • From: ${item.machine ? `Machine ${escapeHtml(item.machine)}` : escapeHtml(item.lane || "—")}
+      </div>
+      <div class="meta">Notes: ${escapeHtml(item.notes || "—")}</div>
+    `;
+    els.historyResults.appendChild(div);
+  });
+}
+
 /* ========= FORM ========= */
 
 function clearForm(){
@@ -1127,7 +1128,7 @@ function loadToForm(id){
   renderMachineList();
 }
 
-/* ========= SAVE / UPDATE (FIXED) ========= */
+/* ========= SAVE / UPDATE ========= */
 
 async function upsertItem(){
   const machineRole = role === "machine";
@@ -1156,18 +1157,7 @@ async function upsertItem(){
 
   const location_id = getSelectedLocationId();
   if(!location_id){
-    if(selectedLocation.type === "lane"){
-      alert(
-        `No DB mapping while Lane selected.\n\nSelected: ${selectedLocation.value}\n\n` +
-        `Fix: /locations must include lane rows 1–12.\n` +
-        `Debug: open DevTools Console and look at "LANE MAP HAS:"`
-      );
-    }else{
-      alert(
-        `No DB mapping while Machine selected.\n\nSelected: ${selectedLocation.value}\n\n` +
-        `Fix: /locations must include a row for that machine.`
-      );
-    }
+    alert(`No DB mapping for selected ${selectedLocation.type}: ${selectedLocation.value}. Check /locations seed.`);
     return;
   }
 
@@ -1205,6 +1195,9 @@ async function upsertItem(){
     alert("Save failed. Open DevTools → Network and check the /items request.");
   }
 }
+
+/* ========= DELETE (ONE VERSION ONLY — FIXED) ========= */
+
 async function deleteSelected(){
   const admin = (role === "admin" && adminUnlocked);
   if(!admin){
@@ -1225,7 +1218,7 @@ async function deleteSelected(){
   if(!confirm(`Delete Job #${item.job}?`)) return;
 
   try{
-       const r = await fetch(`${API_BASE}/items/${selectedId}`, { method:"DELETE" });
+    const r = await fetch(`${API_BASE}/items/${selectedId}`, { method:"DELETE" });
     if(!r.ok) throw new Error(`DELETE /items/${selectedId} -> ${r.status}`);
 
     addToDeletedHistory(item);
@@ -1237,13 +1230,15 @@ async function deleteSelected(){
     renderLaneList();
     renderMachineList();
     renderGlobalSearch();
-    renderHistory();
+
+    if(els.historyPanel.style.display !== "none") renderHistory();
   }catch(err){
     console.error("DELETE FAILED", err);
     alert("Delete failed. Check DevTools → Network.");
   }
 }
-/* ========= MOVE OVERLAY (LOCAL ONLY UI) ========= */
+
+/* ========= MOVE OVERLAY ========= */
 
 function openMoveOverlay(id){
   const item = inventory.find(x => x.id === id);
@@ -1258,7 +1253,6 @@ function openMoveOverlay(id){
   moveTargetId = id;
   els.moveTitle.textContent = `Move Job #${item.job}`;
 
-  // Lane choices
   els.moveLaneGrid.innerHTML = "";
   for(let i=1;i<=12;i++){
     const lane = `Lane ${i}`;
@@ -1272,7 +1266,6 @@ function openMoveOverlay(id){
     els.moveLaneGrid.appendChild(btn);
   }
 
-  // Machine choices
   els.moveMachineGrid.innerHTML = "";
   MACHINES.forEach(m => {
     const btn = document.createElement("div");
@@ -1294,9 +1287,6 @@ function closeMoveOverlay(){
 }
 
 async function moveToLane(id, lane){
-  const item = inventory.find(x => x.id === id);
-  if(!item) return;
-
   const location_id = locIdByLane.get(lane) ?? null;
   if(!location_id){
     alert(`No DB mapping for ${lane}. Check /locations seed.`);
@@ -1321,9 +1311,6 @@ async function moveToLane(id, lane){
 }
 
 async function moveToMachine(id, machine){
-  const item = inventory.find(x => x.id === id);
-  if(!item) return;
-
   const location_id = locIdByMachine.get(machine) ?? null;
   if(!location_id){
     alert(`No DB mapping for machine ${machine}. Check /locations seed.`);
@@ -1344,40 +1331,6 @@ async function moveToMachine(id, machine){
   }catch(err){
     console.error("MOVE TO MACHINE FAILED", err);
     alert("Move failed. Check DevTools → Network.");
-  }
-}
-  async function deleteSelected(){
-  if(role !== "admin" || !adminUnlocked){
-    alert("Admin only.");
-    return;
-  }
-  if(!selectedId){
-    alert("Select a job first.");
-    return;
-  }
-
-  const item = inventory.find(x => x.id === selectedId);
-  if(!item) return;
-
-  const ok = confirm(`Delete Job #${item.job}?`);
-  if(!ok) return;
-
-  try{
-    await apiPut(`/items/${item.id}`, {
-      status: "DELETED",
-      updated_by: els.updatedBy.value || "ADMIN"
-    });
-
-    await loadInventory();
-    await loadLocations();
-
-    clearForm();
-    renderLaneList();
-    renderMachineList();
-    renderGlobalSearch();
-  }catch(err){
-    console.error(err);
-    alert("Delete failed");
   }
 }
 
@@ -1514,6 +1467,14 @@ els.adminLockBtn.addEventListener("click", () => {
   setRole("forklift");
 });
 
+els.historyBtn.addEventListener("click", () => {
+  const open = els.historyPanel.style.display !== "none";
+  els.historyPanel.style.display = open ? "none" : "block";
+  if(!open) renderHistory();
+});
+
+els.historySearch.addEventListener("input", renderHistory);
+
 els.job.addEventListener("input", () => {
   els.job.value = onlyDigits(els.job.value);
 });
@@ -1538,11 +1499,12 @@ document.addEventListener("keydown", (e) => {
     assertEls();
     console.log("INIT RUN", new Date().toISOString());
 
-    // build UI immediately
     buildLaneButtons();
     buildMachineButtons();
+
     els.laneTitle.textContent = selectedLane;
     els.machineTitle.textContent = `Machine: ${selectedMachine}`;
+
     selectedLocation = { type:"lane", value:selectedLane };
     setRole("forklift");
 
@@ -1554,7 +1516,8 @@ document.addEventListener("keydown", (e) => {
     renderLaneList();
     renderMachineList();
     renderGlobalSearch();
- console.log("LANE MAP HAS:", [...locIdByLane.keys()]);
+
+    console.log("LANE MAP HAS:", [...locIdByLane.keys()]);
     console.log("MACHINE MAP HAS:", [...locIdByMachine.keys()]);
   }catch(err){
     console.error("Init failed:", err);
