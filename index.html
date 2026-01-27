@@ -1225,7 +1225,7 @@ async function deleteSelected(){
   if(!confirm(`Delete Job #${item.job}?`)) return;
 
   try{
-    const r = await fetch(`${API_BASE}/items/${selectedId}`, { method:"DELETE" });
+       const r = await fetch(`${API_BASE}/items/${selectedId}`, { method:"DELETE" });
     if(!r.ok) throw new Error(`DELETE /items/${selectedId} -> ${r.status}`);
 
     addToDeletedHistory(item);
@@ -1481,12 +1481,6 @@ els.moveCloseBtn.addEventListener("click", closeMoveOverlay);
 els.moveOverlay.addEventListener("click", (e) => {
   if(e.target === els.moveOverlay) closeMoveOverlay();
 });
-els.historyBtn.addEventListener("click", () => {
-  const show = els.historyPanel.style.display === "none";
-  els.historyPanel.style.display = show ? "block" : "none";
-  if(show) renderHistory();
-});
-els.historySearch?.addEventListener("input", renderHistory);
 
 els.roleSelect.addEventListener("change", (e) => {
   const v = e.target.value;
