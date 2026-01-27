@@ -565,6 +565,7 @@
    ========================= */
 
 const API_BASE = "https://trace-api-sak3.onrender.com";
+window.API_BASE = API_BASE;
 
 async function apiGet(path){
   const r = await fetch(`${API_BASE}${path}`);
