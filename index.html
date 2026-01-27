@@ -1063,7 +1063,7 @@ function renderGlobalSearch(){
   });
 }
 
-  function renderHistory(){
+function renderHistory(){
   const q = normalize(els.historySearch?.value || "");
   let list = deletedItems;
 
@@ -1257,7 +1257,44 @@ async function upsertItem(){
     alert("Save failed. Open DevTools → Network and check the /items request.");
   }
 }
+async function deleteSelected(){
+  const admin = (role === "admin" && adminUnlocked);
+  if(!admin){
+    alert("Admin only.");
+    return;
+  }
+  if(!selectedId){
+    alert("Select a job first.");
+    return;
+  }
 
+  const item = inventory.find(x => x.id === selectedId);
+  if(!item){
+    alert("Could not find selected job.");
+    return;
+  }
+
+  if(!confirm(`Delete Job #${item.job}?`)) return;
+
+  try{
+       const r = await fetch(`${API_BASE}/items/${selectedId}`, { method:"DELETE" });
+    if(!r.ok) throw new Error(`DELETE /items/${selectedId} -> ${r.status}`);
+
+    addToDeletedHistory(item);
+
+    await loadLocations();
+    await loadInventory();
+
+    clearForm();
+    renderLaneList();
+    renderMachineList();
+    renderGlobalSearch();
+    renderHistory();
+  }catch(err){
+    console.error("DELETE FAILED", err);
+    alert("Delete failed. Check DevTools → Network.");
+  }
+}
 /* ========= MOVE OVERLAY (LOCAL ONLY UI) ========= */
 
 function openMoveOverlay(id){
