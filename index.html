@@ -923,12 +923,20 @@ const MACHINES = ["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane
   let resolver = null;
 
   function close(result){
-    d.overlay.classList.remove("show");
-    d.input.value = "";
-    d.hint.textContent = "";
-    d.inputWrap.style.display = "none";
-    if(resolver){ resolver(result); resolver = null; }
+  // CAPTURE the input BEFORE clearing it
+  const capturedValue = d.input.value;
+
+  d.overlay.classList.remove("show");
+  d.input.value = "";
+  d.hint.textContent = "";
+  d.inputWrap.style.display = "none";
+
+  if(resolver){
+    // pass the captured value through
+    resolver({ ...result, value: capturedValue });
+    resolver = null;
   }
+}  
 
   d.ok.addEventListener("click", () => close({ ok:true, value:d.input.value }));
   d.cancel.addEventListener("click", () => close({ ok:false }));
@@ -969,7 +977,7 @@ const MACHINES = ["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane
     d.overlay.classList.add("show");
     setTimeout(() => d.input.focus(), 50);
     return new Promise(res => {
-      resolver = (r) => res(r.ok ? d.input.value : null);
+      resolver = (r) => res(r.ok ? (r.value ?? "") : null);
     });
   };
 })();
