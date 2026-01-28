@@ -21,7 +21,85 @@
   <link rel="apple-touch-icon" href="./icon-192.png">
 
   <style>
-    :root{
+    .overlay{
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10,12,16,.92);
+  z-index: 99999;
+}
+
+.loginCard{
+  width: min(420px, 92vw);
+  background: rgba(22,26,34,.95);
+  border: 1px solid rgba(90,110,160,.25);
+  border-radius: 18px;
+  padding: 22px 20px;
+  box-shadow: 0 18px 60px rgba(0,0,0,.55);
+}
+
+.loginTitle{
+  font-size: 34px;
+  letter-spacing: 2px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.loginSub{
+  text-align: center;
+  margin-top: 6px;
+  margin-bottom: 18px;
+  opacity: .75;
+}
+
+.loginLabel{
+  display: block;
+  font-size: 12px;
+  opacity: .8;
+  margin: 10px 0 6px;
+}
+
+.loginInput{
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(110,130,190,.25);
+  background: rgba(10,12,16,.55);
+  color: #fff;
+  padding: 12px 12px;
+  outline: none;
+}
+
+.loginInput:focus{
+  border-color: rgba(140,170,255,.6);
+}
+
+.loginBtn{
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  background: rgba(80,120,255,.9);
+  color: #fff;
+}
+
+.loginBtn:active{
+  transform: translateY(1px);
+}
+
+.loginMsg{
+  margin-top: 12px;
+  font-size: 13px;
+  opacity: .85;
+  text-align: center;
+}
+
+
+      :root{
       --bg:#0f1115;
       --panel:rgba(22,26,34,.92);
       --panel2:rgba(27,32,48,.92);
@@ -625,6 +703,24 @@
 </head>
 
 <body>
+<!-- LOGIN OVERLAY -->
+<div id="loginOverlay" class="overlay">
+  <div class="loginCard">
+    <div class="loginTitle">TRACE</div>
+    <div class="loginSub">Secure Access</div>
+
+    <label class="loginLabel">Email</label>
+    <input id="loginEmail" class="loginInput" type="email" placeholder="you@trace.app" autocomplete="username"/>
+
+    <label class="loginLabel">Password</label>
+    <input id="loginPass" class="loginInput" type="password" placeholder="••••••••" autocomplete="current-password"/>
+
+    <button id="loginBtn" class="loginBtn">Login</button>
+
+    <div id="loginMsg" class="loginMsg"></div>
+  </div>
+</div>
+
 <!-- DIALOG OVERLAY -->
 <div class="overlay" id="dialogOverlay">
   <div class="modal" style="max-width:520px;">
@@ -835,6 +931,125 @@
 
   <!-- INTRO SCRIPT -->
   <script>
+const AUTH = {
+  token: localStorage.getItem("trace_token") || null,
+  role: localStorage.getItem("trace_role") || "forklift",
+  email: localStorage.getItem("trace_email") || ""
+};
+
+function setAuth({ token, role, email }) {
+  AUTH.token = token || null;
+  AUTH.role = role || "forklift";
+  AUTH.email = email || "";
+
+  if (AUTH.token) localStorage.setItem("trace_token", AUTH.token);
+  else localStorage.removeItem("trace_token");
+
+  localStorage.setItem("trace_role", AUTH.role);
+  localStorage.setItem("trace_email", AUTH.email);
+}
+
+function authHeaders(extra={}) {
+  // send Bearer token to API
+  return {
+    ...extra,
+    ...(AUTH.token ? { "Authorization": `Bearer ${AUTH.token}` } : {})
+  };
+}
+
+// IMPORTANT: make sure your apiFetch uses authHeaders() when calling protected routes
+async function apiFetch(path, opts={}) {
+  const url = API_URL + path; // whatever you use now
+  const headers = authHeaders({
+    "Content-Type": "application/json",
+    ...(opts.headers || {})
+  });
+
+  const res = await fetch(url, { ...opts, headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+async function doLogin(email, password) {
+  return apiFetch("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password })
+  });
+}
+
+function showLogin() {
+  document.getElementById("loginOverlay").style.display = "flex";
+}
+
+function hideLogin() {
+  document.getElementById("loginOverlay").style.display = "none";
+}
+
+// call your intro animation AFTER login
+async function startAfterLogin() {
+  // 1) run intro animation
+  // replace this with your actual function name:
+  if (typeof playIntro === "function") {
+    await playIntro(); // if yours returns a Promise
+  } else {
+    // or if you show/hide an overlay:
+    const intro = document.getElementById("introOverlay");
+    if (intro) {
+      intro.style.display = "flex";
+      setTimeout(() => intro.style.display = "none", 1800);
+    }
+  }
+
+  window.addEventListener("DOMContentLoaded", async () => {
+  wireLoginUI();
+
+  if (AUTH.token) {
+    hideLogin();
+    await startAfterLogin(); // ← THIS is where init() + loadInventory() now happen
+  } else {
+    showLogin();
+  }
+}); 
+
+function wireLoginUI() {
+  const btn = document.getElementById("loginBtn");
+  const msg = document.getElementById("loginMsg");
+
+  btn.addEventListener("click", async () => {
+    msg.textContent = "";
+    btn.disabled = true;
+    btn.textContent = "Logging in...";
+
+    const email = document.getElementById("loginEmail").value.trim();
+    const pass  = document.getElementById("loginPass").value;
+
+    try {
+      const r = await doLogin(email, pass);
+      if (!r.ok) throw new Error(r.error || "Login failed");
+
+      setAuth({
+        token: r.token,
+        role: r.user?.role,
+        email: r.user?.email || email
+      });
+
+      hideLogin();
+      await startAfterLogin();
+    } catch (e) {
+      msg.textContent = e.message || "Login failed";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Login";
+    }
+  });
+
+  // enter key submits
+  document.getElementById("loginPass").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") btn.click();
+  });
+}
+
   (function(){
     const steps = [
       "INITIALIZING SYSTEMS",
