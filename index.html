@@ -959,6 +959,7 @@ const ADMIN_PIN = "4793";
 /* DOM */
 const els = {
   // ===== DIALOG (styled) =====
+// ===== DIALOG (styled) =====
 (function initDialog(){
   const d = {
     overlay: document.getElementById("dialogOverlay"),
@@ -1026,7 +1027,9 @@ const els = {
   };
 })();
 
-itemsPill: document.getElementById("itemsPill"),
+(function initDialog(){
+  const d = {
+  itemsPill: document.getElementById("itemsPill"),
   rolePill: document.getElementById("rolePill"),
 
   roleSelect: document.getElementById("roleSelect"),
