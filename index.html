@@ -739,7 +739,13 @@
         <div class="scroll">
           <div class="formGrid">
             <div class="full">
-              <input id="job" type="text" inputmode="numeric" placeholder="Job # (numbers only, required)">
+            <input
+              id="job"
+              type="text"
+              placeholder="Job # (letters / numbers / hyphen allowed)"
+              required
+              >  
+           
             </div>
 
             <div>
@@ -986,7 +992,12 @@ function assertEls(){
 
 /* HELPERS */
 function normalize(s){ return (s ?? "").trim().toLowerCase(); }
-function onlyDigits(s){ return String(s ?? "").replace(/\D+/g, ""); }
+function cleanJob(s){
+  return String(s ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9-]/g, ""); // allow letters, numbers, hyphen
+}
 function nowStamp(){
   const d = new Date();
   const mm = String(d.getMonth()+1).padStart(2,'0');
@@ -1075,7 +1086,7 @@ function mapItemsToUI(raw){
   const arr = Array.isArray(raw) ? raw : [];
   return arr.map(it => {
     const id = pick(it, ["item_id","id","itemId"]);
-    const job = onlyDigits(pick(it, ["job_number","job","jobNumber","sku"]) ?? "");
+    const job = cleanJob(pick(it, ["job_number","job","jobNumber","sku"]) ?? "");
     const qty = parseInt(it.qty || "0", 10) || 0;
 
     const status = (pick(it, ["status"]) ?? "").toString();
@@ -1474,7 +1485,7 @@ async function upsertItem(){
     return;
   }
 
-  const jobRaw = onlyDigits(els.job.value).trim();
+  const jobRaw = cleanJob(els.job.value).trim();
   if(!jobRaw){
     alert("Job # is required (numbers only).");
     els.job.focus();
@@ -1687,7 +1698,7 @@ function importJsonFile(file){
 
       inventory = data.map(x => ({
         id: x.id,
-        job: onlyDigits(x.job ?? x.job_number ?? ""),
+        job: cleanJob(x.job ?? x.job_number ?? ""),
         lane: String(x.lane || ""),
         machine: String(x.machine || ""),
         qty: parseInt(x.qty || "0",10) || 0,
@@ -1807,7 +1818,7 @@ els.historyBtn.addEventListener("click", () => {
 els.historySearch.addEventListener("input", renderHistory);
 
 els.job.addEventListener("input", () => {
-  els.job.value = onlyDigits(els.job.value);
+  els.job.value = cleanJob(els.job.value);
 });
 
 document.addEventListener("keydown", (e) => {
