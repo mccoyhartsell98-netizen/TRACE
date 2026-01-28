@@ -60,15 +60,11 @@
       background-attachment:fixed;
     }
 
-    /* =========================
-       INTRO -> APP FADE SUPPORT
-       ========================= */
+    /* INTRO -> APP FADE SUPPORT */
     .appRoot.isHidden{ opacity:0; pointer-events:none; }
     .appRoot.isVisible{ opacity:1; pointer-events:auto; transition: opacity 700ms ease; }
 
-    /* =========================
-       TRACE INTRO OVERLAY (SCOPED)
-       ========================= */
+    /* TRACE INTRO OVERLAY */
     .traceBoot{
       position:fixed;
       inset:0;
@@ -117,11 +113,10 @@
       gap:18px;
     }
 
-    /* tweak these */
     .traceLogo-wrap{
       display:flex;
       justify-content:center;
-      transform: translateX(-18px); /* negative = left */
+      transform: translateX(-18px);
       will-change: transform;
     }
     .traceLogo{
@@ -283,7 +278,7 @@
       to{ opacity:0; visibility:hidden; }
     }
 
-    /* keep your existing styles below */
+    /* MAIN APP STYLES */
     .wrap{
       max-width:1100px;
       height:100vh;
@@ -368,7 +363,7 @@
       flex-wrap:wrap;
     }
 
-    select, input[type="text"], input[type="number"]{
+    select, input[type="text"], input[type="number"], input[type="password"]{
       width:100%;
       padding:14px 14px;
       font-size:18px;
@@ -386,7 +381,7 @@
       min-width:170px;
     }
 
-    input[type="text"]:focus, input[type="number"]:focus, select:focus{
+    input[type="text"]:focus, input[type="number"]:focus, input[type="password"]:focus, select:focus{
       border-color: var(--focus);
       box-shadow: 0 0 0 3px rgba(58,122,254,.18);
     }
@@ -404,10 +399,11 @@
       white-space:nowrap;
     }
     button:hover{background:rgba(255,255,255,.11)}
+    button:disabled{opacity:.4; cursor:not-allowed;}
     .primary{background:rgba(58,122,254,.24); border-color:rgba(58,122,254,.55)}
-    .primary:hover{background:rgba(58,122,254,.32)}
+    .primary:hover:not(:disabled){background:rgba(58,122,254,.32)}
     .danger{background:rgba(255,107,107,.16); border-color:rgba(255,107,107,.45)}
-    .danger:hover{background:rgba(255,107,107,.22)}
+    .danger:hover:not(:disabled){background:rgba(255,107,107,.22)}
     .ghost{background:transparent}
     .ghost:hover{background:rgba(255,255,255,.06)}
 
@@ -584,7 +580,6 @@
       font-size:16px;
       letter-spacing:.4px;
       color:var(--muted);
-      seeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
       text-transform:uppercase;
     }
 
@@ -630,7 +625,7 @@
 </head>
 
 <body>
-<!-- DIALOG OVERLAY (replaces alert/confirm/prompt) -->
+<!-- DIALOG OVERLAY -->
 <div class="overlay" id="dialogOverlay">
   <div class="modal" style="max-width:520px;">
     <div class="modalTop">
@@ -678,14 +673,13 @@
 
   <div class="versionBadge">TRACE v0.8 • Internal Beta</div>
 
-  <!-- WRAP APP FOR FADE-IN -->
+  <!-- APP ROOT -->
   <div id="appRoot" class="appRoot isHidden">
 
   <div class="wrap">
 
     <div class="top">
       <div></div>
-      <!-- DO NOT CHANGE: per your request, this is intentionally png.png -->
       <img src="./trace-logo.png.png" alt="TRACE" class="logo">
       <div class="status">
         <div class="pill" id="rolePill">ROLE: FORKLIFT</div>
@@ -760,13 +754,7 @@
         <div class="scroll">
           <div class="formGrid">
             <div class="full">
-            <input
-              id="job"
-              type="text"
-              placeholder="Job # (letters / numbers / hyphen allowed)"
-              required
-              >  
-           
+              <input id="job" type="text" placeholder="Job # (letters / numbers / hyphen allowed)" required>  
             </div>
 
             <div>
@@ -820,8 +808,8 @@
         </div>
       </div>
     </div>
-  </div> <!-- end .wrap -->
-  </div> <!-- end #appRoot -->
+  </div>
+  </div>
 
   <!-- MOVE OVERLAY -->
   <div class="overlay" id="moveOverlay">
@@ -845,7 +833,7 @@
     </div>
   </div>
 
-  <!-- INTRO SCRIPT (separate from app logic) -->
+  <!-- INTRO SCRIPT -->
   <script>
   (function(){
     const steps = [
@@ -860,7 +848,6 @@
     const boot = document.getElementById("traceBoot");
     const appRoot = document.getElementById("appRoot");
 
-    // If something is missing, don't break the app
     if(!boot || !appRoot || !hudText){
       if(appRoot){
         appRoot.classList.remove("isHidden");
@@ -870,7 +857,6 @@
       return;
     }
 
-    // Optional: only show intro once per tab/session
     const seen = sessionStorage.getItem("trace_intro_seen") === "1";
     if(seen){
       boot.remove();
@@ -886,14 +872,11 @@
       i++;
       if(i >= steps.length){
         clearInterval(timer);
-
         sessionStorage.setItem("trace_intro_seen", "1");
 
-        // App fades in
         appRoot.classList.remove("isHidden");
         appRoot.classList.add("isVisible");
 
-        // Then overlay fades out
         setTimeout(() => {
           boot.classList.add("fade");
           boot.setAttribute("aria-hidden", "true");
@@ -905,7 +888,6 @@
       hudText.textContent = steps[i];
     }, stepMs);
 
-    // If logo fails to load, still proceed
     const logo = document.querySelector(".traceLogo");
     if(logo){
       logo.addEventListener("error", () => {
@@ -917,48 +899,14 @@
   </script>
 
 <script>
-/* =========================
-   TRACE — CLEAN STABLE BUILD (LANES FIXED + HISTORY FIXED)
-   ========================= */
+/* TRACE - CLEAN BUILD */
 
 const API_BASE = "https://trace-api-sak3.onrender.com";
-window.API_BASE = API_BASE;
-
-async function apiGet(path){
-  const r = await fetch(`${API_BASE}${path}`);
-  if(!r.ok) throw new Error(`${path} -> ${r.status}`);
-  return r.json();
-}
-async function apiPost(path, body){
-  const r = await fetch(`${API_BASE}${path}`, {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify(body)
-  });
-  if(!r.ok) throw new Error(`${path} -> ${r.status}`);
-  return r.json();
-}
-async function apiPut(path, body){
-  const r = await fetch(`${API_BASE}${path}`, {
-    method:"PUT",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify(body)
-  });
-  if(!r.ok) throw new Error(`${path} -> ${r.status}`);
-  return r.json();
-}
-
-apiGet("/health")
-  .then(d => console.log("API CONNECTED", d))
-  .catch(e => console.error("API FAILED", e));
-
 const DELETED_KEY = "trace_simple_deleted_v1";
 const MACHINES = ["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane"];
 const ADMIN_PIN = "4793";
 
-/* DOM */
-const els = {
-  // ===== DIALOG (styled) =====
+// DIALOG SYSTEM
 (function initDialog(){
   const d = {
     overlay: document.getElementById("dialogOverlay"),
@@ -1026,34 +974,59 @@ const els = {
   };
 })();
 
-itemsPill: document.getElementById("itemsPill"),
-  rolePill: document.getElementById("rolePill"),
+// API HELPERS
+async function apiGet(path){
+  const r = await fetch(`${API_BASE}${path}`);
+  if(!r.ok) throw new Error(`${path} -> ${r.status}`);
+  return r.json();
+}
+async function apiPost(path, body){
+  const r = await fetch(`${API_BASE}${path}`, {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify(body)
+  });
+  if(!r.ok) throw new Error(`${path} -> ${r.status}`);
+  return r.json();
+}
+async function apiPut(path, body){
+  const r = await fetch(`${API_BASE}${path}`, {
+    method:"PUT",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify(body)
+  });
+  if(!r.ok) throw new Error(`${path} -> ${r.status}`);
+  return r.json();
+}
 
+apiGet("/health")
+  .then(d => console.log("API CONNECTED", d))
+  .catch(e => console.error("API FAILED", e));
+
+// DOM ELEMENTS
+const els = {
+  itemsPill: document.getElementById("itemsPill"),
+  rolePill: document.getElementById("rolePill"),
   roleSelect: document.getElementById("roleSelect"),
   adminUnlockBtn: document.getElementById("adminUnlockBtn"),
   adminLockBtn: document.getElementById("adminLockBtn"),
-
   globalSearch: document.getElementById("globalSearch"),
   globalResults: document.getElementById("globalResults"),
-
   laneGrid: document.getElementById("laneGrid"),
   laneTitle: document.getElementById("laneTitle"),
   laneCount: document.getElementById("laneCount"),
   laneSearch: document.getElementById("laneSearch"),
   laneResults: document.getElementById("laneResults"),
-
   machineGrid: document.getElementById("machineGrid"),
   machineTitle: document.getElementById("machineTitle"),
   machineCount: document.getElementById("machineCount"),
   machineSearch: document.getElementById("machineSearch"),
   machineResults: document.getElementById("machineResults"),
-
   moveOverlay: document.getElementById("moveOverlay"),
   moveTitle: document.getElementById("moveTitle"),
   moveCloseBtn: document.getElementById("moveCloseBtn"),
   moveLaneGrid: document.getElementById("moveLaneGrid"),
   moveMachineGrid: document.getElementById("moveMachineGrid"),
-
   job: document.getElementById("job"),
   qty: document.getElementById("qty"),
   status: document.getElementById("status"),
@@ -1062,30 +1035,23 @@ itemsPill: document.getElementById("itemsPill"),
   saveBtn: document.getElementById("saveBtn"),
   newBtn: document.getElementById("newBtn"),
   deleteBtn: document.getElementById("deleteBtn"),
-
   historyBtn: document.getElementById("historyBtn"),
   historyPanel: document.getElementById("historyPanel"),
   historySearch: document.getElementById("historySearch"),
   historyResults: document.getElementById("historyResults"),
-
   exportBtn: document.getElementById("exportBtn"),
   importBtn: document.getElementById("importBtn"),
   seedBtn: document.getElementById("seedBtn"),
   fileInput: document.getElementById("fileInput"),
 };
 
-function assertEls(){
-  const missing = Object.entries(els).filter(([k,v]) => !v).map(([k]) => k);
-  if(missing.length) throw new Error("Missing DOM elements: " + missing.join(", "));
-}
-
-/* HELPERS */
+// HELPER FUNCTIONS
 function normalize(s){ return (s ?? "").trim().toLowerCase(); }
 function cleanJob(s){
   return String(s ?? "")
     .trim()
     .toUpperCase()
-    .replace(/[^A-Z0-9-]/g, ""); // allow letters, numbers, hyphen
+    .replace(/[^A-Z0-9-]/g, "");
 }
 function nowStamp(){
   const d = new Date();
@@ -1108,31 +1074,24 @@ function pick(obj, keys){
   return undefined;
 }
 
-/* STATE */
+// STATE
 let rawItems = [];
 let rawLocations = [];
-
 let locations = [];
 let locById = new Map();
-let locIdByLane = new Map();     // "Lane 1" -> location_id
-let locIdByMachine = new Map();  // "S8" -> location_id
-
+let locIdByLane = new Map();
+let locIdByMachine = new Map();
 let inventory = [];
 let deletedItems = loadDeleted();
-
 let selectedLane = "Lane 1";
 let selectedMachine = MACHINES[0];
 let selectedId = null;
-
-// SINGLE SOURCE OF TRUTH:
 let selectedLocation = { type:"lane", value:"Lane 1" };
-
 let role = "forklift";
 let adminUnlocked = false;
 let moveTargetId = null;
 
-/* ========= LOCATION + ITEM MAPPING ========= */
-
+// LOCATION MAPPING
 function mapLocations(raw){
   const arr = Array.isArray(raw) ? raw : [];
   return arr.map(r => {
@@ -1177,13 +1136,11 @@ function mapItemsToUI(raw){
     const id = pick(it, ["item_id","id","itemId"]);
     const job = cleanJob(pick(it, ["job_number","job","jobNumber","sku"]) ?? "");
     const qty = parseInt(it.qty || "0", 10) || 0;
-
     const status = (pick(it, ["status"]) ?? "").toString();
     const notes  = (pick(it, ["notes"]) ?? "").toString();
     const updatedBy = (pick(it, ["updated_by","updatedBy"]) ?? "").toString();
     const createdAt = (pick(it, ["created_at","createdAt"]) ?? "").toString();
     const updatedAt = (pick(it, ["updated_at","updatedAt"]) ?? "").toString();
-
     const location_id = pick(it, ["location_id","locationId"]);
     const loc = locById.get(Number(location_id));
 
@@ -1198,21 +1155,21 @@ function mapItemsToUI(raw){
   }).filter(x => String(x.job).length > 0 && normalize(x.status) !== "deleted");
 }
 
-/* ========= LOADERS ========= */
-
+// LOADERS
 async function loadLocations(){
-  rawLocations = await apiGet("/locations");
+  const data = await apiGet("/locations");
+  rawLocations = Array.isArray(data) ? data : (data.locations || data.rows || []);
   locations = mapLocations(rawLocations);
   buildLocationIndexes();
 }
 
 async function loadInventory(){
-  rawItems = await apiGet("/items");
+  const data = await apiGet("/items");
+  rawItems = Array.isArray(data) ? data : (data.items || data.rows || []);
   inventory = mapItemsToUI(rawItems);
   els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
 }
 
-/* deleted history local */
 function saveDeleted(){ localStorage.setItem(DELETED_KEY, JSON.stringify(deletedItems)); }
 function loadDeleted(){
   try{
@@ -1233,17 +1190,14 @@ function addToDeletedHistory(item){
   saveDeleted();
 }
 
-/* ========= ROLE ========= */
-
+// ROLE MANAGEMENT
 function setRole(nextRole){
   role = nextRole;
-
   if(role !== "admin"){
     adminUnlocked = false;
     els.adminLockBtn.style.display = "none";
     els.adminUnlockBtn.style.display = "inline-block";
   }
-
   updateRoleUI();
   renderLaneList();
   renderMachineList();
@@ -1265,18 +1219,15 @@ function updateRoleUI(){
   const hasSelection = !!selectedId;
 
   els.job.disabled = hasSelection || !canCreate;
-
   els.qty.disabled = forklift;
   els.status.disabled = forklift;
   els.notes.disabled = forklift;
   els.updatedBy.disabled = forklift;
-
   els.saveBtn.disabled = forklift;
   els.newBtn.disabled = forklift;
 }
 
-/* ========= BUTTON BUILDERS ========= */
-
+// BUTTON BUILDERS
 function buildLaneButtons(){
   els.laneGrid.innerHTML = "";
   for(let i=1;i<=12;i++){
@@ -1300,18 +1251,15 @@ function buildMachineButtons(){
   });
 }
 
-/* ========= SELECTORS ========= */
-
+// SELECTORS
 function selectLane(lane){
   selectedLane = lane;
   selectedLocation = { type:"lane", value: lane };
   selectedId = null;
-
   buildLaneButtons();
   els.laneTitle.textContent = lane;
   els.laneSearch.value = "";
   clearForm();
-
   renderLaneList();
   renderGlobalSearch();
 }
@@ -1320,12 +1268,10 @@ function selectMachine(m){
   selectedMachine = m;
   selectedLocation = { type:"machine", value: m };
   selectedId = null;
-
   buildMachineButtons();
   els.machineTitle.textContent = `Machine: ${m}`;
   els.machineSearch.value = "";
   clearForm();
-
   renderMachineList();
   renderGlobalSearch();
 }
@@ -1340,8 +1286,7 @@ function getSelectedLocationId(){
   return null;
 }
 
-/* ========= RENDER LISTS ========= */
-
+// RENDER LISTS
 function renderLaneList(){
   const q = normalize(els.laneSearch.value);
   const laneItemsAll = inventory.filter(x => String(x.lane ?? "") === selectedLane);
@@ -1456,9 +1401,7 @@ function renderGlobalSearch(){
 
     const status = item.status ? escapeHtml(item.status) : "—";
     const notes = item.notes ? escapeHtml(item.notes) : "—";
-
     const canMove = (role === "forklift") || (role === "admin" && adminUnlocked);
-
     const location = item.machine
       ? `Machine: ${escapeHtml(item.machine)}`
       : (item.lane ? escapeHtml(item.lane) : "—");
@@ -1467,11 +1410,7 @@ function renderGlobalSearch(){
       <div class="big">Job #${escapeHtml(item.job)}</div>
       <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
       <div class="meta">${location} • Notes: ${notes}</div>
-      ${canMove ? `
-        <div class="btnRow" style="margin-top:10px;">
-          <button class="primary" data-move="1">Move</button>
-        </div>
-      ` : ``}
+      ${canMove ? `<div class="btnRow" style="margin-top:10px;"><button class="primary" data-move="1">Move</button></div>` : ``}
     `;
 
     const moveBtn = div.querySelector('[data-move]');
@@ -1491,8 +1430,6 @@ function renderGlobalSearch(){
     els.globalResults.appendChild(div);
   });
 }
-
-/* ========= HISTORY (FIXED + NO CRASH) ========= */
 
 function renderHistory(){
   const q = normalize(els.historySearch?.value || "");
@@ -1531,8 +1468,7 @@ function renderHistory(){
   });
 }
 
-/* ========= FORM ========= */
-
+// FORM MANAGEMENT
 function clearForm(){
   selectedId = null;
   els.job.value = "";
@@ -1559,24 +1495,23 @@ function loadToForm(id){
   renderMachineList();
 }
 
-/* ========= SAVE / UPDATE ========= */
-
+// SAVE/UPDATE
 async function upsertItem(){
   const machineRole = role === "machine";
   const admin = (role === "admin" && adminUnlocked);
 
   if(!(machineRole || admin)){
-    alert("Forklift role cannot edit job details.");
+    await uiAlert("Permission Denied", "Forklift role cannot edit job details.");
     return;
   }
   if(machineRole && !selectedId){
-    alert("Machine role cannot create new jobs. Ask Admin.");
+    await uiAlert("Permission Denied", "Machine role cannot create new jobs. Ask Admin.");
     return;
   }
 
   const jobRaw = cleanJob(els.job.value).trim();
   if(!jobRaw){
-    alert("Job # is required (numbers only).");
+    await uiAlert("Validation Error", "Job # is required.");
     els.job.focus();
     return;
   }
@@ -1588,7 +1523,7 @@ async function upsertItem(){
 
   const location_id = getSelectedLocationId();
   if(!location_id){
-    alert(`No DB mapping for selected ${selectedLocation.type}: ${selectedLocation.value}. Check /locations seed.`);
+    await uiAlert("Location Error", `No DB mapping for selected ${selectedLocation.type}: ${selectedLocation.value}. Check /locations seed.`);
     return;
   }
 
@@ -1604,7 +1539,7 @@ async function upsertItem(){
   if(!selectedId){
     const exists = inventory.some(x => normalize(x.job) === normalize(jobRaw));
     if(exists){
-      alert("That Job # already exists. Search it and update it instead.");
+      await uiAlert("Duplicate Job", "That Job # already exists. Search it and update it instead.");
       return;
     }
   }
@@ -1623,44 +1558,36 @@ async function upsertItem(){
     clearForm();
   }catch(err){
     console.error("SAVE FAILED", err);
-    alert("Save failed. Open DevTools → Network and check the /items request.");
+    await uiAlert("Save Failed", "Save failed. Open DevTools → Network and check the /items request.");
   }
 }
 
-/* ========= DELETE (ONE VERSION ONLY — FIXED) ========= */
-
+// DELETE
 async function deleteSelected(){
   const admin = (role === "admin" && adminUnlocked);
   if(!admin){
-    alert("Admin only.");
+    await uiAlert("Permission Denied", "Admin only.");
     return;
   }
   if(!selectedId){
-    alert("Select a job first.");
+    await uiAlert("No Selection", "Select a job first.");
     return;
   }
 
   const item = inventory.find(x => x.id === selectedId);
   if(!item){
-    alert("Could not find selected job.");
+    await uiAlert("Error", "Could not find selected job.");
     return;
   }
 
-  const ok = await uiConfirm(
-  "Confirm Delete",
-  `Delete Job #${item.job}?`,
-  "Delete",
-  "Cancel"
- );
-
-  if (!ok) return; 
+  const ok = await uiConfirm("Confirm Delete", `Delete Job #${item.job}?`, "Delete", "Cancel");
+  if (!ok) return;
 
   try{
     const r = await fetch(`${API_BASE}/items/${selectedId}`, { method:"DELETE" });
     if(!r.ok) throw new Error(`DELETE /items/${selectedId} -> ${r.status}`);
 
     addToDeletedHistory(item);
-
     await loadLocations();
     await loadInventory();
 
@@ -1672,19 +1599,18 @@ async function deleteSelected(){
     if(els.historyPanel.style.display !== "none") renderHistory();
   }catch(err){
     console.error("DELETE FAILED", err);
-    await uiAlert("Delete failed. Check DevTools → Network.");
+    await uiAlert("Delete Failed", "Delete failed. Check DevTools → Network.");
   }
 }
 
-/* ========= MOVE OVERLAY ========= */
-
+// MOVE OVERLAY
 function openMoveOverlay(id){
   const item = inventory.find(x => x.id === id);
   if(!item) return;
 
   const allowed = (role === "forklift") || (role === "admin" && adminUnlocked);
   if(!allowed){
-    await uiAlert("Only Forklift (or Admin) can move jobs.");
+    uiAlert("Permission Denied", "Only Forklift (or Admin) can move jobs.");
     return;
   }
 
@@ -1727,13 +1653,12 @@ function closeMoveOverlay(){
 async function moveToLane(id, lane){
   const location_id = locIdByLane.get(lane) ?? null;
   if(!location_id){
-    alert(`No DB mapping for ${lane}. Check /locations seed.`);
+    await uiAlert("Location Error", `No DB mapping for ${lane}. Check /locations seed.`);
     return;
   }
 
   try{
     await apiPut(`/items/${id}`, { location_id });
-
     await loadLocations();
     await loadInventory();
 
@@ -1744,20 +1669,19 @@ async function moveToLane(id, lane){
     loadToForm(id);
   }catch(err){
     console.error("MOVE TO LANE FAILED", err);
-    alert("Move failed. Check DevTools → Network.");
+    await uiAlert("Move Failed", "Move failed. Check DevTools → Network.");
   }
 }
 
 async function moveToMachine(id, machine){
   const location_id = locIdByMachine.get(machine) ?? null;
   if(!location_id){
-    alert(`No DB mapping for machine ${machine}. Check /locations seed.`);
+    await uiAlert("Location Error", `No DB mapping for machine ${machine}. Check /locations seed.`);
     return;
   }
 
   try{
     await apiPut(`/items/${id}`, { location_id });
-
     await loadLocations();
     await loadInventory();
 
@@ -1768,12 +1692,11 @@ async function moveToMachine(id, machine){
     loadToForm(id);
   }catch(err){
     console.error("MOVE TO MACHINE FAILED", err);
-    alert("Move failed. Check DevTools → Network.");
+    await uiAlert("Move Failed", "Move failed. Check DevTools → Network.");
   }
 }
 
-/* ========= BACKUP / DEMO ========= */
-
+// BACKUP/DEMO
 function exportJson(){
   const blob = new Blob([JSON.stringify(inventory, null, 2)], {type:"application/json"});
   const a = document.createElement("a");
@@ -1810,9 +1733,9 @@ function importJsonFile(file){
       renderLaneList();
       renderMachineList();
       renderGlobalSearch();
-      alert("Import complete.");
+      uiAlert("Import Complete", "Import complete.");
     }catch(e){
-      alert("Import failed: " + e.message);
+      uiAlert("Import Failed", "Import failed: " + e.message);
     }
   };
   reader.readAsText(file);
@@ -1840,7 +1763,7 @@ function seedDemo(){
   renderGlobalSearch();
 }
 
-/* fullscreen */
+// FULLSCREEN
 function toggleFullscreen(){
   if(!document.fullscreenElement){
     document.documentElement.requestFullscreen().catch(()=>{});
@@ -1849,8 +1772,7 @@ function toggleFullscreen(){
   }
 }
 
-/* ========= EVENTS ========= */
-
+// EVENT LISTENERS
 els.globalSearch.addEventListener("input", renderGlobalSearch);
 els.laneSearch.addEventListener("input", renderLaneList);
 els.machineSearch.addEventListener("input", renderMachineList);
@@ -1880,7 +1802,7 @@ els.roleSelect.addEventListener("change", (e) => {
 });
 
 els.adminUnlockBtn.addEventListener("click", async () => {
-  const pin =  WindouiPrompt("Admin Access", "Enter Admin PIN:", {
+  const pin = await uiPrompt("Admin Access", "Enter Admin PIN:", {
     placeholder: "PIN",
     hint: "Admin-only actions: create + delete + restore",
     mask: true
@@ -1938,11 +1860,10 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-/* ========= INIT ========= */
+// INIT
 (async () => {
   try{
-    assertEls();
-    console.log("INIT RUN", new Date().toISOString());
+    console.log("INIT START", new Date().toISOString());
 
     buildLaneButtons();
     buildMachineButtons();
@@ -1962,8 +1883,9 @@ document.addEventListener("keydown", (e) => {
     renderMachineList();
     renderGlobalSearch();
 
-    console.log("LANE MAP HAS:", [...locIdByLane.keys()]);
-    console.log("MACHINE MAP HAS:", [...locIdByMachine.keys()]);
+    console.log("LANE MAP:", [...locIdByLane.keys()]);
+    console.log("MACHINE MAP:", [...locIdByMachine.keys()]);
+    console.log("INIT COMPLETE");
   }catch(err){
     console.error("Init failed:", err);
     els.globalResults.innerHTML = `
