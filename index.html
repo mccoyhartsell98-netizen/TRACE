@@ -1880,7 +1880,7 @@ els.roleSelect.addEventListener("change", (e) => {
 });
 
 els.adminUnlockBtn.addEventListener("click", async () => {
-  const pin = await uiPrompt("Admin Access", "Enter Admin PIN:", {
+  const pin =  window.uiPrompt("Admin Access", "Enter Admin PIN:", {
     placeholder: "PIN",
     hint: "Admin-only actions: create + delete + restore",
     mask: true
