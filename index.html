@@ -905,7 +905,6 @@ const API_BASE = "https://trace-api-sak3.onrender.com";
 const ADMIN_PIN = "4793";
 const DELETED_KEY = "trace_simple_deleted_v1";
 const MACHINES = ["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane"];
-const ADMIN_PIN = "4793";
 
 // DIALOG SYSTEM
 (function initDialog(){
@@ -1045,7 +1044,13 @@ const els = {
   seedBtn: document.getElementById("seedBtn"),
   fileInput: document.getElementById("fileInput"),
 };
+// === ADMIN BUTTON SANITY CHECK ===
+console.log("adminUnlockBtn:", els.adminUnlockBtn);
+console.log("adminLockBtn:", els.adminLockBtn);
 
+if (!els.adminUnlockBtn || !els.adminLockBtn) {
+  alert("ADMIN BUTTONS NOT FOUND — CHECK HTML IDS");
+}
 // HELPER FUNCTIONS
 function normalize(s){ return (s ?? "").trim().toLowerCase(); }
 function cleanJob(s){
