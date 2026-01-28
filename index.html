@@ -1814,22 +1814,28 @@ els.adminUnlockBtn.addEventListener("click", async () => {
     mask: true
   });
 
-  if(pin === null) return;
+  if (pin === null) return;
 
-  if(String(pin).trim() !== ADMIN_PIN){
+  const enteredPin = String(pin).trim();
+
+  if (!enteredPin) {
+    await uiAlert("Admin Access", "PIN is required.");
+    return;
+  }
+
+  if (enteredPin !== ADMIN_PIN) {
     await uiAlert("Access Denied", "Wrong PIN.");
     els.roleSelect.value = "forklift";
     setRole("forklift");
     return;
   }
 
-  role = "admin";
+  // ✅ SUCCESS
   adminUnlocked = true;
   els.adminUnlockBtn.style.display = "none";
   els.adminLockBtn.style.display = "inline-block";
   els.roleSelect.value = "admin";
-  updateRoleUI();
-  renderGlobalSearch();
+  setRole("admin");
 });
 
 els.adminLockBtn.addEventListener("click", () => {
