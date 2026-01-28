@@ -630,6 +630,27 @@
 </head>
 
 <body>
+<!-- DIALOG OVERLAY (replaces alert/confirm/prompt) -->
+<div class="overlay" id="dialogOverlay">
+  <div class="modal" style="max-width:520px;">
+    <div class="modalTop">
+      <div class="modalTitle" id="dialogTitle">TRACE</div>
+      <button class="ghost" id="dialogCloseBtn">Close</button>
+    </div>
+
+    <div id="dialogMsg" style="color:var(--muted); font-weight:700; line-height:1.4;"></div>
+
+    <div id="dialogInputWrap" style="margin-top:12px; display:none;">
+      <input id="dialogInput" type="password" placeholder="Enter value..." autocomplete="off">
+      <div class="tiny" id="dialogHint" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="btnRow" style="margin-top:14px; justify-content:flex-end;">
+      <button class="ghost" id="dialogCancelBtn">Cancel</button>
+      <button class="primary" id="dialogOkBtn">OK</button>
+    </div>
+  </div>
+</div>
 
   <!-- TRACE INTRO OVERLAY -->
   <div class="traceBoot" id="traceBoot" aria-hidden="false">
@@ -937,7 +958,75 @@ const ADMIN_PIN = "4793";
 
 /* DOM */
 const els = {
-  itemsPill: document.getElementById("itemsPill"),
+  // ===== DIALOG (styled) =====
+(function initDialog(){
+  const d = {
+    overlay: document.getElementById("dialogOverlay"),
+    title: document.getElementById("dialogTitle"),
+    msg: document.getElementById("dialogMsg"),
+    inputWrap: document.getElementById("dialogInputWrap"),
+    input: document.getElementById("dialogInput"),
+    hint: document.getElementById("dialogHint"),
+    ok: document.getElementById("dialogOkBtn"),
+    cancel: document.getElementById("dialogCancelBtn"),
+    close: document.getElementById("dialogCloseBtn"),
+  };
+
+  let resolver = null;
+
+  function close(result){
+    d.overlay.classList.remove("show");
+    d.input.value = "";
+    d.hint.textContent = "";
+    d.inputWrap.style.display = "none";
+    if(resolver){ resolver(result); resolver = null; }
+  }
+
+  d.ok.addEventListener("click", () => close({ ok:true, value:d.input.value }));
+  d.cancel.addEventListener("click", () => close({ ok:false }));
+  d.close.addEventListener("click", () => close({ ok:false }));
+  d.overlay.addEventListener("click", (e) => { if(e.target === d.overlay) close({ ok:false }); });
+
+  window.uiAlert = function(title, message){
+    d.title.textContent = title || "TRACE";
+    d.msg.textContent = message || "";
+    d.cancel.style.display = "none";
+    d.ok.textContent = "OK";
+    d.inputWrap.style.display = "none";
+    d.overlay.classList.add("show");
+    return new Promise(res => { resolver = () => res(true); });
+  };
+
+  window.uiConfirm = function(title, message, okText="OK", cancelText="Cancel"){
+    d.title.textContent = title || "TRACE";
+    d.msg.textContent = message || "";
+    d.cancel.style.display = "inline-block";
+    d.cancel.textContent = cancelText;
+    d.ok.textContent = okText;
+    d.inputWrap.style.display = "none";
+    d.overlay.classList.add("show");
+    return new Promise(res => { resolver = (r) => res(!!r.ok); });
+  };
+
+  window.uiPrompt = function(title, message, { placeholder="Enter value...", hint="", mask=true } = {}){
+    d.title.textContent = title || "TRACE";
+    d.msg.textContent = message || "";
+    d.cancel.style.display = "inline-block";
+    d.cancel.textContent = "Cancel";
+    d.ok.textContent = "OK";
+    d.inputWrap.style.display = "block";
+    d.input.type = mask ? "password" : "text";
+    d.input.placeholder = placeholder;
+    d.hint.textContent = hint || "";
+    d.overlay.classList.add("show");
+    setTimeout(() => d.input.focus(), 50);
+    return new Promise(res => {
+      resolver = (r) => res(r.ok ? d.input.value : null);
+    });
+  };
+})();
+
+itemsPill: document.getElementById("itemsPill"),
   rolePill: document.getElementById("rolePill"),
 
   roleSelect: document.getElementById("roleSelect"),
@@ -1557,7 +1646,14 @@ async function deleteSelected(){
     return;
   }
 
-  if(!confirm(`Delete Job #${item.job}?`)) return;
+  const ok = await uiConfirm(
+  "Confirm Delete",
+  `Delete Job #${item.job}?`,
+  "Delete",
+  "Cancel"
+ );
+
+  if (!ok) return; 
 
   try{
     const r = await fetch(`${API_BASE}/items/${selectedId}`, { method:"DELETE" });
@@ -1576,7 +1672,7 @@ async function deleteSelected(){
     if(els.historyPanel.style.display !== "none") renderHistory();
   }catch(err){
     console.error("DELETE FAILED", err);
-    alert("Delete failed. Check DevTools → Network.");
+    await uiAlert("Delete failed. Check DevTools → Network.");
   }
 }
 
@@ -1588,7 +1684,7 @@ function openMoveOverlay(id){
 
   const allowed = (role === "forklift") || (role === "admin" && adminUnlocked);
   if(!allowed){
-    alert("Only Forklift (or Admin) can move jobs.");
+    await uiAlert("Only Forklift (or Admin) can move jobs.");
     return;
   }
 
@@ -1783,15 +1879,22 @@ els.roleSelect.addEventListener("change", (e) => {
   else setRole(v);
 });
 
-els.adminUnlockBtn.addEventListener("click", () => {
-  const pin = prompt("Enter Admin PIN:");
+els.adminUnlockBtn.addEventListener("click", async () => {
+  const pin = await uiPrompt("Admin Access", "Enter Admin PIN:", {
+    placeholder: "PIN",
+    hint: "Admin-only actions: create + delete + restore",
+    mask: true
+  });
+
   if(pin === null) return;
+
   if(String(pin).trim() !== ADMIN_PIN){
-    alert("Wrong PIN.");
+    await uiAlert("Access Denied", "Wrong PIN.");
     els.roleSelect.value = "forklift";
     setRole("forklift");
     return;
   }
+
   role = "admin";
   adminUnlocked = true;
   els.adminUnlockBtn.style.display = "none";
