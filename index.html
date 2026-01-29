@@ -929,193 +929,209 @@
     </div>
   </div>
 
-  <!-- INTRO SCRIPT -->
-  <script>
-const AUTH = {
-  token: localStorage.getItem("trace_token") || null,
-  role: localStorage.getItem("trace_role") || "forklift",
-  email: localStorage.getItem("trace_email") || ""
-};
+ <!-- INTRO + LOGIN SCRIPT ->
+<script>
+  // ====== API BASE  ======
+  const API_BASE = "https://trace-api-sak3.onrender.com";
 
-function setAuth({ token, role, email }) {
-  AUTH.token = token || null;
-  AUTH.role = role || "forklift";
-  AUTH.email = email || "";
-
-  if (AUTH.token) localStorage.setItem("trace_token", AUTH.token);
-  else localStorage.removeItem("trace_token");
-
-  localStorage.setItem("trace_role", AUTH.role);
-  localStorage.setItem("trace_email", AUTH.email);
-}
-
-function authHeaders(extra={}) {
-  // send Bearer token to API
-  return {
-    ...extra,
-    ...(AUTH.token ? { "Authorization": `Bearer ${AUTH.token}` } : {})
+  // ====== AUTH STATE ======
+  const AUTH = {
+    token: localStorage.getItem("trace_token") || null,
+    role:  localStorage.getItem("trace_role")  || "forklift",
+    email: localStorage.getItem("trace_email") || ""
   };
-}
 
-// IMPORTANT: make sure your apiFetch uses authHeaders() when calling protected routes
-async function apiFetch(path, opts={}) {
-  const url = API_URL + path; // whatever you use now
-  const headers = authHeaders({
-    "Content-Type": "application/json",
-    ...(opts.headers || {})
-  });
+  function setAuth({ token, role, email }) {
+    AUTH.token = token || null;
+    AUTH.role  = role  || "forklift";
+    AUTH.email = email || "";
 
-  const res = await fetch(url, { ...opts, headers });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-  return data;
-}
+    if (AUTH.token) localStorage.setItem("trace_token", AUTH.token);
+    else localStorage.removeItem("trace_token");
 
-async function doLogin(email, password) {
-  return apiFetch("/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ email, password })
-  });
-}
+    localStorage.setItem("trace_role", AUTH.role);
+    localStorage.setItem("trace_email", AUTH.email);
+  }
 
-function showLogin() {
-  document.getElementById("loginOverlay").style.display = "flex";
-}
+  function authHeaders(extra = {}) {
+    return {
+      ...extra,
+      ...(AUTH.token ? { "Authorization": `Bearer ${AUTH.token}` } : {})
+    };
+  }
 
-function hideLogin() {
-  document.getElementById("loginOverlay").style.display = "none";
-}
+  async function apiFetch(path, opts = {}) {
+    const url = API_BASE + path;
+    const headers = authHeaders({
+      "Content-Type": "application/json",
+      ...(opts.headers || {})
+    });
 
-// call your intro animation AFTER login
-async function startAfterLogin() {
-  // 1) run intro animation
-  // replace this with your actual function name:
-  if (typeof playIntro === "function") {
-    await playIntro(); // if yours returns a Promise
-  } else {
-    // or if you show/hide an overlay:
-    const intro = document.getElementById("introOverlay");
-    if (intro) {
-      intro.style.display = "flex";
-      setTimeout(() => intro.style.display = "none", 1800);
+    const res = await fetch(url, { ...opts, headers });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  }
+
+  async function doLogin(email, password) {
+    return apiFetch("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password })
+    });
+  }
+
+  // ====== LOGIN UI ======
+  function showLogin() {
+    const el = document.getElementById("loginOverlay");
+    if (el) el.style.display = "flex";
+  }
+  function hideLogin() {
+    const el = document.getElementById("loginOverlay");
+    if (el) el.style.display = "none";
+  }
+
+  function wireLoginUI() {
+    const btn = document.getElementById("loginBtn");
+    const msg = document.getElementById("loginMsg");
+    const emailEl = document.getElementById("loginEmail");
+    const passEl  = document.getElementById("loginPass");
+
+    if (!btn || !msg || !emailEl || !passEl) return;
+
+    async function submit() {
+      msg.textContent = "";
+      btn.disabled = true;
+      const old = btn.textContent;
+      btn.textContent = "Logging in...";
+
+      const email = emailEl.value.trim();
+      const pass  = passEl.value;
+
+      try {
+        const r = await doLogin(email, pass);
+        // expected shape: { ok:true, token:"...", user:{role,email} }
+        if (!r || r.ok === false) throw new Error(r?.error || "Login failed");
+
+        setAuth({
+          token: r.token,
+          role:  r.user?.role || "forklift",
+          email: r.user?.email || email
+        });
+
+        hideLogin();
+        await startAfterLogin();
+      } catch (e) {
+        msg.textContent = e.message || "Login failed";
+      } finally {
+        btn.disabled = false;
+        btn.textContent = old || "Login";
+      }
+    }
+
+    btn.addEventListener("click", submit);
+    passEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") submit();
+    });
+  }
+
+  // ====== INTRO PLAY ======
+  function playTraceIntro() {
+    return new Promise((resolve) => {
+      const steps = [
+        "INITIALIZING SYSTEMS",
+        "SYNCING LOCATIONS",
+        "VERIFYING INVENTORY",
+        "AUTH READY",
+        "SYSTEM ONLINE"
+      ];
+
+      const hudText = document.getElementById("traceHudText");
+      const boot = document.getElementById("traceBoot");
+      const appRoot = document.getElementById("appRoot");
+
+      // If anything missing, just show app immediately
+      if (!boot || !appRoot || !hudText) {
+        if (appRoot) {
+          appRoot.classList.remove("isHidden");
+          appRoot.classList.add("isVisible");
+        }
+        if (boot) boot.remove();
+        return resolve();
+      }
+
+      // only show intro once per session
+      const seen = sessionStorage.getItem("trace_intro_seen") === "1";
+      if (seen) {
+        boot.remove();
+        appRoot.classList.remove("isHidden");
+        appRoot.classList.add("isVisible");
+        return resolve();
+      }
+
+      let i = 0;
+      const stepMs = 780;
+
+      const timer = setInterval(() => {
+        i++;
+        if (i >= steps.length) {
+          clearInterval(timer);
+          sessionStorage.setItem("trace_intro_seen", "1");
+
+          appRoot.classList.remove("isHidden");
+          appRoot.classList.add("isVisible");
+
+          setTimeout(() => {
+            boot.classList.add("fade");
+            boot.setAttribute("aria-hidden", "true");
+            setTimeout(() => {
+              boot.remove();
+              resolve();
+            }, 1100);
+          }, 650);
+
+          return;
+        }
+        hudText.textContent = steps[i];
+      }, stepMs);
+
+      const logo = document.querySelector(".traceLogo");
+      if (logo) {
+        logo.addEventListener("error", () => {
+          console.warn("Logo image not found. Check filename/path.");
+          hudText.textContent = "LOGO FILE NOT FOUND";
+        });
+      }
+    });
+  }
+
+  // ====== AFTER LOGIN BOOT ======
+  async function startAfterLogin() {
+    // run intro first
+    await playTraceIntro();
+
+    // boot the real app AFTER intro
+    // (we will create window.initApp in the CLEAN BUILD script)
+    if (typeof window.initApp === "function") {
+      await window.initApp();
+    } else {
+      console.warn("initApp() not found yet. Did you update the CLEAN BUILD init?");
     }
   }
-  } 
 
+  // ====== ONE SINGLE BOOT ENTRYPOINT ======
   window.addEventListener("DOMContentLoaded", async () => {
-  wireLoginUI();
-});  
-  
-if (AUTH.token) {
-    hideLogin();
-    await startAfterLogin(); // ← THIS is where init() + loadInventory() now happen
-  } else {
-    showLogin();
-  }
-}); 
+    wireLoginUI();
 
-function wireLoginUI() {
-  const btn = document.getElementById("loginBtn");
-  const msg = document.getElementById("loginMsg");
-
-  btn.addEventListener("click", async () => {
-    msg.textContent = "";
-    btn.disabled = true;
-    btn.textContent = "Logging in...";
-
-    const email = document.getElementById("loginEmail").value.trim();
-    const pass  = document.getElementById("loginPass").value;
-
-    try {
-      const r = await doLogin(email, pass);
-      if (!r.ok) throw new Error(r.error || "Login failed");
-
-      setAuth({
-        token: r.token,
-        role: r.user?.role,
-        email: r.user?.email || email
-      });
-
+    if (AUTH.token) {
       hideLogin();
       await startAfterLogin();
-    } catch (e) {
-      msg.textContent = e.message || "Login failed";
-    } finally {
-      btn.disabled = false;
-      btn.textContent = "Login";
+    } else {
+      showLogin();
     }
   });
+</script>
 
-  // enter key submits
-  document.getElementById("loginPass").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") btn.click();
-  });
-}
-
-  (function(){
-    const steps = [
-      "INITIALIZING SYSTEMS",
-      "SYNCING LOCATIONS",
-      "VERIFYING INVENTORY",
-      "AUTH READY",
-      "SYSTEM ONLINE"
-    ];
-
-    const hudText = document.getElementById("traceHudText");
-    const boot = document.getElementById("traceBoot");
-    const appRoot = document.getElementById("appRoot");
-
-    if(!boot || !appRoot || !hudText){
-      if(appRoot){
-        appRoot.classList.remove("isHidden");
-        appRoot.classList.add("isVisible");
-      }
-      if(boot) boot.remove();
-      return;
-    }
-
-    const seen = sessionStorage.getItem("trace_intro_seen") === "1";
-    if(seen){
-      boot.remove();
-      appRoot.classList.remove("isHidden");
-      appRoot.classList.add("isVisible");
-      return;
-    }
-
-    let i = 0;
-    const stepMs = 780;
-
-    const timer = setInterval(() => {
-      i++;
-      if(i >= steps.length){
-        clearInterval(timer);
-        sessionStorage.setItem("trace_intro_seen", "1");
-
-        appRoot.classList.remove("isHidden");
-        appRoot.classList.add("isVisible");
-
-        setTimeout(() => {
-          boot.classList.add("fade");
-          boot.setAttribute("aria-hidden", "true");
-          setTimeout(() => boot.remove(), 1100);
-        }, 650);
-
-        return;
-      }
-      hudText.textContent = steps[i];
-    }, stepMs);
-
-    const logo = document.querySelector(".traceLogo");
-    if(logo){
-      logo.addEventListener("error", () => {
-        console.warn("Logo image not found. Check filename/path.");
-        hudText.textContent = "LOGO FILE NOT FOUND";
-      });
-    }
-  })();
-  </script>
-
-<script>
 /* TRACE - CLEAN BUILD */
 
 const API_BASE = "https://trace-api-sak3.onrender.com";
@@ -2097,9 +2113,9 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-// INIT
-(async () => {
-  try{
+// INIT (CALLED AFTER LOGIN)
+window.initApp = async function initApp() {
+  try {
     console.log("INIT START", new Date().toISOString());
 
     buildLaneButtons();
@@ -2108,10 +2124,11 @@ document.addEventListener("keydown", (e) => {
     els.laneTitle.textContent = selectedLane;
     els.machineTitle.textContent = `Machine: ${selectedMachine}`;
 
-    selectedLocation = { type:"lane", value:selectedLane };
+    selectedLocation = { type: "lane", value: selectedLane };
     setRole("forklift");
 
-    els.globalResults.innerHTML = `<div style="color:var(--muted)">Loading...</div>`;
+    els.globalResults.innerHTML =
+      `<div style="color:var(--muted)">Loading...</div>`;
 
     await loadLocations();
     await loadInventory();
@@ -2123,7 +2140,7 @@ document.addEventListener("keydown", (e) => {
     console.log("LANE MAP:", [...locIdByLane.keys()]);
     console.log("MACHINE MAP:", [...locIdByMachine.keys()]);
     console.log("INIT COMPLETE");
-  }catch(err){
+  } catch (err) {
     console.error("Init failed:", err);
     els.globalResults.innerHTML = `
       <div style="color:var(--bad); font-weight:900;">API / INIT ERROR</div>
@@ -2132,7 +2149,7 @@ document.addEventListener("keydown", (e) => {
       </div>
     `;
   }
-})();
+};
 </script>
 
 </body>
