@@ -1,5 +1,5 @@
 <!-- 
-  TRACE INVENTORY
+  TRACE INVENTORY - FIXED VERSION
   © 2026 Mccoy Hartsell — All rights reserved.
 -->
 
@@ -21,85 +21,98 @@
   <link rel="apple-touch-icon" href="./icon-192.png">
 
   <style>
+    /* LOGIN OVERLAY STYLES */
+    .loginOverlay{
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(10,12,16,.92);
+      z-index: 99999;
+    }
+
+    .loginCard{
+      width: min(420px, 92vw);
+      background: rgba(22,26,34,.95);
+      border: 1px solid rgba(90,110,160,.25);
+      border-radius: 18px;
+      padding: 22px 20px;
+      box-shadow: 0 18px 60px rgba(0,0,0,.55);
+    }
+
+    .loginTitle{
+      font-size: 34px;
+      letter-spacing: 2px;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .loginSub{
+      text-align: center;
+      margin-top: 6px;
+      margin-bottom: 18px;
+      opacity: .75;
+    }
+
+    .loginLabel{
+      display: block;
+      font-size: 12px;
+      opacity: .8;
+      margin: 10px 0 6px;
+    }
+
+    .loginInput{
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid rgba(110,130,190,.25);
+      background: rgba(10,12,16,.55);
+      color: #fff;
+      padding: 12px 12px;
+      outline: none;
+    }
+
+    .loginInput:focus{
+      border-color: rgba(140,170,255,.6);
+    }
+
+    .loginBtn{
+      width: 100%;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border: 0;
+      border-radius: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      background: rgba(80,120,255,.9);
+      color: #fff;
+    }
+
+    .loginBtn:active{
+      transform: translateY(1px);
+    }
+
+    .loginMsg{
+      margin-top: 12px;
+      font-size: 13px;
+      opacity: .85;
+      text-align: center;
+    }
+
+    /* DIALOG OVERLAY */
     .overlay{
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(10,12,16,.92);
-  z-index: 99999;
-}
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.62);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:99;
+      padding:18px;
+    }
+    .overlay.show{display:flex;}
 
-.loginCard{
-  width: min(420px, 92vw);
-  background: rgba(22,26,34,.95);
-  border: 1px solid rgba(90,110,160,.25);
-  border-radius: 18px;
-  padding: 22px 20px;
-  box-shadow: 0 18px 60px rgba(0,0,0,.55);
-}
-
-.loginTitle{
-  font-size: 34px;
-  letter-spacing: 2px;
-  font-weight: 800;
-  text-align: center;
-}
-
-.loginSub{
-  text-align: center;
-  margin-top: 6px;
-  margin-bottom: 18px;
-  opacity: .75;
-}
-
-.loginLabel{
-  display: block;
-  font-size: 12px;
-  opacity: .8;
-  margin: 10px 0 6px;
-}
-
-.loginInput{
-  width: 100%;
-  border-radius: 12px;
-  border: 1px solid rgba(110,130,190,.25);
-  background: rgba(10,12,16,.55);
-  color: #fff;
-  padding: 12px 12px;
-  outline: none;
-}
-
-.loginInput:focus{
-  border-color: rgba(140,170,255,.6);
-}
-
-.loginBtn{
-  width: 100%;
-  margin-top: 14px;
-  padding: 12px 14px;
-  border: 0;
-  border-radius: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  background: rgba(80,120,255,.9);
-  color: #fff;
-}
-
-.loginBtn:active{
-  transform: translateY(1px);
-}
-
-.loginMsg{
-  margin-top: 12px;
-  font-size: 13px;
-  opacity: .85;
-  text-align: center;
-}
-
-
-      :root{
+    :root{
       --bg:#0f1115;
       --panel:rgba(22,26,34,.92);
       --panel2:rgba(27,32,48,.92);
@@ -441,7 +454,7 @@
       flex-wrap:wrap;
     }
 
-    select, input[type="text"], input[type="number"], input[type="password"]{
+    select, input[type="text"], input[type="number"], input[type="password"], input[type="email"]{
       width:100%;
       padding:14px 14px;
       font-size:18px;
@@ -459,7 +472,7 @@
       min-width:170px;
     }
 
-    input[type="text"]:focus, input[type="number"]:focus, input[type="password"]:focus, select:focus{
+    input[type="text"]:focus, input[type="number"]:focus, input[type="password"]:focus, input[type="email"]:focus, select:focus{
       border-color: var(--focus);
       box-shadow: 0 0 0 3px rgba(58,122,254,.18);
     }
@@ -625,17 +638,6 @@
     }
     .formGrid .full{grid-column:1 / -1;}
 
-    .overlay{
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,.62);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      z-index:99;
-      padding:18px;
-    }
-    .overlay.show{display:flex;}
     .modal{
       width:min(900px, 96vw);
       max-height:min(80vh, 720px);
@@ -704,7 +706,7 @@
 
 <body>
 <!-- LOGIN OVERLAY -->
-<div id="loginOverlay" class="overlay">
+<div id="loginOverlay" class="loginOverlay">
   <div class="loginCard">
     <div class="loginTitle">TRACE</div>
     <div class="loginSub">Secure Access</div>
@@ -929,7 +931,6 @@
     </div>
   </div>
 
- <!-- INTRO + LOGIN SCRIPT ->
 <script>
   // ====== API BASE  ======
   const API_BASE = "https://trace-api-sak3.onrender.com";
@@ -1010,7 +1011,6 @@
 
       try {
         const r = await doLogin(email, pass);
-        // expected shape: { ok:true, token:"...", user:{role,email} }
         if (!r || r.ok === false) throw new Error(r?.error || "Login failed");
 
         setAuth({
@@ -1050,7 +1050,6 @@
       const boot = document.getElementById("traceBoot");
       const appRoot = document.getElementById("appRoot");
 
-      // If anything missing, just show app immediately
       if (!boot || !appRoot || !hudText) {
         if (appRoot) {
           appRoot.classList.remove("isHidden");
@@ -1060,7 +1059,6 @@
         return resolve();
       }
 
-      // only show intro once per session
       const seen = sessionStorage.getItem("trace_intro_seen") === "1";
       if (seen) {
         boot.remove();
@@ -1107,19 +1105,16 @@
 
   // ====== AFTER LOGIN BOOT ======
   async function startAfterLogin() {
-    // run intro first
     await playTraceIntro();
 
-    // boot the real app AFTER intro
-    // (we will create window.initApp in the CLEAN BUILD script)
     if (typeof window.initApp === "function") {
       await window.initApp();
     } else {
-      console.warn("initApp() not found yet. Did you update the CLEAN BUILD init?");
+      console.warn("initApp() not found yet.");
     }
   }
 
-  // ====== ONE SINGLE BOOT ENTRYPOINT ======
+  // ====== BOOT ENTRYPOINT ======
   window.addEventListener("DOMContentLoaded", async () => {
     wireLoginUI();
 
@@ -1132,9 +1127,9 @@
   });
 </script>
 
+<script>
 /* TRACE - CLEAN BUILD */
 
-const API_BASE = "https://trace-api-sak3.onrender.com";
 const ADMIN_PIN = "4793";
 const DELETED_KEY = "trace_simple_deleted_v1";
 const MACHINES = ["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane"];
@@ -1156,20 +1151,17 @@ const MACHINES = ["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane
   let resolver = null;
 
   function close(result){
-  // CAPTURE the input BEFORE clearing it
-  const capturedValue = d.input.value;
+    const capturedValue = d.input.value;
+    d.overlay.classList.remove("show");
+    d.input.value = "";
+    d.hint.textContent = "";
+    d.inputWrap.style.display = "none";
 
-  d.overlay.classList.remove("show");
-  d.input.value = "";
-  d.hint.textContent = "";
-  d.inputWrap.style.display = "none";
-
-  if(resolver){
-    // pass the captured value through
-    resolver({ ...result, value: capturedValue });
-    resolver = null;
+    if(resolver){
+      resolver({ ...result, value: capturedValue });
+      resolver = null;
+    }
   }
-}  
 
   d.ok.addEventListener("click", () => close({ ok:true, value:d.input.value }));
   d.cancel.addEventListener("click", () => close({ ok:false }));
@@ -1285,13 +1277,7 @@ const els = {
   seedBtn: document.getElementById("seedBtn"),
   fileInput: document.getElementById("fileInput"),
 };
-// === ADMIN BUTTON SANITY CHECK ===
-console.log("adminUnlockBtn:", els.adminUnlockBtn);
-console.log("adminLockBtn:", els.adminLockBtn);
 
-if (!els.adminUnlockBtn || !els.adminLockBtn) {
-  alert("ADMIN BUTTONS NOT FOUND — CHECK HTML IDS");
-}
 // HELPER FUNCTIONS
 function normalize(s){ return (s ?? "").trim().toLowerCase(); }
 function cleanJob(s){
@@ -2071,7 +2057,6 @@ els.adminUnlockBtn.addEventListener("click", async () => {
     return;
   }
 
-  // ✅ SUCCESS
   adminUnlocked = true;
   els.adminUnlockBtn.style.display = "none";
   els.adminLockBtn.style.display = "inline-block";
