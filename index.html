@@ -1000,11 +1000,13 @@ async function startAfterLogin() {
       setTimeout(() => intro.style.display = "none", 1800);
     }
   }
+  } 
 
   window.addEventListener("DOMContentLoaded", async () => {
   wireLoginUI();
-
-  if (AUTH.token) {
+});  
+  
+if (AUTH.token) {
     hideLogin();
     await startAfterLogin(); // ← THIS is where init() + loadInventory() now happen
   } else {
