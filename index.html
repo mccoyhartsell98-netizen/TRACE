@@ -1009,6 +1009,20 @@
       const email = emailEl.value.trim();
       const pass  = passEl.value;
 
+   // ---- STEP 2: CLIENT-SIDE VALIDATION ----
+  if (!email) {
+    msg.textContent = "Enter an email.";
+    btn.disabled = false;
+    btn.textContent = old;
+    return;
+  }
+
+  if (!pass) {
+    msg.textContent = "Enter a password.";
+    btn.disabled = false;
+    btn.textContent = old;
+    return;
+  }
       try {
         const r = await doLogin(email, pass);
         if (!r || r.ok === false) throw new Error(r?.error || "Login failed");
