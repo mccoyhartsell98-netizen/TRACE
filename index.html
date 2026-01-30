@@ -734,7 +734,7 @@
   placeholder="••••••••"
 />
 
-<button id="loginBtn" class="loginBtn">Login</button>
+<button id="loginBtn" type="button" class="loginBtn">Login</button>
 <div id="loginMsg" class="loginMsg"></div>
 
   </div>
@@ -1027,8 +1027,35 @@ window.forceAutofillCommit = window.forceAutofillCommit || function () {
     const passEl  = document.getElementById("loginPass");
 
     if (!btn || !msg || !emailEl || !passEl) return;
+    console.error("Login UI elements missing");
+    return;
+  }
 
+  btn.addEventListener("click", (e) => {
+    e.preventDefault();
+    submit();
+  });
+}
+  
+// ===== TRUTH TEST #1 =====
+  console.log("wireLoginUI ran", {
+    btn,
+    msg,
+    emailEl,
+    passEl
+  });
+
+  btn.onclick = () => console.log("BTN CLICKED (onclick)");
+  btn.addEventListener("click", () => console.log("BTN CLICKED  (listener)"));
+  // =========================
+
+  btn.addEventListener("click", (e) => {
+    e.preventDefault();
+    submit();
+  });
+}
     async function submit() {
+      console.log("SUBMIT FIRED");
       window.forceAutofillCommit();
       msg.textContent = "";
       btn.disabled = true;
@@ -1039,8 +1066,19 @@ window.forceAutofillCommit = window.forceAutofillCommit || function () {
       const pass  = passEl.value;
       
       console.log("LOGIN CHECK:", { email, passLen: pass.length });
+      
+      console.log("ABOUT TO FETCH /auth/login ", API_URL);
+    
+        const r = await fetch(`${API_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: email, password: pass })
+  });
 
-   // ---- STEP 2: CLIENT-SIDE VALIDATION ----
+  // ...
+}
+   
+// ---- STEP 2: CLIENT-SIDE VALIDATION ----
   if (!email) {
     msg.textContent = "Enter an email.";
     btn.disabled = false;
