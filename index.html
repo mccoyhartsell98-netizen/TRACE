@@ -1,5 +1,5 @@
 <!-- 
-  TRACE INVENTORY - FIXED VERSION
+  TRACE INVENTORY - COMPLETE FIX
   © 2026 Mccoy Hartsell — All rights reserved.
 -->
 
@@ -711,32 +711,15 @@
     <div class="loginTitle">TRACE</div>
     <div class="loginSub">Secure Access</div>
 
-   <label class="loginLabel">Email</label>
-<input
-  id="loginEmail"
-  class="loginInput"
-  type="email"
-  name="username"
-  autocomplete="username"
-  inputmode="email"
-  autocapitalize="none"
-  spellcheck="false"
-  placeholder="you@trace.app"
-/>
+    <label class="loginLabel">Email</label>
+    <input id="loginEmail" class="loginInput" type="email" placeholder="you@trace.app" autocomplete="username"/>
 
-<label class="loginLabel">Password</label>
-<input
-  id="loginPass"
-  class="loginInput"
-  type="password"
-  name="password"
-  autocomplete="current-password"
-  placeholder="••••••••"
-/>
+    <label class="loginLabel">Password</label>
+    <input id="loginPass" class="loginInput" type="password" placeholder="••••••••" autocomplete="current-password"/>
 
-<button id="loginBtn" type="button" class="loginBtn">Login</button>
-<div id="loginMsg" class="loginMsg"></div>
+    <button id="loginBtn" class="loginBtn">Login</button>
 
+    <div id="loginMsg" class="loginMsg"></div>
   </div>
 </div>
 
@@ -949,323 +932,194 @@
   </div>
 
 <script>
-window.forceAutofillCommit = window.forceAutofillCommit || function () {
-  ["loginEmail", "loginPass"].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.focus();
-    el.dispatchEvent(new Event("input", { bubbles: true }));
-    el.dispatchEvent(new Event("change", { bubbles: true }));
-    el.blur();
-  });
+// ==========================================
+// TRACE INVENTORY - UNIFIED JAVASCRIPT
+// All code in ONE script block to prevent scope issues
+// ==========================================
+
+// ====== CONSTANTS & CONFIG ======
+const API_BASE = "https://trace-api-sak3.onrender.com";
+const ADMIN_PIN = "4793";
+const DELETED_KEY = "trace_simple_deleted_v1";
+const MACHINES = ["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane"];
+
+// ====== AUTH STATE ======
+const AUTH = {
+  token: localStorage.getItem("trace_token") || null,
+  role:  localStorage.getItem("trace_role")  || "forklift",
+  email: localStorage.getItem("trace_email") || ""
 };
 
-  // ====== API BASE  ======
-  const API_BASE = "https://trace-api-sak3.onrender.com";
+function setAuth({ token, role, email }) {
+  AUTH.token = token || null;
+  AUTH.role  = role  || "forklift";
+  AUTH.email = email || "";
 
-  // ====== AUTH STATE ======
-  const AUTH = {
-    token: localStorage.getItem("trace_token") || null,
-    role:  localStorage.getItem("trace_role")  || "forklift",
-    email: localStorage.getItem("trace_email") || ""
+  if (AUTH.token) localStorage.setItem("trace_token", AUTH.token);
+  else localStorage.removeItem("trace_token");
+
+  localStorage.setItem("trace_role", AUTH.role);
+  localStorage.setItem("trace_email", AUTH.email);
+}
+
+function authHeaders(extra = {}) {
+  return {
+    ...extra,
+    ...(AUTH.token ? { "Authorization": `Bearer ${AUTH.token}` } : {})
   };
-
-  function setAuth({ token, role, email }) {
-    AUTH.token = token || null;
-    AUTH.role  = role  || "forklift";
-    AUTH.email = email || "";
-
-    if (AUTH.token) localStorage.setItem("trace_token", AUTH.token);
-    else localStorage.removeItem("trace_token");
-
-    localStorage.setItem("trace_role", AUTH.role);
-    localStorage.setItem("trace_email", AUTH.email);
-  }
-
-  function authHeaders(extra = {}) {
-    return {
-      ...extra,
-      ...(AUTH.token ? { "Authorization": `Bearer ${AUTH.token}` } : {})
-    };
-  }
+}
 
 async function apiFetch(path, opts = {}) {
   const url = API_BASE + path;
-
   const headers = authHeaders({
     "Content-Type": "application/json",
     ...(opts.headers || {})
   });
 
   const res = await fetch(url, { ...opts, headers });
+  const data = await res.json().catch(() => ({}));
 
-  const text = await res.text(); // read raw response once
-  let data = {};
-  try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
-
-  if (!res.ok) {
-    console.error("API ERROR:", {
-      url,
-      status: res.status,
-      data
-    });
-    throw new Error(data.error || data.message || `HTTP ${res.status}`);
-  }
-
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
   return data;
 }
 
-  // ====== LOGIN UI ======
-  function showLogin() {
-    const el = document.getElementById("loginOverlay");
-    if (el) el.style.display = "flex";
-  }
-  function hideLogin() {
-    const el = document.getElementById("loginOverlay");
-    if (el) el.style.display = "none";
-  }
-
-  function wireLoginUI() {
-    const btn = document.getElementById("loginBtn");
-    const msg = document.getElementById("loginMsg");
-    const emailEl = document.getElementById("loginEmail");
-    const passEl  = document.getElementById("loginPass");
-
-    if (!btn || !msg || !emailEl || !passEl) return;
-    console.error("Login UI elements missing");
-    return;
-  }
-
-  btn.addEventListener("click", (e) => {
-    e.preventDefault();
-    submit();
+async function doLogin(email, password) {
+  return apiFetch("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password })
   });
-  
-// ===== TRUTH TEST #1 =====
-  console.log("wireLoginUI ran", {
-    btn,
-    msg,
-    emailEl,
-    passEl
-  });
-
-  btn.onclick = () => console.log("BTN CLICKED (onclick)");
-  btn.addEventListener("click", () => console.log("BTN CLICKED  (listener)"));
-  // =========================
-
-  btn.addEventListener("click", (e) => {
-    e.preventDefault();
-    submit();
-  });
-  
-   async function submit() {
-  console.log("SUBMIT FIRED");
-  window.forceAutofillCommit();
-
-  msg.textContent = "";
-  btn.disabled = true;
-  const old = btn.textContent;
-  btn.textContent = "Logging in...";
-
-  const email = emailEl.value.trim();
-  const pass  = passEl.value;
-
-  console.log("LOGIN CHECK:", { email, passLen: pass.length });
-  console.log("ABOUT TO apiFetch /auth/login", API_BASE);
-
-  try {
-    const r = await apiFetch("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({
-        username: email,
-        email: email,
-        password: pass
-      })
-    });
-
-    // success
-    setAuth({
-      token: r.token,
-      role: r.user?.role || "forklift",
-      email: r.user?.email || email
-    });
-
-    hideLogin();
-    await startAfterLogin();
-
-  } catch (e) {
-    console.error("LOGIN FAILED:", e);
-    msg.textContent = e.message || "Login failed";
-  } finally {
-    btn.disabled = false;
-    btn.textContent = old || "Login";
-  }
 }
-   
-// ---- STEP 2: CLIENT-SIDE VALIDATION ----
-  if (!email) {
-    msg.textContent = "Enter an email.";
-    btn.disabled = false;
-    btn.textContent = old;
-    return;
-  }
 
-  if (!pass) {
-    msg.textContent = "Enter a password.";
-    btn.disabled = false;
-    btn.textContent = old;
-    return;
-  }
-      try {
-        const r = await doLogin(email, pass);
-        if (!r || r.ok === false) throw new Error(r?.error || "Login failed");
+// ====== LOGIN UI ======
+function showLogin() {
+  const el = document.getElementById("loginOverlay");
+  if (el) el.style.display = "flex";
+}
 
-        setAuth({
-          token: r.token,
-          role:  r.user?.role || "forklift",
-          email: r.user?.email || email
-        });
+function hideLogin() {
+  const el = document.getElementById("loginOverlay");
+  if (el) el.style.display = "none";
+}
 
-        hideLogin();
-        await startAfterLogin();
-      } catch (e) {
-        msg.textContent = e.message || "Login failed";
-      } finally {
-        btn.disabled = false;
-        btn.textContent = old || "Login";
-      }
-    }
+function wireLoginUI() {
+  const btn = document.getElementById("loginBtn");
+  const msg = document.getElementById("loginMsg");
+  const emailEl = document.getElementById("loginEmail");
+  const passEl  = document.getElementById("loginPass");
 
-    btn.addEventListener("click", submit);
-    passEl.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") submit();
-    });
-  }
+  if (!btn || !msg || !emailEl || !passEl) return;
 
-  // ====== INTRO PLAY ======
-  function playTraceIntro() {
-    return new Promise((resolve) => {
-      const steps = [
-        "INITIALIZING SYSTEMS",
-        "SYNCING LOCATIONS",
-        "VERIFYING INVENTORY",
-        "AUTH READY",
-        "SYSTEM ONLINE"
-      ];
+  async function submit() {
+    msg.textContent = "";
+    btn.disabled = true;
+    const old = btn.textContent;
+    btn.textContent = "Logging in...";
 
-      const hudText = document.getElementById("traceHudText");
-      const boot = document.getElementById("traceBoot");
-      const appRoot = document.getElementById("appRoot");
+    const email = emailEl.value.trim();
+    const pass  = passEl.value;
 
-      if (!boot || !appRoot || !hudText) {
-        if (appRoot) {
-          appRoot.classList.remove("isHidden");
-          appRoot.classList.add("isVisible");
-        }
-        if (boot) boot.remove();
-        return resolve();
-      }
+    console.log("🔐 Attempting login for:", email);
 
-      const seen = sessionStorage.getItem("trace_intro_seen") === "1";
-      if (seen) {
-        boot.remove();
-        appRoot.classList.remove("isHidden");
-        appRoot.classList.add("isVisible");
-        return resolve();
-      }
+    try {
+      const r = await doLogin(email, pass);
+      console.log("📡 Login response:", r);
+      
+      if (!r || r.ok === false) throw new Error(r?.error || "Login failed");
 
-      let i = 0;
-      const stepMs = 780;
+      setAuth({
+        token: r.token,
+        role:  r.user?.role || "forklift",
+        email: r.user?.email || email
+      });
 
-      const timer = setInterval(() => {
-        i++;
-        if (i >= steps.length) {
-          clearInterval(timer);
-          sessionStorage.setItem("trace_intro_seen", "1");
-
-          appRoot.classList.remove("isHidden");
-          appRoot.classList.add("isVisible");
-
-          setTimeout(() => {
-            boot.classList.add("fade");
-            boot.setAttribute("aria-hidden", "true");
-            setTimeout(() => {
-              boot.remove();
-              resolve();
-            }, 1100);
-          }, 650);
-
-          return;
-        }
-        hudText.textContent = steps[i];
-      }, stepMs);
-
-      const logo = document.querySelector(".traceLogo");
-      if (logo) {
-        logo.addEventListener("error", () => {
-          console.warn("Logo image not found. Check filename/path.");
-          hudText.textContent = "LOGO FILE NOT FOUND";
-        });
-      }
-    });
-  }
-
-  // ====== AFTER LOGIN BOOT ======
-  async function startAfterLogin() {
-    await playTraceIntro();
-
-    if (typeof window.initApp === "function") {
-      await window.initApp();
-    } else {
-      console.warn("initApp() not found yet.");
-    }
-  }
-
-  // ====== BOOT ENTRYPOINT ======
-  window.addEventListener("DOMContentLoaded", async () => {
-    wireLoginUI();
-
-    if (AUTH.token) {
+      console.log("✅ Login successful!");
       hideLogin();
       await startAfterLogin();
-    } else {
-      showLogin();
+    } catch (e) {
+      console.error("❌ Login error:", e);
+      msg.textContent = e.message || "Login failed - check console for details";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = old || "Login";
     }
-  });
-</script>
+  }
 
-<script>
-window.forceAutofillCommit = window.forceAutofillCommit || function () {
-  ["loginEmail", "loginPass"].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.focus();
-    el.dispatchEvent(new Event("input", { bubbles: true }));
-    el.dispatchEvent(new Event("change", { bubbles: true }));
-    el.blur();
-  });
-};
-
-/* ===== AUTOFILL COMMIT FIX ===== */
-function forceAutofillCommit() {
-  ["loginEmail", "loginPass"].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-
-    el.focus();
-    el.dispatchEvent(new Event("input", { bubbles: true }));
-    el.dispatchEvent(new Event("change", { bubbles: true }));
-    el.blur();
+  btn.addEventListener("click", submit);
+  passEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") submit();
   });
 }
 
-/* TRACE - CLEAN BUILD */
+// ====== INTRO ANIMATION ======
+function playTraceIntro() {
+  return new Promise((resolve) => {
+    const steps = [
+      "INITIALIZING SYSTEMS",
+      "SYNCING LOCATIONS",
+      "VERIFYING INVENTORY",
+      "AUTH READY",
+      "SYSTEM ONLINE"
+    ];
 
-const ADMIN_PIN = "4793";
-const DELETED_KEY = "trace_simple_deleted_v1";
-const MACHINES = ["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane"];
+    const hudText = document.getElementById("traceHudText");
+    const boot = document.getElementById("traceBoot");
+    const appRoot = document.getElementById("appRoot");
 
-// DIALOG SYSTEM
+    if (!boot || !appRoot || !hudText) {
+      if (appRoot) {
+        appRoot.classList.remove("isHidden");
+        appRoot.classList.add("isVisible");
+      }
+      if (boot) boot.remove();
+      return resolve();
+    }
+
+    const seen = sessionStorage.getItem("trace_intro_seen") === "1";
+    if (seen) {
+      boot.remove();
+      appRoot.classList.remove("isHidden");
+      appRoot.classList.add("isVisible");
+      return resolve();
+    }
+
+    let i = 0;
+    const stepMs = 780;
+
+    const timer = setInterval(() => {
+      i++;
+      if (i >= steps.length) {
+        clearInterval(timer);
+        sessionStorage.setItem("trace_intro_seen", "1");
+
+        appRoot.classList.remove("isHidden");
+        appRoot.classList.add("isVisible");
+
+        setTimeout(() => {
+          boot.classList.add("fade");
+          boot.setAttribute("aria-hidden", "true");
+          setTimeout(() => {
+            boot.remove();
+            resolve();
+          }, 1100);
+        }, 650);
+
+        return;
+      }
+      hudText.textContent = steps[i];
+    }, stepMs);
+  });
+}
+
+// ====== AFTER LOGIN ======
+async function startAfterLogin() {
+  await playTraceIntro();
+
+  if (typeof window.initApp === "function") {
+    await window.initApp();
+  }
+}
+
+// ====== DIALOG SYSTEM ======
 (function initDialog(){
   const d = {
     overlay: document.getElementById("dialogOverlay"),
@@ -1338,36 +1192,37 @@ const MACHINES = ["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane
   };
 })();
 
-// API HELPERS
-async function apiGet(path){
-  const r = await fetch(`${API_BASE}${path}`);
-  if(!r.ok) throw new Error(`${path} -> ${r.status}`);
-  return r.json();
-}
-async function apiPost(path, body){
-  const r = await fetch(`${API_BASE}${path}`, {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify(body)
-  });
-  if(!r.ok) throw new Error(`${path} -> ${r.status}`);
-  return r.json();
-}
-async function apiPut(path, body){
-  const r = await fetch(`${API_BASE}${path}`, {
-    method:"PUT",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify(body)
-  });
-  if(!r.ok) throw new Error(`${path} -> ${r.status}`);
-  return r.json();
+// ====== API HELPERS ======
+async function apiGet(path) {
+  return apiFetch(path, { method: "GET" });
 }
 
+async function apiPost(path, body) {
+  return apiFetch(path, {
+    method: "POST",
+    body: JSON.stringify(body)
+  });
+}
+
+async function apiPut(path, body) {
+  return apiFetch(path, {
+    method: "PUT",
+    body: JSON.stringify(body)
+  });
+}
+
+async function apiDelete(path) {
+  return apiFetch(path, { method: "DELETE" });
+}
+
+// Health check
 apiGet("/health")
-  .then(d => console.log("API CONNECTED", d))
-  .catch(e => console.error("API FAILED", e));
+  .then(d => console.log("✅ API CONNECTED", d))
+  .catch(e => {
+    console.warn("⚠️ API health check failed:", e.message);
+  });
 
-// DOM ELEMENTS
+// ====== DOM ELEMENTS ======
 const els = {
   itemsPill: document.getElementById("itemsPill"),
   rolePill: document.getElementById("rolePill"),
@@ -1409,7 +1264,7 @@ const els = {
   fileInput: document.getElementById("fileInput"),
 };
 
-// HELPER FUNCTIONS
+// ====== HELPER FUNCTIONS ======
 function normalize(s){ return (s ?? "").trim().toLowerCase(); }
 function cleanJob(s){
   return String(s ?? "")
@@ -1438,7 +1293,7 @@ function pick(obj, keys){
   return undefined;
 }
 
-// STATE
+// ====== STATE ======
 let rawItems = [];
 let rawLocations = [];
 let locations = [];
@@ -1455,7 +1310,7 @@ let role = "forklift";
 let adminUnlocked = false;
 let moveTargetId = null;
 
-// LOCATION MAPPING
+// ====== LOCATION MAPPING ======
 function mapLocations(raw){
   const arr = Array.isArray(raw) ? raw : [];
   return arr.map(r => {
@@ -1519,7 +1374,7 @@ function mapItemsToUI(raw){
   }).filter(x => String(x.job).length > 0 && normalize(x.status) !== "deleted");
 }
 
-// LOADERS
+// ====== LOADERS ======
 async function loadLocations(){
   const data = await apiGet("/locations");
   rawLocations = Array.isArray(data) ? data : (data.locations || data.rows || []);
@@ -1554,7 +1409,7 @@ function addToDeletedHistory(item){
   saveDeleted();
 }
 
-// ROLE MANAGEMENT
+// ====== ROLE MANAGEMENT ======
 function setRole(nextRole){
   role = nextRole;
   if(role !== "admin"){
@@ -1591,7 +1446,7 @@ function updateRoleUI(){
   els.newBtn.disabled = forklift;
 }
 
-// BUTTON BUILDERS
+// ====== BUTTON BUILDERS ======
 function buildLaneButtons(){
   els.laneGrid.innerHTML = "";
   for(let i=1;i<=12;i++){
@@ -1615,7 +1470,7 @@ function buildMachineButtons(){
   });
 }
 
-// SELECTORS
+// ====== SELECTORS ======
 function selectLane(lane){
   selectedLane = lane;
   selectedLocation = { type:"lane", value: lane };
@@ -1650,7 +1505,7 @@ function getSelectedLocationId(){
   return null;
 }
 
-// RENDER LISTS
+// ====== RENDER LISTS ======
 function renderLaneList(){
   const q = normalize(els.laneSearch.value);
   const laneItemsAll = inventory.filter(x => String(x.lane ?? "") === selectedLane);
@@ -1832,7 +1687,7 @@ function renderHistory(){
   });
 }
 
-// FORM MANAGEMENT
+// ====== FORM MANAGEMENT ======
 function clearForm(){
   selectedId = null;
   els.job.value = "";
@@ -1859,7 +1714,7 @@ function loadToForm(id){
   renderMachineList();
 }
 
-// SAVE/UPDATE
+// ====== SAVE/UPDATE ======
 async function upsertItem(){
   const machineRole = role === "machine";
   const admin = (role === "admin" && adminUnlocked);
@@ -1926,7 +1781,7 @@ async function upsertItem(){
   }
 }
 
-// DELETE
+// ====== DELETE ======
 async function deleteSelected(){
   const admin = (role === "admin" && adminUnlocked);
   if(!admin){
@@ -1967,7 +1822,7 @@ async function deleteSelected(){
   }
 }
 
-// MOVE OVERLAY
+// ====== MOVE OVERLAY ======
 function openMoveOverlay(id){
   const item = inventory.find(x => x.id === id);
   if(!item) return;
@@ -2060,7 +1915,7 @@ async function moveToMachine(id, machine){
   }
 }
 
-// BACKUP/DEMO
+// ====== BACKUP/DEMO ======
 function exportJson(){
   const blob = new Blob([JSON.stringify(inventory, null, 2)], {type:"application/json"});
   const a = document.createElement("a");
@@ -2127,7 +1982,7 @@ function seedDemo(){
   renderGlobalSearch();
 }
 
-// FULLSCREEN
+// ====== FULLSCREEN ======
 function toggleFullscreen(){
   if(!document.fullscreenElement){
     document.documentElement.requestFullscreen().catch(()=>{});
@@ -2136,7 +1991,7 @@ function toggleFullscreen(){
   }
 }
 
-// EVENT LISTENERS
+// ====== EVENT LISTENERS ======
 els.globalSearch.addEventListener("input", renderGlobalSearch);
 els.laneSearch.addEventListener("input", renderLaneList);
 els.machineSearch.addEventListener("input", renderMachineList);
@@ -2229,10 +2084,10 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-// INIT (CALLED AFTER LOGIN)
+// ====== INIT (CALLED AFTER LOGIN) ======
 window.initApp = async function initApp() {
   try {
-    console.log("INIT START", new Date().toISOString());
+    console.log("🚀 INIT START", new Date().toISOString());
 
     buildLaneButtons();
     buildMachineButtons();
@@ -2246,18 +2101,18 @@ window.initApp = async function initApp() {
     els.globalResults.innerHTML =
       `<div style="color:var(--muted)">Loading...</div>`;
 
-    await loadLocations();
-    await loadInventory();
+    const data = await apiGet("/locations");
+    const data = await apiGet("/items");
 
     renderLaneList();
     renderMachineList();
     renderGlobalSearch();
 
-    console.log("LANE MAP:", [...locIdByLane.keys()]);
-    console.log("MACHINE MAP:", [...locIdByMachine.keys()]);
-    console.log("INIT COMPLETE");
+    console.log("✅ LANE MAP:", [...locIdByLane.keys()]);
+    console.log("✅ MACHINE MAP:", [...locIdByMachine.keys()]);
+    console.log("✅ INIT COMPLETE");
   } catch (err) {
-    console.error("Init failed:", err);
+    console.error("❌ Init failed:", err);
     els.globalResults.innerHTML = `
       <div style="color:var(--bad); font-weight:900;">API / INIT ERROR</div>
       <div style="color:var(--muted); margin-top:6px;">
@@ -2266,6 +2121,19 @@ window.initApp = async function initApp() {
     `;
   }
 };
+
+// ====== BOOT ENTRYPOINT ======
+window.addEventListener("DOMContentLoaded", async () => {
+  console.log("🎯 TRACE starting up...");
+  wireLoginUI();
+
+  if (AUTH.token) {
+    hideLogin();
+    await startAfterLogin();
+  } else {
+    showLogin();
+  }
+});
 </script>
 
 </body>
