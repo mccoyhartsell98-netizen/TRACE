@@ -711,15 +711,32 @@
     <div class="loginTitle">TRACE</div>
     <div class="loginSub">Secure Access</div>
 
-    <label class="loginLabel">Email</label>
-    <input id="loginEmail" class="loginInput" type="email" placeholder="you@trace.app" autocomplete="username"/>
+   <label class="loginLabel">Email</label>
+<input
+  id="loginEmail"
+  class="loginInput"
+  type="email"
+  name="username"
+  autocomplete="username"
+  inputmode="email"
+  autocapitalize="none"
+  spellcheck="false"
+  placeholder="you@trace.app"
+/>
 
-    <label class="loginLabel">Password</label>
-    <input id="loginPass" class="loginInput" type="password" placeholder="••••••••" autocomplete="current-password"/>
+<label class="loginLabel">Password</label>
+<input
+  id="loginPass"
+  class="loginInput"
+  type="password"
+  name="password"
+  autocomplete="current-password"
+  placeholder="••••••••"
+/>
 
-    <button id="loginBtn" class="loginBtn">Login</button>
+<button id="loginBtn" class="loginBtn">Login</button>
+<div id="loginMsg" class="loginMsg"></div>
 
-    <div id="loginMsg" class="loginMsg"></div>
   </div>
 </div>
 
@@ -932,6 +949,17 @@
   </div>
 
 <script>
+window.forceAutofillCommit = window.forceAutofillCommit || function () {
+  ["loginEmail", "loginPass"].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.focus();
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+    el.blur();
+  });
+};
+
   // ====== API BASE  ======
   const API_BASE = "https://trace-api-sak3.onrender.com";
 
@@ -1142,6 +1170,30 @@
 </script>
 
 <script>
+window.forceAutofillCommit = window.forceAutofillCommit || function () {
+  ["loginEmail", "loginPass"].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.focus();
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+    el.blur();
+  });
+};
+
+/* ===== AUTOFILL COMMIT FIX ===== */
+function forceAutofillCommit() {
+  ["loginEmail", "loginPass"].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    el.focus();
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+    el.blur();
+  });
+}
+
 /* TRACE - CLEAN BUILD */
 
 const ADMIN_PIN = "4793";
