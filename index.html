@@ -2101,8 +2101,8 @@ window.initApp = async function initApp() {
     els.globalResults.innerHTML =
       `<div style="color:var(--muted)">Loading...</div>`;
 
-    const data = await apiGet("/locations");
-    const data = await apiGet("/items");
+    const locData = await apiGet("/locations");
+    const itemData = await apiGet("/items");
 
     renderLaneList();
     renderMachineList();
