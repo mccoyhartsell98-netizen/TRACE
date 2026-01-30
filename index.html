@@ -1037,6 +1037,8 @@ window.forceAutofillCommit = window.forceAutofillCommit || function () {
 
       const email = emailEl.value.trim();
       const pass  = passEl.value;
+      
+      console.log("LOGIN CHECK:", { email, passLen: pass.length });
 
    // ---- STEP 2: CLIENT-SIDE VALIDATION ----
   if (!email) {
