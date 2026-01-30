@@ -930,6 +930,27 @@
       </div>
     </div>
   </div>
+   <!-- TRACE Assistant (UI) -->
+<button id="chatToggle" class="chatToggle" aria-label="Open TRACE Assistant" title="TRACE Assistant">🤖</button>
+
+<section id="chatPanel" class="chatPanel" aria-label="TRACE Assistant panel">
+  <header class="chatHeader">
+    <div class="chatHeader-icon">🤖</div>
+    <div class="chatHeader-text">
+      <div class="chatHeader-title">TRACE ASSISTANT</div>
+      <div class="chatHeader-sub">Ask about lanes, machines, jobs, moves, deletes</div>
+    </div>
+  </header>
+
+  <div id="chatMessages" class="chatMessages"></div>
+
+  <div id="chatTyping" class="chatTyping">Thinking<span>.</span><span>.</span><span>.</span></div>
+
+  <form id="chatForm" class="chatInput" autocomplete="off">
+    <input id="chatText" type="text" placeholder="Type a question… (ex: show lane 3, find job 10293)" />
+    <button type="submit">Send</button>
+  </form>
+</section>
 
 <script>
 // ==========================================
@@ -2138,6 +2159,57 @@ window.addEventListener("DOMContentLoaded", async () => {
     showLogin();
   }
 });
+
+  // ===== TRACE Assistant (MUST BE BEFORE </script>) =====
+  (() => {
+    const toggle = document.getElementById("chatToggle");
+    const panel = document.getElementById("chatPanel");
+    const form = document.getElementById("chatForm");
+    const input = document.getElementById("chatText");
+    const messages = document.getElementById("chatMessages");
+    const typing = document.getElementById("chatTyping");
+
+    if(!toggle || !panel || !form) return;
+
+    const time = () =>
+      new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+
+    function addMsg(role, text){
+      const row = document.createElement("div");
+      row.className = "chatMessage " + (role === "user" ? "user" : "");
+      row.innerHTML = `
+        <div class="chatMessage-avatar">${role === "user" ? "🧑" : "🤖"}</div>
+        <div>
+          <div class="chatMessage-bubble">${text}</div>
+          <div class="chatMessage-time">${time()}</div>
+        </div>`;
+      messages.appendChild(row);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    toggle.onclick = () => {
+      panel.classList.toggle("show");
+      toggle.classList.toggle("open");
+      if(panel.classList.contains("show")) input.focus();
+    };
+
+    form.onsubmit = e => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if(!text) return;
+      input.value = "";
+      addMsg("user", text);
+
+      typing.classList.add("show");
+      setTimeout(() => {
+        typing.classList.remove("show");
+        addMsg("assistant", "SYSTEM ONLINE. TRACE Assistant ready.");
+      }, 600);
+    };
+
+    addMsg("assistant", "TRACE Assistant initialized.");
+  })();
+
 </script>
 
 </body>
