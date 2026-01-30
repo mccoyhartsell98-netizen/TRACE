@@ -1029,6 +1029,7 @@ window.forceAutofillCommit = window.forceAutofillCommit || function () {
     if (!btn || !msg || !emailEl || !passEl) return;
 
     async function submit() {
+      window.forceAutofillCommit();
       msg.textContent = "";
       btn.disabled = true;
       const old = btn.textContent;
