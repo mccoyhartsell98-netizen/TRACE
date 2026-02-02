@@ -1,5 +1,5 @@
 <!-- 
-  TRACE INVENTORY - COMPLETE FIX
+  TRACE INVENTORY - STRUCTURE FIX (History + DOM nesting)
   © 2026 Mccoy Hartsell — All rights reserved.
 -->
 
@@ -31,7 +31,6 @@
       background: rgba(10,12,16,.92);
       z-index:100000;
     }
-
     .loginCard{
       width: min(420px, 92vw);
       background: rgba(22,26,34,.95);
@@ -40,28 +39,24 @@
       padding: 22px 20px;
       box-shadow: 0 18px 60px rgba(0,0,0,.55);
     }
-
     .loginTitle{
       font-size: 34px;
       letter-spacing: 2px;
       font-weight: 800;
       text-align: center;
     }
-
     .loginSub{
       text-align: center;
       margin-top: 6px;
       margin-bottom: 18px;
       opacity: .75;
     }
-
     .loginLabel{
       display: block;
       font-size: 12px;
       opacity: .8;
       margin: 10px 0 6px;
     }
-
     .loginInput{
       width: 100%;
       border-radius: 12px;
@@ -71,11 +66,7 @@
       padding: 12px 12px;
       outline: none;
     }
-
-    .loginInput:focus{
-      border-color: rgba(140,170,255,.6);
-    }
-
+    .loginInput:focus{ border-color: rgba(140,170,255,.6); }
     .loginBtn{
       width: 100%;
       margin-top: 14px;
@@ -87,11 +78,7 @@
       background: rgba(80,120,255,.9);
       color: #fff;
     }
-
-    .loginBtn:active{
-      transform: translateY(1px);
-    }
-
+    .loginBtn:active{ transform: translateY(1px); }
     .loginMsg{
       margin-top: 12px;
       font-size: 13px;
@@ -127,17 +114,9 @@
     }
 
     *{box-sizing:border-box;}
-    
-    .location-line{
-     color:var(--meta);
-     font-weight:500;
-    }
+    .location-line{ color:var(--meta); font-weight:500; }
 
-    html, body{
-      height:100%;
-      margin:0;
-    }
-
+    html, body{ height:100%; margin:0; }
     body{
       overflow:hidden;
       font-family:Arial,Helvetica,sans-serif;
@@ -308,7 +287,6 @@
       opacity:.28;
       pointer-events:none;
     }
-
     .traceHud-content{
       position:relative;
       height:100%;
@@ -325,7 +303,6 @@
       z-index:1;
       white-space:nowrap;
     }
-
     .traceHud-left, .traceHud-right{
       width:10px; height:10px;
       border-radius:2px;
@@ -339,7 +316,6 @@
     .traceHud-right{
       clip-path: polygon(30% 10%, 70% 10%, 90% 50%, 70% 90%, 30% 90%);
     }
-
     .traceHud-sub{
       font-size:10px;
       letter-spacing:.28em;
@@ -361,13 +337,8 @@
       0%,100%{ transform: scale(.85); opacity:.55; }
       50%{ transform: scale(1.15); opacity:1; }
     }
-
-    .traceBoot.fade{
-      animation: traceBootOut .9s ease forwards;
-    }
-    @keyframes traceBootOut{
-      to{ opacity:0; visibility:hidden; }
-    }
+    .traceBoot.fade{ animation: traceBootOut .9s ease forwards; }
+    @keyframes traceBootOut{ to{ opacity:0; visibility:hidden; } }
 
     /* MAIN APP STYLES */
     .wrap{
@@ -379,7 +350,6 @@
       flex-direction:column;
       gap:12px;
     }
-
     .top{
       display:grid;
       grid-template-columns: 1fr auto 1fr;
@@ -387,7 +357,6 @@
       gap:10px;
       flex:0 0 auto;
     }
-
     .logo{
       grid-column:2;
       justify-self:center;
@@ -399,7 +368,6 @@
         drop-shadow(0 0 12px rgba(58,122,254,0.35))
         drop-shadow(0 0 28px rgba(58,122,254,0.15));
     }
-
     .status{
       grid-column:3;
       justify-self:end;
@@ -413,7 +381,6 @@
       font-size:14px;
       line-height:1.2;
     }
-
     .pill{
       padding:6px 10px;
       border:1px solid var(--stroke);
@@ -422,7 +389,6 @@
       color:var(--muted);
       white-space:nowrap;
     }
-
     .versionBadge{
       position:fixed;
       top:12px;
@@ -438,7 +404,6 @@
       letter-spacing:.3px;
       backdrop-filter: blur(6px);
     }
-
     .rolebar{
       display:flex;
       gap:10px;
@@ -446,14 +411,12 @@
       justify-content:space-between;
       flex:0 0 auto;
     }
-
     .roleLeft{
       display:flex;
       gap:10px;
       align-items:center;
       flex-wrap:wrap;
     }
-
     select, input[type="text"], input[type="number"], input[type="password"], input[type="email"]{
       width:100%;
       padding:14px 14px;
@@ -464,19 +427,16 @@
       color:var(--text);
       outline:none;
     }
-
     select{
       font-size:16px;
       padding:10px 12px;
       width:auto;
       min-width:170px;
     }
-
     input[type="text"]:focus, input[type="number"]:focus, input[type="password"]:focus, input[type="email"]:focus, select:focus{
       border-color: var(--focus);
       box-shadow: 0 0 0 3px rgba(58,122,254,.18);
     }
-
     button{
       border:none;
       border-radius:10px;
@@ -505,7 +465,6 @@
       grid-template-columns: 1.2fr .8fr;
       gap:14px;
     }
-
     .card{
       background:var(--panel);
       border:1px solid var(--stroke);
@@ -515,7 +474,6 @@
       display:flex;
       flex-direction:column;
     }
-
     .card h2{
       margin:0 0 10px 0;
       font-size:15px;
@@ -555,7 +513,6 @@
       margin-bottom:10px;
       flex:0 0 auto;
     }
-
     .laneBtn{
       background:var(--panel2);
       border:1px solid var(--stroke);
@@ -581,16 +538,10 @@
       margin:10px 0 8px 0;
       flex:0 0 auto;
     }
-
     .laneTitle{font-size:20px;font-weight:900;}
     .laneCount{color:var(--muted);font-size:13px;font-weight:800;}
 
-    .results{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
-
+    .results{ display:flex; flex-direction:column; gap:10px; }
     .resultItem{
       background:var(--panel2);
       border:1px solid var(--stroke);
@@ -617,7 +568,6 @@
       line-height:1.35;
       flex:0 0 auto;
     }
-
     .kbd{
       display:inline-block;
       padding:2px 6px;
@@ -667,20 +617,17 @@
       body{overflow:auto;}
       .wrap{height:auto;}
       .grid{grid-template-columns:1fr;}
-
       .top{
         grid-template-columns:1fr;
         justify-items:center;
         gap:10px;
       }
-
       .logo{
         grid-column:1;
         justify-self:center;
         width:520px;
         max-width:92vw;
       }
-
       .status{
         display:flex;
         grid-column:1;
@@ -691,240 +638,232 @@
         font-size:12px;
         flex-wrap:wrap;
       }
-
-      .pill{
-        padding:5px 9px;
-        font-size:12px;
-      }
-
-      .laneGrid{
-        grid-template-columns: repeat(3,1fr);
-      }
+      .pill{ padding:5px 9px; font-size:12px; }
+      .laneGrid{ grid-template-columns: repeat(3,1fr); }
     }
-/* ===== TRACE Assistant — Pro Dock (Drift/Intercom vibe) ===== */
-.chatFab{
-  position:fixed;
-  right:18px;
-  bottom:18px;
-  width:58px;
-  height:58px;
-  border-radius:18px;
-  z-index:99999;
-  display:grid;
-  place-items:center;
-  cursor:pointer;
-  border:1px solid rgba(58,122,254,.45);
-  background: linear-gradient(180deg, rgba(58,122,254,.22), rgba(22,26,34,.92));
-  box-shadow: 0 16px 50px rgba(0,0,0,.55);
-  backdrop-filter: blur(8px);
-}
-.chatFab:hover{ transform: translateY(-1px); }
-.chatFab:active{ transform: translateY(0px); }
-.chatFab-ico{ font-size:22px; filter: drop-shadow(0 6px 18px rgba(0,0,0,.45)); }
 
-.chatDock{
-  position:fixed;
-  right:18px;
-  bottom:88px;
-  width:min(420px, calc(100vw - 36px));
-  height:min(540px, calc(100vh - 140px));
-  border-radius:18px;
-  z-index:99999;
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
+    /* ===== TRACE Assistant — Pro Dock (Drift/Intercom vibe) ===== */
+    .chatFab{
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      width:58px;
+      height:58px;
+      border-radius:18px;
+      z-index:99999;
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+      border:1px solid rgba(58,122,254,.45);
+      background: linear-gradient(180deg, rgba(58,122,254,.22), rgba(22,26,34,.92));
+      box-shadow: 0 16px 50px rgba(0,0,0,.55);
+      backdrop-filter: blur(8px);
+    }
+    .chatFab:hover{ transform: translateY(-1px); }
+    .chatFab:active{ transform: translateY(0px); }
+    .chatFab-ico{ font-size:22px; filter: drop-shadow(0 6px 18px rgba(0,0,0,.45)); }
 
-  border:1px solid rgba(255,255,255,.10);
-  background: rgba(12,14,18,.72);
-  box-shadow: 0 28px 80px rgba(0,0,0,.65);
-  backdrop-filter: blur(14px);
+    .chatDock{
+      position:fixed;
+      right:18px;
+      bottom:88px;
+      width:min(420px, calc(100vw - 36px));
+      height:min(540px, calc(100vh - 140px));
+      border-radius:18px;
+      z-index:99999;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
 
-  transform: translateY(14px);
-  opacity:0;
-  pointer-events:none;
-  transition: transform 180ms ease, opacity 180ms ease;
-}
-.chatDock.open{
-  transform: translateY(0);
-  opacity:1;
-  pointer-events:auto;
-}
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(12,14,18,.72);
+      box-shadow: 0 28px 80px rgba(0,0,0,.65);
+      backdrop-filter: blur(14px);
 
-.chatTop{
-  padding:14px 14px 12px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  border-bottom:1px solid rgba(255,255,255,.08);
-  background: linear-gradient(180deg, rgba(0,0,0,.28), rgba(0,0,0,0));
-}
-.chatBrand{ display:flex; gap:10px; align-items:center; }
-.chatMark{
-  width:36px; height:36px;
-  border-radius:12px;
-  display:grid; place-items:center;
-  font-weight:900;
-  letter-spacing:.06em;
-  color:#fff;
-  border:1px solid rgba(58,122,254,.45);
-  background: rgba(58,122,254,.18);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
-}
-.chatTitle{ font-weight:900; letter-spacing:.08em; font-size:12px; text-transform:uppercase; }
-.chatSub{ font-size:12px; color:rgba(255,255,255,.68); margin-top:2px; display:flex; align-items:center; gap:8px; }
-.chatDot{
-  width:8px; height:8px; border-radius:50%;
-  background: rgba(138,255,138,.95);
-  box-shadow: 0 0 12px rgba(138,255,138,.45);
-  display:inline-block;
-}
-.chatX{
-  border:1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.06);
-  color:#fff;
-  border-radius:12px;
-  width:40px;
-  height:40px;
-  font-weight:900;
-  cursor:pointer;
-}
-.chatX:hover{ background: rgba(255,255,255,.10); }
+      transform: translateY(14px);
+      opacity:0;
+      pointer-events:none;
+      transition: transform 180ms ease, opacity 180ms ease;
+    }
+    .chatDock.open{
+      transform: translateY(0);
+      opacity:1;
+      pointer-events:auto;
+    }
 
-.chatLog{
-  flex:1;
-  overflow:auto;
-  padding:14px;
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,.18) transparent;
-}
-.chatLog::-webkit-scrollbar{ width:8px; }
-.chatLog::-webkit-scrollbar-thumb{
-  background: rgba(255,255,255,.14);
-  border-radius: 999px;
-  border: 2px solid transparent;
-  background-clip: content-box;
-}
+    .chatTop{
+      padding:14px 14px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      background: linear-gradient(180deg, rgba(0,0,0,.28), rgba(0,0,0,0));
+    }
+    .chatBrand{ display:flex; gap:10px; align-items:center; }
+    .chatMark{
+      width:36px; height:36px;
+      border-radius:12px;
+      display:grid; place-items:center;
+      font-weight:900;
+      letter-spacing:.06em;
+      color:#fff;
+      border:1px solid rgba(58,122,254,.45);
+      background: rgba(58,122,254,.18);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+    }
+    .chatTitle{ font-weight:900; letter-spacing:.08em; font-size:12px; text-transform:uppercase; }
+    .chatSub{ font-size:12px; color:rgba(255,255,255,.68); margin-top:2px; display:flex; align-items:center; gap:8px; }
+    .chatDot{
+      width:8px; height:8px; border-radius:50%;
+      background: rgba(138,255,138,.95);
+      box-shadow: 0 0 12px rgba(138,255,138,.45);
+      display:inline-block;
+    }
+    .chatX{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      color:#fff;
+      border-radius:12px;
+      width:40px;
+      height:40px;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .chatX:hover{ background: rgba(255,255,255,.10); }
 
-.msg{ display:flex; gap:10px; align-items:flex-end; }
-.msg.me{ flex-direction:row-reverse; }
-.bub{
-  max-width: 78%;
-  padding:10px 12px;
-  border-radius:16px;
-  line-height:1.25;
-  font-size:14px;
-  border:1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.06);
-}
-.msg.me .bub{
-  border-color: rgba(58,122,254,.30);
-  background: rgba(58,122,254,.14);
-}
-.time{
-  font-size:11px;
-  color: rgba(255,255,255,.45);
-  margin: 0 6px;
-}
+    .chatLog{
+      flex:1;
+      overflow:auto;
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,.18) transparent;
+    }
+    .chatLog::-webkit-scrollbar{ width:8px; }
+    .chatLog::-webkit-scrollbar-thumb{
+      background: rgba(255,255,255,.14);
+      border-radius: 999px;
+      border: 2px solid transparent;
+      background-clip: content-box;
+    }
 
-.chatThinking{
-  display:none;
-  padding:10px 14px;
-  border-top:1px solid rgba(255,255,255,.08);
-  color: rgba(255,255,255,.72);
-  background: rgba(0,0,0,.18);
-  font-weight:700;
-  gap:10px;
-  align-items:center;
-}
-.chatThinking.show{ display:flex; }
-.chatSpin{
-  width:12px; height:12px; border-radius:50%;
-  border:2px solid rgba(255,255,255,.22);
-  border-top-color: rgba(58,122,254,.9);
-  animation: spin 800ms linear infinite;
-}
-@keyframes spin{ to{ transform: rotate(360deg); } }
+    .msg{ display:flex; gap:10px; align-items:flex-end; }
+    .msg.me{ flex-direction:row-reverse; }
+    .bub{
+      max-width: 78%;
+      padding:10px 12px;
+      border-radius:16px;
+      line-height:1.25;
+      font-size:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+    }
+    .msg.me .bub{
+      border-color: rgba(58,122,254,.30);
+      background: rgba(58,122,254,.14);
+    }
+    .time{
+      font-size:11px;
+      color: rgba(255,255,255,.45);
+      margin: 0 6px;
+    }
 
-.chatComposer{
-  display:flex;
-  gap:10px;
-  padding:12px;
-  border-top:1px solid rgba(255,255,255,.08);
-  background: rgba(0,0,0,.18);
-}
-.chatComposer input{
-  flex:1;
-  padding:12px 12px;
-  border-radius:14px;
-  border:1px solid rgba(255,255,255,.10);
-  background: rgba(10,12,16,.65);
-  color:#fff;
-  outline:none;
-}
-.chatComposer input:focus{
-  border-color: rgba(58,122,254,.55);
-  box-shadow: 0 0 0 3px rgba(58,122,254,.18);
-}
-.chatSend{
-  padding:10px 14px;
-  border-radius:14px;
-  font-weight:900;
-  border:1px solid rgba(58,122,254,.45);
-  background: rgba(58,122,254,.22);
-}
-.chatSend:hover{ background: rgba(58,122,254,.30); }
+    .chatThinking{
+      display:none;
+      padding:10px 14px;
+      border-top:1px solid rgba(255,255,255,.08);
+      color: rgba(255,255,255,.72);
+      background: rgba(0,0,0,.18);
+      font-weight:700;
+      gap:10px;
+      align-items:center;
+    }
+    .chatThinking.show{ display:flex; }
+    .chatSpin{
+      width:12px; height:12px; border-radius:50%;
+      border:2px solid rgba(255,255,255,.22);
+      border-top-color: rgba(58,122,254,.9);
+      animation: spin 800ms linear infinite;
+    }
+    @keyframes spin{ to{ transform: rotate(360deg); } }
 
-@media (max-width: 520px){
-  .chatDock{ right:12px; left:12px; width:auto; }
-  .chatFab{ right:12px; bottom:12px; }
-}
+    .chatComposer{
+      display:flex;
+      gap:10px;
+      padding:12px;
+      border-top:1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.18);
+    }
+    .chatComposer input{
+      flex:1;
+      padding:12px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(10,12,16,.65);
+      color:#fff;
+      outline:none;
+    }
+    .chatComposer input:focus{
+      border-color: rgba(58,122,254,.55);
+      box-shadow: 0 0 0 3px rgba(58,122,254,.18);
+    }
+    .chatSend{
+      padding:10px 14px;
+      border-radius:14px;
+      font-weight:900;
+      border:1px solid rgba(58,122,254,.45);
+      background: rgba(58,122,254,.22);
+    }
+    .chatSend:hover{ background: rgba(58,122,254,.30); }
 
+    @media (max-width: 520px){
+      .chatDock{ right:12px; left:12px; width:auto; }
+      .chatFab{ right:12px; bottom:12px; }
+    }
   </style>
 </head>
 
 <body>
-<!-- LOGIN OVERLAY -->
-<div id="loginOverlay" class="loginOverlay">
-  <div class="loginCard">
-    <div class="loginTitle">TRACE</div>
-    <div class="loginSub">Secure Access</div>
+  <!-- LOGIN OVERLAY -->
+  <div id="loginOverlay" class="loginOverlay">
+    <div class="loginCard">
+      <div class="loginTitle">TRACE</div>
+      <div class="loginSub">Secure Access</div>
 
-    <label class="loginLabel">Email</label>
-    <input id="loginEmail" class="loginInput" type="email" placeholder="you@trace.app" autocomplete="username"/>
+      <label class="loginLabel">Email</label>
+      <input id="loginEmail" class="loginInput" type="email" placeholder="you@trace.app" autocomplete="username"/>
 
-    <label class="loginLabel">Password</label>
-    <input id="loginPass" class="loginInput" type="password" placeholder="••••••••" autocomplete="current-password"/>
+      <label class="loginLabel">Password</label>
+      <input id="loginPass" class="loginInput" type="password" placeholder="••••••••" autocomplete="current-password"/>
 
-    <button id="loginBtn" class="loginBtn" type="button">Login</button>
-    
-   <div id="loginMsg" class="loginMsg"></div>
-  </div>
-</div>
-
-<!-- DIALOG OVERLAY -->
-<div class="overlay" id="dialogOverlay">
-  <div class="modal" style="max-width:520px;">
-    <div class="modalTop">
-      <div class="modalTitle" id="dialogTitle">TRACE</div>
-      <button class="ghost" id="dialogCloseBtn">Close</button>
-    </div>
-
-    <div id="dialogMsg" style="color:var(--muted); font-weight:700; line-height:1.4;"></div>
-
-    <div id="dialogInputWrap" style="margin-top:12px; display:none;">
-      <input id="dialogInput" type="password" placeholder="Enter value..." autocomplete="off">
-      <div class="tiny" id="dialogHint" style="margin-top:8px;"></div>
-    </div>
-
-    <div class="btnRow" style="margin-top:14px; justify-content:flex-end;">
-      <button class="ghost" id="dialogCancelBtn">Cancel</button>
-      <button class="primary" id="dialogOkBtn">OK</button>
+      <button id="loginBtn" class="loginBtn" type="button">Login</button>
+      <div id="loginMsg" class="loginMsg"></div>
     </div>
   </div>
-</div>
+
+  <!-- DIALOG OVERLAY -->
+  <div class="overlay" id="dialogOverlay">
+    <div class="modal" style="max-width:520px;">
+      <div class="modalTop">
+        <div class="modalTitle" id="dialogTitle">TRACE</div>
+        <button class="ghost" id="dialogCloseBtn">Close</button>
+      </div>
+
+      <div id="dialogMsg" style="color:var(--muted); font-weight:700; line-height:1.4;"></div>
+
+      <div id="dialogInputWrap" style="margin-top:12px; display:none;">
+        <input id="dialogInput" type="password" placeholder="Enter value..." autocomplete="off">
+        <div class="tiny" id="dialogHint" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="btnRow" style="margin-top:14px; justify-content:flex-end;">
+        <button class="ghost" id="dialogCancelBtn">Cancel</button>
+        <button class="primary" id="dialogOkBtn">OK</button>
+      </div>
+    </div>
+  </div>
 
   <!-- TRACE INTRO OVERLAY -->
   <div class="traceBoot" id="traceBoot" aria-hidden="false">
@@ -932,9 +871,7 @@
       <div class="traceLogo-wrap">
         <img class="traceLogo" src="./trace-logo.png.png" alt="TRACE" />
       </div>
-
       <div class="traceTagline">WE TRACK. YOU IMPROVE.</div>
-
       <div class="traceHud">
         <div class="traceHud-pill">
           <div class="traceHud-content">
@@ -954,213 +891,200 @@
 
   <!-- APP ROOT -->
   <div id="appRoot" class="appRoot isHidden">
+    <div class="wrap">
 
-  <div class="wrap">
-
-    <div class="top">
-      <div></div>
-      <img src="./trace-logo.png.png" alt="TRACE" class="logo">
-      <div class="status">
-        <div class="pill" id="rolePill">ROLE: FORKLIFT</div>
-        <div class="pill" id="itemsPill">ITEMS: 0</div>
-        <div class="pill">F = FULLSCREEN</div>
-      </div>
-    </div>
-
-    <div class="rolebar">
-      <div class="roleLeft">
-        <select id="roleSelect">
-          <option value="forklift">Forklift</option>
-          <option value="machine">Machine</option>
-          <option value="admin">Admin (locked)</option>
-        </select>
-        <button id="adminUnlockBtn" class="primary">Unlock Admin</button>
-        <button id="adminLockBtn" class="ghost" style="display:none;">Lock Admin</button>
-      </div>
-
-      <div style="display:flex;gap:10px;align-items:center;">
-        <button class="ghost" id="historyBtn">History</button>
-        <button class="danger" id="clearHistoryBtn" style="display:none;">Clear History</button>
-     </div>
-    </div>
-
-    <div class="grid">
-      <!-- LEFT -->
-      <div class="card">
-        <h2>Search</h2>
-
-        <div class="scroll">
-          <input id="globalSearch" type="text" placeholder="Search Job # (example: 400848)">
-          <div class="results" id="globalResults" style="margin-top:10px;"></div>
-
-          <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
-
-          <h2 style="margin-top:0;">Lanes</h2>
-          <div class="laneGrid" id="laneGrid"></div>
-
-          <div class="laneHeader">
-            <div class="laneTitle" id="laneTitle">Lane 1</div>
-            <div class="laneCount" id="laneCount">0 items</div>
-          </div>
-
-          <input id="laneSearch" type="text" placeholder="Filter within this lane (optional)">
-          <div class="results" id="laneResults" style="margin-top:10px;"></div>
-
-          <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
-
-          <h2 style="margin-top:0;">Machines</h2>
-          <div class="laneGrid" id="machineGrid"></div>
-
-          <div class="laneHeader">
-            <div class="laneTitle" id="machineTitle">Machine: S8</div>
-            <div class="laneCount" id="machineCount">0 jobs</div>
-          </div>
-
-          <input id="machineSearch" type="text" placeholder="Filter within this machine (optional)">
-          <div class="results" id="machineResults" style="margin-top:10px;"></div>
-
-          <div class="hint">
-            Flow: <b>Search Job #</b> → <b>Move</b> → choose <b>Lane</b> or <b>Machine</b>.
-            <br/>
-            Keys: <span class="kbd">1–9</span> quick lanes • <span class="kbd">F</span> fullscreen • <span class="kbd">ESC</span> close move box
-          </div>
+      <div class="top">
+        <div></div>
+        <img src="./trace-logo.png.png" alt="TRACE" class="logo">
+        <div class="status">
+          <div class="pill" id="rolePill">ROLE: FORKLIFT</div>
+          <div class="pill" id="itemsPill">ITEMS: 0</div>
+          <div class="pill">F = FULLSCREEN</div>
         </div>
       </div>
 
-      <!-- RIGHT -->
-      <div class="card">
-        <h2>Job Update</h2>
+      <div class="rolebar">
+        <div class="roleLeft">
+          <select id="roleSelect">
+            <option value="forklift">Forklift</option>
+            <option value="machine">Machine</option>
+            <option value="admin">Admin (locked)</option>
+          </select>
+          <button id="adminUnlockBtn" class="primary">Unlock Admin</button>
+          <button id="adminLockBtn" class="ghost" style="display:none;">Lock Admin</button>
+        </div>
 
-        <div class="scroll">
-          <div class="formGrid">
-            <div class="full">
-              <input id="job" type="text" placeholder="Job # (letters / numbers / hyphen allowed)" required>  
+        <div style="display:flex;gap:10px;align-items:center;">
+          <button class="ghost" id="historyBtn">History</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <!-- LEFT -->
+        <div class="card">
+          <h2>Search</h2>
+
+          <div class="scroll">
+            <input id="globalSearch" type="text" placeholder="Search Job # (example: 400848)">
+            <div class="results" id="globalResults" style="margin-top:10px;"></div>
+
+            <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
+
+            <h2 style="margin-top:0;">Lanes</h2>
+            <div class="laneGrid" id="laneGrid"></div>
+
+            <div class="laneHeader">
+              <div class="laneTitle" id="laneTitle">Lane 1</div>
+              <div class="laneCount" id="laneCount">0 items</div>
             </div>
 
-            <div>
-              <input id="qty" type="number" min="0" step="1" placeholder="Qty">
+            <input id="laneSearch" type="text" placeholder="Filter within this lane (optional)">
+            <div class="results" id="laneResults" style="margin-top:10px;"></div>
+
+            <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
+
+            <h2 style="margin-top:0;">Machines</h2>
+            <div class="laneGrid" id="machineGrid"></div>
+
+            <div class="laneHeader">
+              <div class="laneTitle" id="machineTitle">Machine: S8</div>
+              <div class="laneCount" id="machineCount">0 jobs</div>
             </div>
 
-            <div>
-              <input id="status" type="text" placeholder="Status (example: RUNNING)">
-            </div>
+            <input id="machineSearch" type="text" placeholder="Filter within this machine (optional)">
+            <div class="results" id="machineResults" style="margin-top:10px;"></div>
 
-            <div class="full">
-              <input id="notes" type="text" placeholder="Notes (optional)">
-            </div>
-
-            <div class="full">
-              <input id="updatedBy" type="text" placeholder="Updated by (initials)">
-            </div>
-
-            <div class="full btnRow">
-              <button class="primary" id="saveBtn">Save / Update</button>
-              <button id="newBtn">New</button>
-              <button class="danger" id="deleteBtn" disabled>Delete</button>
+            <div class="hint">
+              Flow: <b>Search Job #</b> → <b>Move</b> → choose <b>Lane</b> or <b>Machine</b>.
+              <br/>
+              Keys: <span class="kbd">1–9</span> quick lanes • <span class="kbd">F</span> fullscreen • <span class="kbd">ESC</span> close move box
             </div>
           </div>
+        </div>
 
-          <div class="tiny" id="rulesBox">
-            <b>Rules:</b>
-            <ul>
-              <li><b>Job #</b> is the unique key. Once created it is locked.</li>
-              <li><b>Forklift</b>: can search + move jobs (no edit, no delete).</li>
-              <li><b>Machine</b>: can update qty/status/notes (cannot create new jobs, no delete, no move).</li>
-              <li><b>Admin</b>: can create jobs + delete (goes to History) + restore.</li>
-            </ul>
+        <!-- RIGHT -->
+        <div class="card">
+          <h2>Job Update</h2>
+
+          <div class="scroll">
+            <div class="formGrid">
+              <div class="full">
+                <input id="job" type="text" placeholder="Job # (letters / numbers / hyphen allowed)" required>
+              </div>
+
+              <div>
+                <input id="qty" type="number" min="0" step="1" placeholder="Qty">
+              </div>
+
+              <div>
+                <input id="status" type="text" placeholder="Status (example: RUNNING)">
+              </div>
+
+              <div class="full">
+                <input id="notes" type="text" placeholder="Notes (optional)">
+              </div>
+
+              <div class="full">
+                <input id="updatedBy" type="text" placeholder="Updated by (initials)">
+              </div>
+
+              <div class="full btnRow">
+                <button class="primary" id="saveBtn">Save / Update</button>
+                <button id="newBtn">New</button>
+                <button class="danger" id="deleteBtn" disabled>Delete</button>
+              </div>
+            </div>
+
+            <div class="tiny" id="rulesBox">
+              <b>Rules:</b>
+              <ul>
+                <li><b>Job #</b> is the unique key. Once created it is locked.</li>
+                <li><b>Forklift</b>: can search + move jobs (no edit, no delete).</li>
+                <li><b>Machine</b>: can update qty/status/notes (cannot create new jobs, no delete, no move).</li>
+                <li><b>Admin</b>: can create jobs + delete (goes to History) + restore.</li>
+              </ul>
+            </div>
+
+            <!-- HISTORY PANEL (single, clean, no duplicate IDs) -->
+            <div id="historyPanel" style="display:none; margin-top:12px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                <h2 style="margin:0;">Deleted History</h2>
+                <button
+                  id="clearHistoryBtn"
+                  type="button"
+                  class="danger"
+                  title="Deletes history older than 7 days"
+                >
+                  Clear (keep 7 days)
+                </button>
+              </div>
+
+              <input id="historySearch" type="text" placeholder="Search deleted jobs...">
+              <div class="results" id="historyResults" style="margin-top:10px;"></div>
+            </div>
+
           </div>
-
-<div id="historyPanel" style="display:none; margin-top:12px;">
-  <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-    <h2 style="margin:0;">Deleted History</h2>
-     <<button id="clearHistoryBtn" type="button" class="danger">
-      Clear (keep 7 days)
-    </button>
-  </div>
-
-  <input id="historySearch" type="text" placeholder="Search deleted jobs...">
-  <div class="results" id="historyResults" style="margin-top:10px;"></div>
-</div>
-
-    <button
-      id="clearHistoryBtn"
-      class="danger"
-      style="padding:6px 10px; font-size:12px;"
-      title="Deletes history older than 7 days"
-    >
-      Clear History
-    </button>
-  </div>
-
-  <input
-    id="historySearch"
-    type="text"
-    placeholder="Search deleted jobs…"
-    style="margin-top:10px;"
-  >
-
-  <div
-    class="results"
-    id="historyResults"
-    style="margin-top:10px;"
-  ></div>
-</div>
-
-  <!-- MOVE OVERLAY -->
-  <div class="overlay" id="moveOverlay">
-    <div class="modal">
-      <div class="modalTop">
-        <div class="modalTitle" id="moveTitle">Move Job</div>
-        <button class="ghost" id="moveCloseBtn">Close</button>
-      </div>
-
-      <div style="color:var(--muted); font-weight:900; margin-bottom:8px;">Move to Lane</div>
-      <div class="laneGrid" id="moveLaneGrid"></div>
-
-      <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
-
-      <div style="color:var(--muted); font-weight:900; margin-bottom:8px;">Move to Machine</div>
-      <div class="laneGrid" id="moveMachineGrid"></div>
-
-      <div class="tiny" style="margin-top:12px;">
-        Rule: Moving to a <b>Machine</b> clears the lane. Moving to a <b>Lane</b> clears the machine.
+        </div>
       </div>
     </div>
-  </div>
-  <!-- TRACE Assistant (Pro UI) -->
-<button id="chatFab" class="chatFab" aria-label="Open TRACE Assistant" title="TRACE Assistant">
-  <span class="chatFab-ico">🤖</span>
-</button>
 
-<section id="chatDock" class="chatDock" aria-label="TRACE Assistant">
-  <header class="chatTop">
-    <div class="chatBrand">
-      <div class="chatMark">T</div>
-      <div>
-        <div class="chatTitle">TRACE Assistant</div>
-        <div class="chatSub"><span class="chatDot"></span> Online • Ask lanes, machines, jobs</div>
+    <!-- MOVE OVERLAY -->
+    <div class="overlay" id="moveOverlay">
+      <div class="modal">
+        <div class="modalTop">
+          <div class="modalTitle" id="moveTitle">Move Job</div>
+          <button class="ghost" id="moveCloseBtn">Close</button>
+        </div>
+
+        <div style="color:var(--muted); font-weight:900; margin-bottom:8px;">Move to Lane</div>
+        <div class="laneGrid" id="moveLaneGrid"></div>
+
+        <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
+
+        <div style="color:var(--muted); font-weight:900; margin-bottom:8px;">Move to Machine</div>
+        <div class="laneGrid" id="moveMachineGrid"></div>
+
+        <div class="tiny" style="margin-top:12px;">
+          Rule: Moving to a <b>Machine</b> clears the lane. Moving to a <b>Lane</b> clears the machine.
+        </div>
       </div>
     </div>
-    <button id="chatClose" class="chatX" aria-label="Close">✕</button>
-  </header>
 
-  <div id="chatLog" class="chatLog"></div>
+    <!-- TRACE Assistant (Pro UI) -->
+    <button id="chatFab" class="chatFab" aria-label="Open TRACE Assistant" title="TRACE Assistant">
+      <span class="chatFab-ico">🤖</span>
+    </button>
 
-  <div id="chatThinking" class="chatThinking">
-    <span class="chatSpin"></span> Thinking…
+    <section id="chatDock" class="chatDock" aria-label="TRACE Assistant">
+      <header class="chatTop">
+        <div class="chatBrand">
+          <div class="chatMark">T</div>
+          <div>
+            <div class="chatTitle">TRACE Assistant</div>
+            <div class="chatSub"><span class="chatDot"></span> Online • Ask lanes, machines, jobs</div>
+          </div>
+        </div>
+        <button id="chatClose" class="chatX" aria-label="Close">✕</button>
+      </header>
+
+      <div id="chatLog" class="chatLog"></div>
+
+      <div id="chatThinking" class="chatThinking">
+        <span class="chatSpin"></span> Thinking…
+      </div>
+
+      <form id="chatComposer" class="chatComposer" autocomplete="off">
+        <input id="chatInput" type="text" placeholder="Ask: “show lane 3”, “find job 400848”, “what’s on S8?”" />
+        <button type="submit" class="chatSend">Send</button>
+      </form>
+    </section>
   </div>
-
-  <form id="chatComposer" class="chatComposer" autocomplete="off">
-    <input id="chatInput" type="text" placeholder="Ask: “show lane 3”, “find job 400848”, “what’s on S8?”" />
-    <button type="submit" class="chatSend">Send</button>
-  </form>
-</section>
 
 <script>
-// ==========================================
-// TRACE INVENTORY - UNIFIED JAVASCRIPT
-// All code in ONE script block to prevent scope issues
-// ==========================================
+/* ==========================================
+   TRACE INVENTORY - UNIFIED JAVASCRIPT
+   (unchanged logic, only relies on cleaned DOM)
+========================================== */
 
 // ====== CONSTANTS & CONFIG ======
 const API_BASE = "https://trace-api-sak3.onrender.com";
@@ -1215,7 +1139,7 @@ async function doLogin(email, password) {
       username: email,
       password: password
     })
-  }); 
+  });
 }
 
 // ====== LOGIN UI ======
@@ -1223,18 +1147,15 @@ function showLogin() {
   const el = document.getElementById("loginOverlay");
   if (el) el.style.display = "flex";
 }
-
 function hideLogin() {
   const el = document.getElementById("loginOverlay");
   if (el) el.style.display = "none";
 }
-
 function wireLoginUI() {
   const btn = document.getElementById("loginBtn");
   const msg = document.getElementById("loginMsg");
   const emailEl = document.getElementById("loginEmail");
   const passEl  = document.getElementById("loginPass");
-
   if (!btn || !msg || !emailEl || !passEl) return;
 
   async function submit() {
@@ -1246,12 +1167,8 @@ function wireLoginUI() {
     const email = emailEl.value.trim();
     const pass  = passEl.value;
 
-    console.log("🔐 Attempting login for:", email);
-
     try {
       const r = await doLogin(email, pass);
-      console.log("📡 Login response:", r);
-      
       if (!r || r.ok === false) throw new Error(r?.error || "Login failed");
 
       setAuth({
@@ -1260,11 +1177,10 @@ function wireLoginUI() {
         email: r.user?.email || email
       });
 
-      console.log("✅ Login successful!");
       hideLogin();
       await startAfterLogin();
     } catch (e) {
-      console.error("❌ Login error:", e);
+      console.error("Login error:", e);
       msg.textContent = e.message || "Login failed - check console for details";
     } finally {
       btn.disabled = false;
@@ -1341,10 +1257,7 @@ function playTraceIntro() {
 // ====== AFTER LOGIN ======
 async function startAfterLogin() {
   await playTraceIntro();
-
-  if (typeof window.initApp === "function") {
-    await window.initApp();
-  }
+  if (typeof window.initApp === "function") await window.initApp();
 }
 
 // ====== DIALOG SYSTEM ======
@@ -1421,39 +1334,15 @@ async function startAfterLogin() {
 })();
 
 // ====== API HELPERS ======
-async function apiGet(path) {
-  return apiFetch(path, { method: "GET" });
-}
-
-async function apiPost(path, body) {
-  return apiFetch(path, {
-    method: "POST",
-    body: JSON.stringify(body)
-  });
-}
-
-async function apiPut(path, body) {
-  return apiFetch(path, {
-    method: "PUT",
-    body: JSON.stringify(body)
-  });
-}
-
-async function apiDelete(path) {
-  return apiFetch(path, { method: "DELETE" });
-}
-
-async function apiGetDeleted() {
-  const d = await apiGet("/deleted-items");
-  return d.deleted || d.rows || d.items || [];
-}
+async function apiGet(path){ return apiFetch(path, { method:"GET" }); }
+async function apiPost(path, body){ return apiFetch(path, { method:"POST", body: JSON.stringify(body) }); }
+async function apiPut(path, body){ return apiFetch(path, { method:"PUT", body: JSON.stringify(body) }); }
+async function apiDelete(path){ return apiFetch(path, { method:"DELETE" }); }
 
 // Health check
 apiGet("/health")
   .then(d => console.log("✅ API CONNECTED", d))
-  .catch(e => {
-    console.warn("⚠️ API health check failed:", e.message);
-  });
+  .catch(e => console.warn("⚠️ API health check failed:", e.message));
 
 // ====== DOM ELEMENTS ======
 const els = {
@@ -1494,22 +1383,10 @@ const els = {
   historyResults: document.getElementById("historyResults"),
 };
 
-// ====== HELPER FUNCTIONS ======
+// ====== HELPERS ======
 function normalize(s){ return (s ?? "").trim().toLowerCase(); }
 function cleanJob(s){
-  return String(s ?? "")
-    .trim()
-    .toUpperCase()
-    .replace(/[^A-Z0-9-]/g, "");
-}
-function nowStamp(){
-  const d = new Date();
-  const mm = String(d.getMonth()+1).padStart(2,'0');
-  const dd = String(d.getDate()).padStart(2,'0');
-  const yy = String(d.getFullYear()).slice(-2);
-  const hh = String(d.getHours()).padStart(2,'0');
-  const mi = String(d.getMinutes()).padStart(2,'0');
-  return `${mm}/${dd}/${yy} ${hh}:${mi}`;
+  return String(s ?? "").trim().toUpperCase().replace(/[^A-Z0-9-]/g, "");
 }
 function escapeHtml(s){
   return String(s ?? "")
@@ -1640,9 +1517,7 @@ function updateRoleUI(){
   els.deleteBtn.disabled = !canDelete || !selectedId;
 
   const forklift = role === "forklift";
-  const machineRole = role === "machine";
   const admin = (role === "admin" && adminUnlocked);
-
   const canCreate = admin;
   const hasSelection = !!selectedId;
 
@@ -1655,9 +1530,62 @@ function updateRoleUI(){
   els.newBtn.disabled = forklift;
 }
 
-// =========================
+// ====== HISTORY (DB-backed) ======
+let deletedDbCache = [];
+
+async function refreshHistoryFromDb(){
+  try{
+    const d = await apiGet("/deleted-items");
+    deletedDbCache = Array.isArray(d.deleted) ? d.deleted : [];
+  }catch(e){
+    console.error("HISTORY LOAD FAILED", e);
+    deletedDbCache = [];
+    await uiAlert("History Failed", "Could not load deleted history from API.");
+  }
+}
+
+function renderHistory(){
+  const q = normalize(els.historySearch?.value || "");
+  let list = deletedDbCache;
+
+  if(q){
+    list = list.filter(x =>
+      normalize(x.job_number).includes(q) ||
+      normalize(x.description).includes(q) ||
+      normalize(x.deleted_by).includes(q) ||
+      normalize(x.delete_reason).includes(q)
+    );
+  }
+
+  els.historyResults.innerHTML = "";
+
+  if(list.length === 0){
+    els.historyResults.innerHTML = `<div style="color:var(--muted)">No deleted jobs yet.</div>`;
+    return;
+  }
+
+  list.slice(0, 120).forEach(item => {
+    const lane = item.lane ? `Lane ${item.lane}` : "";
+    const mach = item.machine ? `Machine ${item.machine}` : "";
+    const from = mach || lane || "—";
+
+    const div = document.createElement("div");
+    div.className = "resultItem";
+    div.innerHTML = `
+      <div class="big">Job #${escapeHtml(item.job_number || "")}</div>
+      <div class="meta">${escapeHtml(item.description || "—")}</div>
+      <div class="meta">
+        Deleted: ${escapeHtml(item.deleted_at || "")}
+        ${item.deleted_by ? ` • By: ${escapeHtml(item.deleted_by)}` : ""}
+        ${item.delete_reason ? ` • Reason: ${escapeHtml(item.delete_reason)}` : ""}
+        • From: ${escapeHtml(from)}
+      </div>
+    `;
+    els.historyResults.appendChild(div);
+  });
+}
+
 // CLEAR HISTORY (Admin only)
-// =========================
 if (els.clearHistoryBtn) {
   els.clearHistoryBtn.addEventListener("click", async () => {
     if (role !== "admin" || !adminUnlocked) {
@@ -1889,62 +1817,7 @@ function renderGlobalSearch(){
   });
 }
 
-// DB-backed deleted history (replaces localStorage deletedItems)
-let deletedDbCache = [];
-
-async function refreshHistoryFromDb(){
-  try{
-    const d = await apiGet("/deleted-items");
-    deletedDbCache = Array.isArray(d.deleted) ? d.deleted : [];
-  }catch(e){
-    console.error("HISTORY LOAD FAILED", e);
-    deletedDbCache = [];
-    await uiAlert("History Failed", "Could not load deleted history from API.");
-  }
-}
-
-function renderHistory(){
-  const q = normalize(els.historySearch?.value || "");
-  let list = deletedDbCache;
-
-  if(q){
-    list = list.filter(x =>
-      normalize(x.job_number).includes(q) ||
-      normalize(x.description).includes(q) ||
-      normalize(x.deleted_by).includes(q) ||
-      normalize(x.delete_reason).includes(q)
-    );
-  }
-
-  els.historyResults.innerHTML = "";
-
-  if(list.length === 0){
-    els.historyResults.innerHTML = `<div style="color:var(--muted)">No deleted jobs yet.</div>`;
-    return;
-  }
-
-  list.slice(0, 120).forEach(item => {
-    const lane = item.lane ? `Lane ${item.lane}` : "";
-    const mach = item.machine ? `Machine ${item.machine}` : "";
-    const from = mach || lane || "—";
-
-    const div = document.createElement("div");
-    div.className = "resultItem";
-    div.innerHTML = `
-      <div class="big">Job #${escapeHtml(item.job_number || "")}</div>
-      <div class="meta">${escapeHtml(item.description || "—")}</div>
-      <div class="meta">
-        Deleted: ${escapeHtml(item.deleted_at || "")}
-        ${item.deleted_by ? ` • By: ${escapeHtml(item.deleted_by)}` : ""}
-        ${item.delete_reason ? ` • Reason: ${escapeHtml(item.delete_reason)}` : ""}
-        • From: ${escapeHtml(from)}
-      </div>
-    `;
-    els.historyResults.appendChild(div);
-  });
-}
-
-// ====== FORM MANAGEMENT ======
+// ====== FORM ======
 function clearForm(){
   selectedId = null;
   els.job.value = "";
@@ -1971,7 +1844,7 @@ function loadToForm(id){
   renderMachineList();
 }
 
-// ====== SAVE/UPDATE ======
+// ====== CRUD ======
 async function upsertItem(){
   const machineRole = role === "machine";
   const admin = (role === "admin" && adminUnlocked);
@@ -2003,14 +1876,7 @@ async function upsertItem(){
     return;
   }
 
-  const payload = {
-    job_number: jobRaw,
-    qty,
-    status,
-    notes,
-    updated_by: updatedBy,
-    location_id
-  };
+  const payload = { job_number: jobRaw, qty, status, notes, updated_by: updatedBy, location_id };
 
   if(!selectedId){
     const exists = inventory.some(x => normalize(x.job) === normalize(jobRaw));
@@ -2030,7 +1896,6 @@ async function upsertItem(){
     renderLaneList();
     renderMachineList();
     renderGlobalSearch();
-
     clearForm();
   }catch(err){
     console.error("SAVE FAILED", err);
@@ -2038,7 +1903,6 @@ async function upsertItem(){
   }
 }
 
-// ====== DELETE ======
 async function deleteSelected(){
   const admin = (role === "admin" && adminUnlocked);
   if(!admin){
@@ -2059,25 +1923,28 @@ async function deleteSelected(){
   const ok = await uiConfirm("Confirm Delete", `Delete Job #${item.job}?`, "Delete", "Cancel");
   if (!ok) return;
 
-try{
-  await apiDelete(`/items/${selectedId}`);
+  try{
+    await apiDelete(`/items/${selectedId}`);
 
+    await loadLocations();
+    await loadInventory();
 
-  await loadLocations();
-  await loadInventory();
+    clearForm();
+    renderLaneList();
+    renderMachineList();
+    renderGlobalSearch();
 
-  clearForm();
-  renderLaneList();
-  renderMachineList();
-  renderGlobalSearch();
-
-  if(els.historyPanel.style.display !== "none") renderHistory();
-}catch(err){
-  console.error("DELETE FAILED", err);
-  await uiAlert("Delete Failed", "Delete failed. Check DevTools → Network.");
- }
+    if(els.historyPanel.style.display !== "none"){
+      await refreshHistoryFromDb();
+      renderHistory();
+    }
+  }catch(err){
+    console.error("DELETE FAILED", err);
+    await uiAlert("Delete Failed", "Delete failed. Check DevTools → Network.");
+  }
 }
-// ====== MOVE OVERLAY ======
+
+// ====== MOVE ======
 function openMoveOverlay(id){
   const item = inventory.find(x => x.id === id);
   if(!item) return;
@@ -2097,8 +1964,8 @@ function openMoveOverlay(id){
     const btn = document.createElement("div");
     btn.className = "laneBtn";
     btn.textContent = lane;
-    btn.addEventListener("click", () => {
-      moveToLane(moveTargetId, lane);
+    btn.addEventListener("click", async () => {
+      await moveToLane(moveTargetId, lane);
       closeMoveOverlay();
     });
     els.moveLaneGrid.appendChild(btn);
@@ -2109,8 +1976,8 @@ function openMoveOverlay(id){
     const btn = document.createElement("div");
     btn.className = "laneBtn";
     btn.textContent = m;
-    btn.addEventListener("click", () => {
-      moveToMachine(moveTargetId, m);
+    btn.addEventListener("click", async () => {
+      await moveToMachine(moveTargetId, m);
       closeMoveOverlay();
     });
     els.moveMachineGrid.appendChild(btn);
@@ -2170,73 +2037,6 @@ async function moveToMachine(id, machine){
   }
 }
 
-// ====== BACKUP/DEMO ======
-function exportJson(){
-  const blob = new Blob([JSON.stringify(inventory, null, 2)], {type:"application/json"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `trace_backup_${Date.now()}.json`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(a.href);
-}
-
-function importJsonFile(file){
-  const reader = new FileReader();
-  reader.onload = () => {
-    try{
-      const data = JSON.parse(reader.result);
-      if(!Array.isArray(data)) throw new Error("Invalid file format.");
-
-      inventory = data.map(x => ({
-        id: x.id,
-        job: cleanJob(x.job ?? x.job_number ?? ""),
-        lane: String(x.lane || ""),
-        machine: String(x.machine || ""),
-        qty: parseInt(x.qty || "0",10) || 0,
-        status: String(x.status || ""),
-        notes: String(x.notes || ""),
-        updatedBy: String(x.updatedBy || "").slice(0,10),
-        createdAt: String(x.createdAt || ""),
-        updatedAt: String(x.updatedAt || "")
-      })).filter(x => String(x.job).length > 0);
-
-      els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
-      clearForm();
-      renderLaneList();
-      renderMachineList();
-      renderGlobalSearch();
-      uiAlert("Import Complete", "Import complete.");
-    }catch(e){
-      uiAlert("Import Failed", "Import failed: " + e.message);
-    }
-  };
-  reader.readAsText(file);
-}
-
-function seedDemo(){
-  const stamp = nowStamp();
-  inventory = [
-    { id:"demo1", job:"400848", lane:"Lane 7", machine:"", qty:12, status:"WAITING", notes:"", updatedBy:"TR", createdAt:stamp, updatedAt:stamp },
-    { id:"demo2", job:"70800",  lane:"", machine:"S8", qty:30, status:"RUNNING", notes:"", updatedBy:"TR", createdAt:stamp, updatedAt:stamp },
-    { id:"demo3", job:"123456", lane:"Lane 1", machine:"", qty:50, status:"READY",   notes:"", updatedBy:"TR", createdAt:stamp, updatedAt:stamp },
-    ...inventory
-  ];
-  const seen = new Set();
-  inventory = inventory.filter(x => {
-    const key = normalize(x.job);
-    if(seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-
-  els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
-  renderLaneList();
-  renderMachineList();
-  renderGlobalSearch();
-}
-
 // ====== FULLSCREEN ======
 function toggleFullscreen(){
   if(!document.fullscreenElement){
@@ -2246,7 +2046,7 @@ function toggleFullscreen(){
   }
 }
 
-// ====== EVENT LISTENERS ======
+// ====== EVENTS ======
 els.globalSearch.addEventListener("input", renderGlobalSearch);
 els.laneSearch.addEventListener("input", renderLaneList);
 els.machineSearch.addEventListener("input", renderMachineList);
@@ -2256,9 +2056,7 @@ els.newBtn.addEventListener("click", clearForm);
 els.deleteBtn.addEventListener("click", deleteSelected);
 
 els.moveCloseBtn.addEventListener("click", closeMoveOverlay);
-els.moveOverlay.addEventListener("click", (e) => {
-  if(e.target === els.moveOverlay) closeMoveOverlay();
-});
+els.moveOverlay.addEventListener("click", (e) => { if(e.target === els.moveOverlay) closeMoveOverlay(); });
 
 els.roleSelect.addEventListener("change", (e) => {
   const v = e.target.value;
@@ -2276,12 +2074,10 @@ els.adminUnlockBtn.addEventListener("click", async () => {
   if (pin === null) return;
 
   const enteredPin = String(pin).trim();
-
   if (!enteredPin) {
     await uiAlert("Admin Access", "PIN is required.");
     return;
   }
-
   if (enteredPin !== ADMIN_PIN) {
     await uiAlert("Access Denied", "Wrong PIN.");
     els.roleSelect.value = "forklift";
@@ -2314,7 +2110,6 @@ els.historyBtn.addEventListener("click", async () => {
   }
 });
 
-
 els.historySearch.addEventListener("input", renderHistory);
 
 els.job.addEventListener("input", () => {
@@ -2338,8 +2133,6 @@ document.addEventListener("keydown", (e) => {
 // ====== INIT (CALLED AFTER LOGIN) ======
 window.initApp = async function initApp() {
   try {
-    console.log("🚀 INIT START", new Date().toISOString());
-
     buildLaneButtons();
     buildMachineButtons();
 
@@ -2349,8 +2142,7 @@ window.initApp = async function initApp() {
     selectedLocation = { type: "lane", value: selectedLane };
     setRole("forklift");
 
-    els.globalResults.innerHTML =
-      `<div style="color:var(--muted)">Loading...</div>`;
+    els.globalResults.innerHTML = `<div style="color:var(--muted)">Loading...</div>`;
 
     await loadLocations();
     await loadInventory();
@@ -2359,8 +2151,6 @@ window.initApp = async function initApp() {
     renderMachineList();
     renderGlobalSearch();
 
-    console.log("✅ LANE MAP:", [...locIdByLane.keys()]);
-    console.log("✅ MACHINE MAP:", [...locIdByMachine.keys()]);
     console.log("✅ INIT COMPLETE");
   } catch (err) {
     console.error("❌ Init failed:", err);
@@ -2375,9 +2165,7 @@ window.initApp = async function initApp() {
 
 // ====== BOOT ENTRYPOINT ======
 window.addEventListener("DOMContentLoaded", async () => {
-  console.log("🎯 TRACE starting up...");
   wireLoginUI();
-
   if (AUTH.token) {
     hideLogin();
     await startAfterLogin();
@@ -2435,7 +2223,6 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   add("bot", "TRACE Assistant online. Ask me about lanes, machines, or a job #.");
 })();
-
 </script>
 
 </body>
