@@ -1149,7 +1149,6 @@
 // ====== CONSTANTS & CONFIG ======
 const API_BASE = "https://trace-api-sak3.onrender.com";
 const ADMIN_PIN = "4793";
-const DELETED_KEY = "trace_simple_deleted_v1";
 const MACHINES = ["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane"];
 
 // ====== AUTH STATE ======
@@ -1428,6 +1427,11 @@ async function apiDelete(path) {
   return apiFetch(path, { method: "DELETE" });
 }
 
+async function apiGetDeleted() {
+  const d = await apiGet("/deleted-items");
+  return d.deleted || d.rows || d.items || [];
+}
+
 // Health check
 apiGet("/health")
   .then(d => console.log("✅ API CONNECTED", d))
@@ -1514,7 +1518,6 @@ let locById = new Map();
 let locIdByLane = new Map();
 let locIdByMachine = new Map();
 let inventory = [];
-let deletedItems = loadDeleted();
 let selectedLane = "Lane 1";
 let selectedMachine = MACHINES[0];
 let selectedId = null;
@@ -1600,26 +1603,6 @@ async function loadInventory(){
   rawItems = Array.isArray(data) ? data : (data.items || data.rows || []);
   inventory = mapItemsToUI(rawItems);
   els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
-}
-
-function saveDeleted(){ localStorage.setItem(DELETED_KEY, JSON.stringify(deletedItems)); }
-function loadDeleted(){
-  try{
-    const raw = localStorage.getItem(DELETED_KEY);
-    if(!raw) return [];
-    const data = JSON.parse(raw);
-    return Array.isArray(data) ? data : [];
-  }catch{return [];}
-}
-function addToDeletedHistory(item){
-  const entry = {
-    ...item,
-    deletedAt: nowStamp(),
-    deletedBy: (els.updatedBy?.value || "").trim() || "ADMIN"
-  };
-  deletedItems.unshift(entry);
-  deletedItems = deletedItems.slice(0, 100);
-  saveDeleted();
 }
 
 // ====== ROLE MANAGEMENT ======
@@ -1863,16 +1846,30 @@ function renderGlobalSearch(){
   });
 }
 
+// DB-backed deleted history (replaces localStorage deletedItems)
+let deletedDbCache = [];
+
+async function refreshHistoryFromDb(){
+  try{
+    const d = await apiGet("/deleted-items");
+    deletedDbCache = Array.isArray(d.deleted) ? d.deleted : [];
+  }catch(e){
+    console.error("HISTORY LOAD FAILED", e);
+    deletedDbCache = [];
+    await uiAlert("History Failed", "Could not load deleted history from API.");
+  }
+}
+
 function renderHistory(){
   const q = normalize(els.historySearch?.value || "");
-  let list = deletedItems;
+  let list = deletedDbCache;
 
   if(q){
     list = list.filter(x =>
-      normalize(x.job).includes(q) ||
-      normalize(x.status).includes(q) ||
-      normalize(x.notes).includes(q) ||
-      normalize(x.deletedBy).includes(q)
+      normalize(x.job_number).includes(q) ||
+      normalize(x.description).includes(q) ||
+      normalize(x.deleted_by).includes(q) ||
+      normalize(x.delete_reason).includes(q)
     );
   }
 
@@ -1883,18 +1880,22 @@ function renderHistory(){
     return;
   }
 
-  list.slice(0, 60).forEach(item => {
+  list.slice(0, 120).forEach(item => {
+    const lane = item.lane ? `Lane ${item.lane}` : "";
+    const mach = item.machine ? `Machine ${item.machine}` : "";
+    const from = mach || lane || "—";
+
     const div = document.createElement("div");
     div.className = "resultItem";
     div.innerHTML = `
-      <div class="big">Job #${escapeHtml(item.job)}</div>
-      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${escapeHtml(item.status || "—")}</div>
+      <div class="big">Job #${escapeHtml(item.job_number || "")}</div>
+      <div class="meta">${escapeHtml(item.description || "—")}</div>
       <div class="meta">
-        Deleted: ${escapeHtml(item.deletedAt || "")}
-        ${item.deletedBy ? ` • By: ${escapeHtml(item.deletedBy)}` : ""}
-        • From: ${item.machine ? `Machine ${escapeHtml(item.machine)}` : escapeHtml(item.lane || "—")}
+        Deleted: ${escapeHtml(item.deleted_at || "")}
+        ${item.deleted_by ? ` • By: ${escapeHtml(item.deleted_by)}` : ""}
+        ${item.delete_reason ? ` • Reason: ${escapeHtml(item.delete_reason)}` : ""}
+        • From: ${escapeHtml(from)}
       </div>
-      <div class="meta">Notes: ${escapeHtml(item.notes || "—")}</div>
     `;
     els.historyResults.appendChild(div);
   });
@@ -2018,7 +2019,7 @@ async function deleteSelected(){
 try{
   await apiDelete(`/items/${selectedId}`);
 
-  addToDeletedHistory(item);
+
   await loadLocations();
   await loadInventory();
 
@@ -2269,11 +2270,16 @@ els.adminLockBtn.addEventListener("click", () => {
   setRole("forklift");
 });
 
-els.historyBtn.addEventListener("click", () => {
+els.historyBtn.addEventListener("click", async () => {
   const open = els.historyPanel.style.display !== "none";
   els.historyPanel.style.display = open ? "none" : "block";
-  if(!open) renderHistory();
+
+  if(!open){
+    await refreshHistoryFromDb();
+    renderHistory();
+  }
 });
+
 
 els.historySearch.addEventListener("input", renderHistory);
 
