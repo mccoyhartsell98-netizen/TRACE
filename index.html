@@ -29,7 +29,7 @@
       align-items: center;
       justify-content: center;
       background: rgba(10,12,16,.92);
-      z-index: 99999;
+      z-index:100000;
     }
 
     .loginCard{
@@ -701,6 +701,187 @@
         grid-template-columns: repeat(3,1fr);
       }
     }
+/* ===== TRACE Assistant — Pro Dock (Drift/Intercom vibe) ===== */
+.chatFab{
+  position:fixed;
+  right:18px;
+  bottom:18px;
+  width:58px;
+  height:58px;
+  border-radius:18px;
+  z-index:99999;
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  border:1px solid rgba(58,122,254,.45);
+  background: linear-gradient(180deg, rgba(58,122,254,.22), rgba(22,26,34,.92));
+  box-shadow: 0 16px 50px rgba(0,0,0,.55);
+  backdrop-filter: blur(8px);
+}
+.chatFab:hover{ transform: translateY(-1px); }
+.chatFab:active{ transform: translateY(0px); }
+.chatFab-ico{ font-size:22px; filter: drop-shadow(0 6px 18px rgba(0,0,0,.45)); }
+
+.chatDock{
+  position:fixed;
+  right:18px;
+  bottom:88px;
+  width:min(420px, calc(100vw - 36px));
+  height:min(540px, calc(100vh - 140px));
+  border-radius:18px;
+  z-index:99999;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(12,14,18,.72);
+  box-shadow: 0 28px 80px rgba(0,0,0,.65);
+  backdrop-filter: blur(14px);
+
+  transform: translateY(14px);
+  opacity:0;
+  pointer-events:none;
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+.chatDock.open{
+  transform: translateY(0);
+  opacity:1;
+  pointer-events:auto;
+}
+
+.chatTop{
+  padding:14px 14px 12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  background: linear-gradient(180deg, rgba(0,0,0,.28), rgba(0,0,0,0));
+}
+.chatBrand{ display:flex; gap:10px; align-items:center; }
+.chatMark{
+  width:36px; height:36px;
+  border-radius:12px;
+  display:grid; place-items:center;
+  font-weight:900;
+  letter-spacing:.06em;
+  color:#fff;
+  border:1px solid rgba(58,122,254,.45);
+  background: rgba(58,122,254,.18);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+}
+.chatTitle{ font-weight:900; letter-spacing:.08em; font-size:12px; text-transform:uppercase; }
+.chatSub{ font-size:12px; color:rgba(255,255,255,.68); margin-top:2px; display:flex; align-items:center; gap:8px; }
+.chatDot{
+  width:8px; height:8px; border-radius:50%;
+  background: rgba(138,255,138,.95);
+  box-shadow: 0 0 12px rgba(138,255,138,.45);
+  display:inline-block;
+}
+.chatX{
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.06);
+  color:#fff;
+  border-radius:12px;
+  width:40px;
+  height:40px;
+  font-weight:900;
+  cursor:pointer;
+}
+.chatX:hover{ background: rgba(255,255,255,.10); }
+
+.chatLog{
+  flex:1;
+  overflow:auto;
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.18) transparent;
+}
+.chatLog::-webkit-scrollbar{ width:8px; }
+.chatLog::-webkit-scrollbar-thumb{
+  background: rgba(255,255,255,.14);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.msg{ display:flex; gap:10px; align-items:flex-end; }
+.msg.me{ flex-direction:row-reverse; }
+.bub{
+  max-width: 78%;
+  padding:10px 12px;
+  border-radius:16px;
+  line-height:1.25;
+  font-size:14px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.06);
+}
+.msg.me .bub{
+  border-color: rgba(58,122,254,.30);
+  background: rgba(58,122,254,.14);
+}
+.time{
+  font-size:11px;
+  color: rgba(255,255,255,.45);
+  margin: 0 6px;
+}
+
+.chatThinking{
+  display:none;
+  padding:10px 14px;
+  border-top:1px solid rgba(255,255,255,.08);
+  color: rgba(255,255,255,.72);
+  background: rgba(0,0,0,.18);
+  font-weight:700;
+  gap:10px;
+  align-items:center;
+}
+.chatThinking.show{ display:flex; }
+.chatSpin{
+  width:12px; height:12px; border-radius:50%;
+  border:2px solid rgba(255,255,255,.22);
+  border-top-color: rgba(58,122,254,.9);
+  animation: spin 800ms linear infinite;
+}
+@keyframes spin{ to{ transform: rotate(360deg); } }
+
+.chatComposer{
+  display:flex;
+  gap:10px;
+  padding:12px;
+  border-top:1px solid rgba(255,255,255,.08);
+  background: rgba(0,0,0,.18);
+}
+.chatComposer input{
+  flex:1;
+  padding:12px 12px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(10,12,16,.65);
+  color:#fff;
+  outline:none;
+}
+.chatComposer input:focus{
+  border-color: rgba(58,122,254,.55);
+  box-shadow: 0 0 0 3px rgba(58,122,254,.18);
+}
+.chatSend{
+  padding:10px 14px;
+  border-radius:14px;
+  font-weight:900;
+  border:1px solid rgba(58,122,254,.45);
+  background: rgba(58,122,254,.22);
+}
+.chatSend:hover{ background: rgba(58,122,254,.30); }
+
+@media (max-width: 520px){
+  .chatDock{ right:12px; left:12px; width:auto; }
+  .chatFab{ right:12px; bottom:12px; }
+}
+
   </style>
 </head>
 
@@ -930,25 +1111,32 @@
       </div>
     </div>
   </div>
-   <!-- TRACE Assistant (UI) -->
-<button id="chatToggle" class="chatToggle" aria-label="Open TRACE Assistant" title="TRACE Assistant">🤖</button>
+  <!-- TRACE Assistant (Pro UI) -->
+<button id="chatFab" class="chatFab" aria-label="Open TRACE Assistant" title="TRACE Assistant">
+  <span class="chatFab-ico">🤖</span>
+</button>
 
-<section id="chatPanel" class="chatPanel" aria-label="TRACE Assistant panel">
-  <header class="chatHeader">
-    <div class="chatHeader-icon">🤖</div>
-    <div class="chatHeader-text">
-      <div class="chatHeader-title">TRACE ASSISTANT</div>
-      <div class="chatHeader-sub">Ask about lanes, machines, jobs, moves, deletes</div>
+<section id="chatDock" class="chatDock" aria-label="TRACE Assistant">
+  <header class="chatTop">
+    <div class="chatBrand">
+      <div class="chatMark">T</div>
+      <div>
+        <div class="chatTitle">TRACE Assistant</div>
+        <div class="chatSub"><span class="chatDot"></span> Online • Ask lanes, machines, jobs</div>
+      </div>
     </div>
+    <button id="chatClose" class="chatX" aria-label="Close">✕</button>
   </header>
 
-  <div id="chatMessages" class="chatMessages"></div>
+  <div id="chatLog" class="chatLog"></div>
 
-  <div id="chatTyping" class="chatTyping">Thinking<span>.</span><span>.</span><span>.</span></div>
+  <div id="chatThinking" class="chatThinking">
+    <span class="chatSpin"></span> Thinking…
+  </div>
 
-  <form id="chatForm" class="chatInput" autocomplete="off">
-    <input id="chatText" type="text" placeholder="Type a question… (ex: show lane 3, find job 10293)" />
-    <button type="submit">Send</button>
+  <form id="chatComposer" class="chatComposer" autocomplete="off">
+    <input id="chatInput" type="text" placeholder="Ask: “show lane 3”, “find job 400848”, “what’s on S8?”" />
+    <button type="submit" class="chatSend">Send</button>
   </form>
 </section>
 
@@ -1827,26 +2015,24 @@ async function deleteSelected(){
   const ok = await uiConfirm("Confirm Delete", `Delete Job #${item.job}?`, "Delete", "Cancel");
   if (!ok) return;
 
-  try{
-    const r = await fetch(`${API_BASE}/items/${selectedId}`, { method:"DELETE" });
-    if(!r.ok) throw new Error(`DELETE /items/${selectedId} -> ${r.status}`);
+try{
+  await apiDelete(`/items/${selectedId}`);
 
-    addToDeletedHistory(item);
-    await loadLocations();
-    await loadInventory();
+  addToDeletedHistory(item);
+  await loadLocations();
+  await loadInventory();
 
-    clearForm();
-    renderLaneList();
-    renderMachineList();
-    renderGlobalSearch();
+  clearForm();
+  renderLaneList();
+  renderMachineList();
+  renderGlobalSearch();
 
-    if(els.historyPanel.style.display !== "none") renderHistory();
-  }catch(err){
-    console.error("DELETE FAILED", err);
-    await uiAlert("Delete Failed", "Delete failed. Check DevTools → Network.");
-  }
+  if(els.historyPanel.style.display !== "none") renderHistory();
+}catch(err){
+  console.error("DELETE FAILED", err);
+  await uiAlert("Delete Failed", "Delete failed. Check DevTools → Network.");
+ }
 }
-
 // ====== MOVE OVERLAY ======
 function openMoveOverlay(id){
   const item = inventory.find(x => x.id === id);
@@ -2126,8 +2312,8 @@ window.initApp = async function initApp() {
     els.globalResults.innerHTML =
       `<div style="color:var(--muted)">Loading...</div>`;
 
-    const locData = await apiGet("/locations");
-    const itemData = await apiGet("/items");
+    await loadLocations();
+    await loadInventory();
 
     renderLaneList();
     renderMachineList();
@@ -2160,55 +2346,55 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
 });
 
-  // ===== TRACE Assistant (MUST BE BEFORE </script>) =====
-  (() => {
-    const toggle = document.getElementById("chatToggle");
-    const panel = document.getElementById("chatPanel");
-    const form = document.getElementById("chatForm");
-    const input = document.getElementById("chatText");
-    const messages = document.getElementById("chatMessages");
-    const typing = document.getElementById("chatTyping");
+// ===== TRACE Assistant — Pro Dock JS =====
+(() => {
+  const fab = document.getElementById("chatFab");
+  const dock = document.getElementById("chatDock");
+  const close = document.getElementById("chatClose");
 
-    if(!toggle || !panel || !form) return;
+  const form = document.getElementById("chatComposer");
+  const input = document.getElementById("chatInput");
+  const log = document.getElementById("chatLog");
+  const thinking = document.getElementById("chatThinking");
 
-    const time = () =>
-      new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+  if(!fab || !dock || !close || !form || !input || !log || !thinking) return;
 
-    function addMsg(role, text){
-      const row = document.createElement("div");
-      row.className = "chatMessage " + (role === "user" ? "user" : "");
-      row.innerHTML = `
-        <div class="chatMessage-avatar">${role === "user" ? "🧑" : "🤖"}</div>
-        <div>
-          <div class="chatMessage-bubble">${text}</div>
-          <div class="chatMessage-time">${time()}</div>
-        </div>`;
-      messages.appendChild(row);
-      messages.scrollTop = messages.scrollHeight;
-    }
+  const time = () => new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
 
-    toggle.onclick = () => {
-      panel.classList.toggle("show");
-      toggle.classList.toggle("open");
-      if(panel.classList.contains("show")) input.focus();
-    };
+  function add(role, text){
+    const row = document.createElement("div");
+    row.className = "msg " + (role === "me" ? "me" : "bot");
+    row.innerHTML = `
+      <div class="bub">${text}</div>
+      <div class="time">${time()}</div>
+    `;
+    log.appendChild(row);
+    log.scrollTop = log.scrollHeight;
+  }
 
-    form.onsubmit = e => {
-      e.preventDefault();
-      const text = input.value.trim();
-      if(!text) return;
-      input.value = "";
-      addMsg("user", text);
+  function open(){ dock.classList.add("open"); setTimeout(()=>input.focus(), 50); }
+  function shut(){ dock.classList.remove("open"); }
 
-      typing.classList.add("show");
-      setTimeout(() => {
-        typing.classList.remove("show");
-        addMsg("assistant", "SYSTEM ONLINE. TRACE Assistant ready.");
-      }, 600);
-    };
+  fab.addEventListener("click", open);
+  close.addEventListener("click", shut);
 
-    addMsg("assistant", "TRACE Assistant initialized.");
-  })();
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if(!text) return;
+    input.value = "";
+
+    add("me", text);
+
+    thinking.classList.add("show");
+    setTimeout(() => {
+      thinking.classList.remove("show");
+      add("bot", "SYSTEM ONLINE. (Demo) Hook me to TRACE data next.");
+    }, 650);
+  });
+
+  add("bot", "TRACE Assistant online. Ask me about lanes, machines, or a job #.");
+})();
 
 </script>
 
