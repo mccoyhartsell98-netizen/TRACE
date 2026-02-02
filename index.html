@@ -2174,125 +2174,187 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
 });
 
-// ===== TRACE Assistant — Pro Dock JS =====
+// ===== TRACE Assistant — Pro Dock JS (SAFE COMMAND MODE) =====
 (() => {
-  const fab = document.getElementById("chatFab");
-  const dock = document.getElementById("chatDock");
-  const close = document.getElementById("chatClose");
-
-  const form = document.getElementById("chatComposer");
-  const input = document.getElementById("chatInput");
-  const log = document.getElementById("chatLog");
-  const thinking = document.getElementById("chatThinking");
-
-  if(!fab || !dock || !close || !form || !input || !log || !thinking) return;
-
-  const time = () => new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
-
-  function add(role, text){
-    const row = document.createElement("div");
-    row.className = "msg " + (role === "me" ? "me" : "bot");
-    row.innerHTML = `
-      <div class="bub">${text}</div>
-      <div class="time">${time()}</div>
-    `;
-    log.appendChild(row);
-    log.scrollTop = log.scrollHeight;
-  }
- // ===============================
-  // TRACE Assistant — Command Engine
-  // ===============================
-  const ta = {
-    say(msg){ add("bot", escapeHtml(msg)); },
-    norm(s){ return String(s||"").trim().toLowerCase(); },
-    asLaneLabel(n){ return `Lane ${n}`; }
-  };
-
-  function taHelp(){
-    ta.say(
-`Commands you can type:
-• lane 3
-• show lane 7
-• machine S8
-• show machine S61
-• job 400848
-• find job 400848
-• history
-• status
-• help`
-    );
-  }
-
-  function taStatus(){
-    const effectiveRole = (role === "admin" && adminUnlocked) ? "ADMIN" : role.toUpperCase();
-    ta.say(`SYSTEM ONLINE. Role: ${effectiveRole}. Selected: ${selectedLocation.type} ${selectedLocation.value}. API connected.`);
-  }
-
-  function taOpenHistory(){
-    // toggles history panel like the History button
-    const open = els.historyPanel.style.display !== "none";
-    els.historyPanel.style.display = open ? "none" : "block";
-    if(!open){
-      refreshHistoryFromDb().then(renderHistory);
-      ta.say("Opening History.");
-    } else {
-      ta.say("Closing History.");
-    }
-  }
-
-  function taShowLane(n){
-    const lane = ta.asLaneLabel(n);
-    selectLane(lane);
-    // after selecting, lane list is rendered already
-    const count = inventory.filter(x => String(x.lane||"") === lane).length;
-    ta.say(`Showing ${lane}. Jobs: ${count}.`);
-  }
-
-  function taShowMachine(code){
-    const m = String(code||"").trim();
-    // Try exact match from MACHINES list by case-insensitive compare
-    const found = MACHINES.find(x => ta.norm(x) === ta.norm(m));
-    const machine = found || m;
-    selectMachine(machine);
-    const count = inventory.filter(x => String(x.machine||"") === machine).length;
-    ta.say(`Showing Machine ${machine}. Jobs: ${count}.`);
-  }
-
-  function taFindJob(jobRaw){
-    const job = cleanJob(jobRaw);
-    if(!job){
-      ta.say("Give me a job number like: job 400848");
-      return;
-    }
-
-  function open(){ dock.classList.add("open"); setTimeout(()=>input.focus(), 50); }
-  function shut(){ dock.classList.remove("open"); }
-
-  fab.addEventListener("click", open);
-  close.addEventListener("click", shut);
-
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-
-  const text = input.value.trim();
-  if (!text) return;
-  input.value = "";
-
-  add("me", text);
-  thinking.classList.add("show");
-
   try {
-    await taHandle(text);   // ← THIS is the magic
-  } catch (err) {
-    console.error("TA ERROR:", err);
-    add("bot", "Something went wrong. Try again or type `help`.");
-  } finally {
-    thinking.classList.remove("show");
-  }
-});
+    const fab = document.getElementById("chatFab");
+    const dock = document.getElementById("chatDock");
+    const close = document.getElementById("chatClose");
 
-  add("bot", "TRACE Assistant online. Ask me about lanes, machines, or a job #.");
+    const form = document.getElementById("chatComposer");
+    const input = document.getElementById("chatInput");
+    const log = document.getElementById("chatLog");
+    const thinking = document.getElementById("chatThinking");
+
+    // If assistant UI not present, do nothing (never break the app)
+    if (!fab || !dock || !close || !form || !input || !log || !thinking) return;
+
+    const time = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+    // Local escape (so we don't depend on other functions)
+    const esc = (s) =>
+      String(s ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+    function add(role, text) {
+      const row = document.createElement("div");
+      row.className = "msg " + (role === "me" ? "me" : "bot");
+      row.innerHTML = `
+        <div class="bub">${esc(text)}</div>
+        <div class="time">${time()}</div>
+      `;
+      log.appendChild(row);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function open() { dock.classList.add("open"); setTimeout(() => input.focus(), 50); }
+    function shut() { dock.classList.remove("open"); }
+
+    fab.addEventListener("click", open);
+    close.addEventListener("click", shut);
+
+    // ===== Command Engine =====
+    const norm = (s) => String(s ?? "").trim().toLowerCase();
+
+    function say(msg) {
+      add("bot", msg);
+    }
+
+    function help() {
+      say(
+        "Commands:\n" +
+        "• lane 3 / show lane 7\n" +
+        "• machine S8 / show machine S61\n" +
+        "• job 400848 / find job 400848\n" +
+        "• history\n" +
+        "• status\n" +
+        "• help"
+      );
+    }
+
+    function status() {
+      const effectiveRole = (window.role === "admin" && window.adminUnlocked) ? "ADMIN" : String(window.role || "forklift").toUpperCase();
+      const sel = window.selectedLocation ? `${window.selectedLocation.type} ${window.selectedLocation.value}` : "—";
+      say(`SYSTEM ONLINE. Role: ${effectiveRole}. Selected: ${sel}.`);
+    }
+
+    function openHistory() {
+      if (!window.els || !els.historyPanel) {
+        say("History panel not found.");
+        return;
+      }
+      const openNow = els.historyPanel.style.display !== "none";
+      els.historyPanel.style.display = openNow ? "none" : "block";
+      if (!openNow) {
+        if (typeof window.refreshHistoryFromDb === "function" && typeof window.renderHistory === "function") {
+          window.refreshHistoryFromDb().then(() => window.renderHistory());
+        }
+        say("Opening History.");
+      } else {
+        say("Closing History.");
+      }
+    }
+
+    function showLane(n) {
+      if (typeof window.selectLane !== "function") { say("Lane system not ready yet."); return; }
+      if (n < 1 || n > 12) { say("Lane must be 1–12."); return; }
+      const lane = `Lane ${n}`;
+      window.selectLane(lane);
+      const inv = Array.isArray(window.inventory) ? window.inventory : [];
+      const count = inv.filter(x => String(x.lane || "") === lane).length;
+      say(`Showing ${lane}. Jobs: ${count}.`);
+    }
+
+    function showMachine(name) {
+      if (typeof window.selectMachine !== "function") { say("Machine system not ready yet."); return; }
+      const raw = String(name || "").trim();
+      if (!raw) { say("Try: machine S8"); return; }
+
+      const list = Array.isArray(window.MACHINES) ? window.MACHINES : [];
+      const found = list.find(x => norm(x) === norm(raw)) || raw;
+
+      window.selectMachine(found);
+
+      const inv = Array.isArray(window.inventory) ? window.inventory : [];
+      const count = inv.filter(x => norm(x.machine || "") === norm(found)).length;
+      say(`Showing Machine ${found}. Jobs: ${count}.`);
+    }
+
+    function findJob(jobRaw) {
+      if (!window.cleanJob) { say("Job tools not ready yet."); return; }
+      const job = window.cleanJob(jobRaw);
+      if (!job) { say("Try: job 400848"); return; }
+
+      if (window.els && els.globalSearch && typeof window.renderGlobalSearch === "function") {
+        els.globalSearch.value = job;
+        window.renderGlobalSearch();
+      }
+
+      const inv = Array.isArray(window.inventory) ? window.inventory : [];
+      const match = inv.find(x => norm(x.job) === norm(job));
+
+      if (match) {
+        if (match.machine) window.selectMachine(match.machine);
+        else if (match.lane) window.selectLane(match.lane);
+
+        if (typeof window.loadToForm === "function" && match.id != null) window.loadToForm(match.id);
+
+        const loc = match.machine ? `Machine ${match.machine}` : (match.lane || "Unknown");
+        say(`Found Job ${job}. Location: ${loc}.`);
+      } else {
+        say(`No exact match for Job ${job}. Check the results list.`);
+      }
+    }
+
+    function handle(text) {
+      const t = String(text || "").trim();
+      const tl = norm(t);
+      if (!tl) return;
+
+      if (tl === "help" || tl === "commands" || tl === "/help") return help();
+      if (tl === "status" || tl === "/status") return status();
+      if (tl === "history" || tl === "show history" || tl === "open history") return openHistory();
+
+      let m = tl.match(/(?:show\s+)?lane\s+(\d{1,2})/i);
+      if (m) return showLane(Number(m[1]));
+
+      m = t.match(/(?:show\s+)?machine\s+([A-Za-z0-9 ]{1,20})/i);
+      if (m) return showMachine(m[1]);
+
+      m = tl.match(/(?:find\s+|where\s+is\s+|show\s+)?job\s*#?\s*([A-Za-z0-9-]{3,})/i);
+      if (m) return findJob(m[1]);
+
+      if (/^\d{3,}$/.test(tl)) return findJob(tl);
+
+      say('Try: "lane 3", "machine S8", "job 400848", or "help".');
+    }
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = "";
+
+      add("me", text);
+      thinking.classList.add("show");
+
+      setTimeout(() => {
+        thinking.classList.remove("show");
+        handle(text);
+      }, 180);
+    });
+
+    add("bot", "SYSTEM ONLINE. Type “help” for commands.");
+  } catch (err) {
+    // If assistant fails, never break the app
+    console.error("TRACE Assistant failed:", err);
+  }
 })();
+
 </script>
 
 </body>
