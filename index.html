@@ -898,9 +898,9 @@
     <label class="loginLabel">Password</label>
     <input id="loginPass" class="loginInput" type="password" placeholder="••••••••" autocomplete="current-password"/>
 
-    <button id="loginBtn" class="loginBtn">Login</button>
-
-    <div id="loginMsg" class="loginMsg"></div>
+    <button id="loginBtn" class="loginBtn" type="button">Login</button>
+    
+   <div id="loginMsg" class="loginMsg"></div>
   </div>
 </div>
 
@@ -1484,10 +1484,6 @@ const els = {
   historyPanel: document.getElementById("historyPanel"),
   historySearch: document.getElementById("historySearch"),
   historyResults: document.getElementById("historyResults"),
-  exportBtn: document.getElementById("exportBtn"),
-  importBtn: document.getElementById("importBtn"),
-  seedBtn: document.getElementById("seedBtn"),
-  fileInput: document.getElementById("fileInput"),
 };
 
 // ====== HELPER FUNCTIONS ======
@@ -2220,15 +2216,6 @@ els.machineSearch.addEventListener("input", renderMachineList);
 els.saveBtn.addEventListener("click", upsertItem);
 els.newBtn.addEventListener("click", clearForm);
 els.deleteBtn.addEventListener("click", deleteSelected);
-
-els.exportBtn.addEventListener("click", exportJson);
-els.importBtn.addEventListener("click", () => els.fileInput.click());
-els.fileInput.addEventListener("change", (e) => {
-  const file = e.target.files?.[0];
-  if(file) importJsonFile(file);
-  els.fileInput.value = "";
-});
-els.seedBtn.addEventListener("click", seedDemo);
 
 els.moveCloseBtn.addEventListener("click", closeMoveOverlay);
 els.moveOverlay.addEventListener("click", (e) => {
