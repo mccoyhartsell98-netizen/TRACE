@@ -2199,6 +2199,71 @@ window.addEventListener("DOMContentLoaded", async () => {
     log.appendChild(row);
     log.scrollTop = log.scrollHeight;
   }
+ // ===============================
+  // TRACE Assistant — Command Engine
+  // ===============================
+  const ta = {
+    say(msg){ add("bot", escapeHtml(msg)); },
+    norm(s){ return String(s||"").trim().toLowerCase(); },
+    asLaneLabel(n){ return `Lane ${n}`; }
+  };
+
+  function taHelp(){
+    ta.say(
+`Commands you can type:
+• lane 3
+• show lane 7
+• machine S8
+• show machine S61
+• job 400848
+• find job 400848
+• history
+• status
+• help`
+    );
+  }
+
+  function taStatus(){
+    const effectiveRole = (role === "admin" && adminUnlocked) ? "ADMIN" : role.toUpperCase();
+    ta.say(`SYSTEM ONLINE. Role: ${effectiveRole}. Selected: ${selectedLocation.type} ${selectedLocation.value}. API connected.`);
+  }
+
+  function taOpenHistory(){
+    // toggles history panel like the History button
+    const open = els.historyPanel.style.display !== "none";
+    els.historyPanel.style.display = open ? "none" : "block";
+    if(!open){
+      refreshHistoryFromDb().then(renderHistory);
+      ta.say("Opening History.");
+    } else {
+      ta.say("Closing History.");
+    }
+  }
+
+  function taShowLane(n){
+    const lane = ta.asLaneLabel(n);
+    selectLane(lane);
+    // after selecting, lane list is rendered already
+    const count = inventory.filter(x => String(x.lane||"") === lane).length;
+    ta.say(`Showing ${lane}. Jobs: ${count}.`);
+  }
+
+  function taShowMachine(code){
+    const m = String(code||"").trim();
+    // Try exact match from MACHINES list by case-insensitive compare
+    const found = MACHINES.find(x => ta.norm(x) === ta.norm(m));
+    const machine = found || m;
+    selectMachine(machine);
+    const count = inventory.filter(x => String(x.machine||"") === machine).length;
+    ta.say(`Showing Machine ${machine}. Jobs: ${count}.`);
+  }
+
+  function taFindJob(jobRaw){
+    const job = cleanJob(jobRaw);
+    if(!job){
+      ta.say("Give me a job number like: job 400848");
+      return;
+    }
 
   function open(){ dock.classList.add("open"); setTimeout(()=>input.focus(), 50); }
   function shut(){ dock.classList.remove("open"); }
@@ -2206,20 +2271,25 @@ window.addEventListener("DOMContentLoaded", async () => {
   fab.addEventListener("click", open);
   close.addEventListener("click", shut);
 
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const text = input.value.trim();
-    if(!text) return;
-    input.value = "";
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-    add("me", text);
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
 
-    thinking.classList.add("show");
-    setTimeout(() => {
-      thinking.classList.remove("show");
-      add("bot", "SYSTEM ONLINE. (Demo) Hook me to TRACE data next.");
-    }, 650);
-  });
+  add("me", text);
+  thinking.classList.add("show");
+
+  try {
+    await taHandle(text);   // ← THIS is the magic
+  } catch (err) {
+    console.error("TA ERROR:", err);
+    add("bot", "Something went wrong. Try again or type `help`.");
+  } finally {
+    thinking.classList.remove("show");
+  }
+});
 
   add("bot", "TRACE Assistant online. Ask me about lanes, machines, or a job #.");
 })();
