@@ -980,7 +980,8 @@
 
       <div style="display:flex;gap:10px;align-items:center;">
         <button class="ghost" id="historyBtn">History</button>
-      </div>
+        <button class="danger" id="clearHistoryBtn" style="display:none;">Clear History</button>
+     </div>
     </div>
 
     <div class="grid">
@@ -1069,26 +1070,33 @@
             </ul>
           </div>
 
-          <div id="historyPanel" style="display:none; margin-top:12px;">
-            <h2>Deleted History</h2>
-            <input id="historySearch" type="text" placeholder="Search deleted jobs...">
-            <div class="results" id="historyResults" style="margin-top:10px;"></div>
-          </div>
+<div id="historyPanel" style="display:none; margin-top:12px;">
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+    <h2 style="margin:0;">Deleted History</h2>
 
-          <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
+    <button
+      id="clearHistoryBtn"
+      class="danger"
+      style="padding:6px 10px; font-size:12px;"
+      title="Deletes history older than 7 days"
+    >
+      Clear History
+    </button>
+  </div>
 
-          <h2>Backup</h2>
-          <div class="btnRow">
-            <button id="exportBtn">Export JSON</button>
-            <button id="importBtn">Import JSON</button>
-            <button class="ghost" id="seedBtn">Load demo</button>
-          </div>
-          <input id="fileInput" type="file" accept="application/json" style="display:none;" />
-        </div>
-      </div>
-    </div>
-  </div>
-  </div>
+  <input
+    id="historySearch"
+    type="text"
+    placeholder="Search deleted jobs…"
+    style="margin-top:10px;"
+  >
+
+  <div
+    class="results"
+    id="historyResults"
+    style="margin-top:10px;"
+  ></div>
+</div>
 
   <!-- MOVE OVERLAY -->
   <div class="overlay" id="moveOverlay">
@@ -1472,6 +1480,7 @@ const els = {
   newBtn: document.getElementById("newBtn"),
   deleteBtn: document.getElementById("deleteBtn"),
   historyBtn: document.getElementById("historyBtn"),
+  clearHistoryBtn: document.getElementById("clearHistoryBtn"),
   historyPanel: document.getElementById("historyPanel"),
   historySearch: document.getElementById("historySearch"),
   historyResults: document.getElementById("historyResults"),
