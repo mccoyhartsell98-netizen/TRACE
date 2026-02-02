@@ -1073,6 +1073,14 @@
 <div id="historyPanel" style="display:none; margin-top:12px;">
   <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
     <h2 style="margin:0;">Deleted History</h2>
+     <button id="clearHistoryBtn" type="button" class="danger" style="display:none;">
+      Clear (keep 7 days)
+    </button>
+  </div>
+
+  <input id="historySearch" type="text" placeholder="Search deleted jobs...">
+  <div class="results" id="historyResults" style="margin-top:10px;"></div>
+</div>
 
     <button
       id="clearHistoryBtn"
@@ -1645,6 +1653,36 @@ function updateRoleUI(){
   els.updatedBy.disabled = forklift;
   els.saveBtn.disabled = forklift;
   els.newBtn.disabled = forklift;
+}
+
+// =========================
+// CLEAR HISTORY (Admin only)
+// =========================
+if (els.clearHistoryBtn) {
+  els.clearHistoryBtn.addEventListener("click", async () => {
+    if (role !== "admin" || !adminUnlocked) {
+      await uiAlert("Permission Denied", "Admin only.");
+      return;
+    }
+
+    const ok = await uiConfirm(
+      "Clear History",
+      "This will permanently delete deleted jobs older than 7 days.",
+      "Clear",
+      "Cancel"
+    );
+    if (!ok) return;
+
+    try {
+      await apiDelete("/deleted-items/cleanup?days=7");
+      await refreshHistoryFromDb();
+      renderHistory();
+      await uiAlert("History Cleaned", "Old deleted jobs were removed.");
+    } catch (e) {
+      console.error("Clear history failed:", e);
+      await uiAlert("Error", "Failed to clear history.");
+    }
+  });
 }
 
 // ====== BUTTON BUILDERS ======
