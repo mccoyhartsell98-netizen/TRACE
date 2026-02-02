@@ -2326,7 +2326,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       if (tl === "status" || tl === "/status") return status();
       if (tl === "history" || tl === "show history" || tl === "open history") return openHistory();
 
-      let m = tl.match(/(?:show\s+)?lane\s+(\d{1,2})/i);
+      let m = tl.match(/(?:show\s+|what(?:'s|\s+is)?\s+in\s+)?lane\s+(\d{1,2})/i);
       if (m) return showLane(Number(m[1]));
 
       m = t.match(/(?:show\s+)?machine\s+([A-Za-z0-9 ]{1,20})/i);
