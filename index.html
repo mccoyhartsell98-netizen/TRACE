@@ -1493,13 +1493,19 @@ async function loadInventory(){
   rawItems = Array.isArray(data) ? data : (data.items || data.rows || []);
   inventory = mapItemsToUI(rawItems);
   els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
+
+  // expose for assistant
+  window.inventory = inventory;
 }
 
 // ====== ROLE MANAGEMENT ======
 function setRole(nextRole){
   role = nextRole;
+  window.role = role;
+  window.adminUnlocked = adminUnlocked;
   if(role !== "admin"){
     adminUnlocked = false;
+    window.adminUnlocked = adminUnlocked;
     els.adminLockBtn.style.display = "none";
     els.adminUnlockBtn.style.display = "inline-block";
   }
@@ -1507,6 +1513,7 @@ function setRole(nextRole){
   renderLaneList();
   renderMachineList();
   renderGlobalSearch();
+  window.adminUnlocked = adminUnlocked;
 }
 
 function updateRoleUI(){
