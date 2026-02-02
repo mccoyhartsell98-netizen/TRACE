@@ -925,7 +925,8 @@
           <h2>Search</h2>
 
           <div class="scroll">
-            <input id="globalSearch" type="text" placeholder="Search Job # (example: 400848)">
+ <input id="globalSearch" type="text" placeholder="Search Item # or MO (example: 6910153 or MO-5048)">
+
             <div class="results" id="globalResults" style="margin-top:10px;"></div>
 
             <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
@@ -969,7 +970,7 @@
           <div class="scroll">
             <div class="formGrid">
               <div class="full">
-                <input id="job" type="text" placeholder="Job # (letters / numbers / hyphen allowed)" required>
+               <input id="job" type="text" placeholder="Item # (numbers / letters / hyphen allowed)" required>
               </div>
 
               <div>
@@ -998,7 +999,7 @@
             <div class="tiny" id="rulesBox">
               <b>Rules:</b>
               <ul>
-                <li><b>Job #</b> is the unique key. Once created it is locked.</li>
+                <li><b>Item #</b> is the unique key. Once created it is locked.</li>
                 <li><b>Forklift</b>: can search + move jobs (no edit, no delete).</li>
                 <li><b>Machine</b>: can update qty/status/notes (cannot create new jobs, no delete, no move).</li>
                 <li><b>Admin</b>: can create jobs + delete (goes to History) + restore.</li>
@@ -1008,7 +1009,7 @@
             <!-- HISTORY PANEL (single, clean, no duplicate IDs) -->
             <div id="historyPanel" style="display:none; margin-top:12px;">
               <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-                <h2 style="margin:0;">Deleted History</h2>
+                <h2 style="margin:0;">Deleted Item History</h2>
                 <button
                   id="clearHistoryBtn"
                   type="button"
@@ -1716,7 +1717,7 @@ function renderLaneList(){
     const notes = item.notes ? escapeHtml(item.notes) : "—";
 
     div.innerHTML = `
-      <div class="big">Job #${escapeHtml(item.job)}</div>
+      <div class="big">Item #${escapeHtml(item.job)}</div>
       <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
       <div class="meta">${escapeHtml(item.lane)} • Notes: ${notes}${by}${at}</div>
     `;
@@ -1761,7 +1762,7 @@ function renderMachineList(){
     const notes = item.notes ? escapeHtml(item.notes) : "—";
 
     div.innerHTML = `
-      <div class="big">Job #${escapeHtml(item.job)}</div>
+      <div class="big">Item #${escapeHtml(item.job)}</div>
       <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
       <div class="meta">Machine: ${escapeHtml(item.machine)} • Notes: ${notes}${by}${at}</div>
     `;
@@ -1800,7 +1801,7 @@ function renderGlobalSearch(){
       : (item.lane ? escapeHtml(item.lane) : "—");
 
     div.innerHTML = `
-      <div class="big">Job #${escapeHtml(item.job)}</div>
+      <div class="big">Item #${escapeHtml(item.job)}</div>
       <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
       <div class="meta">${location} • Notes: ${notes}</div>
       ${canMove ? `<div class="btnRow" style="margin-top:10px;"><button class="primary" data-move="1">Move</button></div>` : ``}
@@ -1927,7 +1928,7 @@ async function deleteSelected(){
     return;
   }
 
-  const ok = await uiConfirm("Confirm Delete", `Delete Job #${item.job}?`, "Delete", "Cancel");
+  const ok = await uiConfirm("Confirm Delete", `Delete Item #${item.job}?`, "Delete", "Cancel");
   if (!ok) return;
 
   try{
@@ -1963,7 +1964,7 @@ function openMoveOverlay(id){
   }
 
   moveTargetId = id;
-  els.moveTitle.textContent = `Move Job #${item.job}`;
+  els.moveTitle.textContent = `Move Item #${item.job}`;
 
   els.moveLaneGrid.innerHTML = "";
   for(let i=1;i<=12;i++){
