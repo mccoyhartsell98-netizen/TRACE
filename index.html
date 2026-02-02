@@ -2266,15 +2266,33 @@ window.addEventListener("DOMContentLoaded", async () => {
       }
     }
 
-    function showLane(n) {
-      if (typeof window.selectLane !== "function") { say("Lane system not ready yet."); return; }
-      if (n < 1 || n > 12) { say("Lane must be 1–12."); return; }
-      const lane = `Lane ${n}`;
-      window.selectLane(lane);
-      const inv = Array.isArray(window.inventory) ? window.inventory : [];
-      const count = inv.filter(x => String(x.lane || "") === lane).length;
-      say(`Showing ${lane}. Jobs: ${count}.`);
-    }
+ function showLane(n, { list=false } = {}) {
+  if (typeof window.selectLane !== "function") { say("Lane system not ready yet."); return; }
+  if (n < 1 || n > 12) { say("Lane must be 1–12."); return; }
+
+  const lane = `Lane ${n}`;
+  window.selectLane(lane);
+
+  const inv = Array.isArray(window.inventory) ? window.inventory : [];
+  const jobs = inv
+    .filter(x => String(x.lane || "") === lane)
+    .sort((a,b) => (parseInt(a.job,10)||0) - (parseInt(b.job,10)||0));
+
+  if (jobs.length === 0) {
+    say(`${lane} is empty.`);
+    return;
+  }
+
+  if (!list) {
+    say(`Showing ${lane}. Jobs: ${jobs.length}.`);
+    return;
+  }
+
+  const topN = 10;
+  const top = jobs.slice(0, topN).map(j => j.job).join(", ");
+  const more = jobs.length > topN ? ` (+${jobs.length - topN} more)` : "";
+  say(`${lane} has ${jobs.length} job${jobs.length===1?"":"s"}: ${top}${more}`);
+}
 
     function showMachine(name) {
       if (typeof window.selectMachine !== "function") { say("Machine system not ready yet."); return; }
@@ -2327,7 +2345,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       if (tl === "history" || tl === "show history" || tl === "open history") return openHistory();
 
       let m = tl.match(/(?:show\s+|what(?:'s|\s+is)?\s+in\s+)?lane\s+(\d{1,2})/i);
-      if (m) return showLane(Number(m[1]));
+      if (m) return showLane(Number(m[1]), { list: tl.includes("what") && tl.includes("in") });
 
       m = t.match(/(?:show\s+)?machine\s+([A-Za-z0-9 ]{1,20})/i);
       if (m) return showMachine(m[1]);
