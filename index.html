@@ -1630,7 +1630,7 @@ async function loadInventory(){
   const data = await apiGet("/items");
   rawItems = Array.isArray(data) ? data : (data.items || data.rows || []);
   inventory = mapItemsToUI(rawItems);
-  els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
+  if (els.itemsPill) els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
 
   // expose for assistant
   window.inventory = inventory;
