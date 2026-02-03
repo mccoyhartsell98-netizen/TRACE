@@ -1401,6 +1401,128 @@ function pick(obj, keys){
   return undefined;
 }
 
+function normalizeChat(s){ return String(s||"").trim().toLowerCase(); }
+
+function findItemByAnyKey(keyRaw){
+  const key = String(keyRaw || "").trim().toUpperCase();
+
+  // 1) Match item/job number (your UI currently stores it in item.job)
+  let hit = inventory.find(x => String(x.job||"").toUpperCase() === key);
+  if (hit) return hit;
+
+  // 2) If you added MO support to the front-end later, match it here too:
+  // (only works if your mapped items include `mo` field)
+  hit = inventory.find(x => String(x.mo||"").toUpperCase() === key);
+  if (hit) return hit;
+
+  // 3) Fallback: partial match
+  hit = inventory.find(x => String(x.job||"").toUpperCase().includes(key));
+  if (hit) return hit;
+
+  hit = inventory.find(x => String(x.mo||"").toUpperCase().includes(key));
+  if (hit) return hit;
+
+  return null;
+}
+
+function canMoveFromChat(){
+  return (role === "forklift") || (role === "admin" && adminUnlocked);
+}
+
+function formatLocation(item){
+  if (item.machine) return `Machine ${item.machine}`;
+  if (item.lane) return item.lane;
+  return "Unknown location";
+}
+
+async function handleChatCommand(rawText){
+  const t = normalizeChat(rawText);
+
+  // HELP
+  if (t === "help" || t === "?"){
+    return [
+      "Commands:",
+      "• move 16900 to lane 2",
+      "• move 16900 to s8",
+      "• where is 16900",
+      "• whats in lane 3",
+      "• whats on s8"
+    ].join("<br>");
+  }
+
+  // WHERE IS
+  // "where is 16900" / "where's mo-5048"
+  let m = t.match(/^(where\s+is|where'?s)\s+(.+)$/i);
+  if (m){
+    const key = m[2].trim();
+    const item = findItemByAnyKey(key);
+    if (!item) return `I couldn't find ${escapeHtml(key)}.`;
+    return `Item <b>${escapeHtml(item.job)}</b> is in <b>${escapeHtml(formatLocation(item))}</b>.`;
+  }
+
+  // WHAT'S IN LANE
+  // "whats in lane 3" / "what is in lane 12"
+  m = t.match(/^what'?s?\s+in\s+lane\s+(\d{1,2})$/i) || t.match(/^what\s+is\s+in\s+lane\s+(\d{1,2})$/i);
+  if (m){
+    const laneNum = Math.max(1, Math.min(12, parseInt(m[1],10)));
+    const laneLabel = `Lane ${laneNum}`;
+    const list = inventory.filter(x => String(x.lane||"") === laneLabel);
+    if (list.length === 0) return `<b>${laneLabel}</b> is empty.`;
+
+    const shown = list.slice(0, 25).map(x => `• <b>${escapeHtml(x.job)}</b> (${escapeHtml(x.status||"—")})`).join("<br>");
+    const more = list.length > 25 ? `<br>…and ${list.length - 25} more.` : "";
+    return `<b>${laneLabel}</b> has ${list.length} item(s):<br>${shown}${more}`;
+  }
+
+  // WHAT'S ON MACHINE
+  // "whats on s8" / "what's on machine s8"
+  m = t.match(/^what'?s?\s+on\s+(?:machine\s+)?(.+)$/i);
+  if (m){
+    const machine = m[1].trim().toUpperCase();
+    const list = inventory.filter(x => String(x.machine||"").toUpperCase() === machine);
+    if (list.length === 0) return `<b>${escapeHtml(machine)}</b> is empty.`;
+
+    const shown = list.slice(0, 25).map(x => `• <b>${escapeHtml(x.job)}</b> (${escapeHtml(x.status||"—")})`).join("<br>");
+    const more = list.length > 25 ? `<br>…and ${list.length - 25} more.` : "";
+    return `<b>${escapeHtml(machine)}</b> has ${list.length} item(s):<br>${shown}${more}`;
+  }
+
+  // MOVE COMMANDS
+  // "move 16900 to lane 2"
+  // "move mo-5048 to s8"
+  // "put 16900 in lane 5"
+  // "send 16900 to machine s9"
+  m =
+    t.match(/^(move|send|put)\s+(.+?)\s+(?:to|in)\s+lane\s+(\d{1,2})$/i) ||
+    t.match(/^(move|send|put)\s+(.+?)\s+to\s+(?:machine\s+)?(.+)$/i);
+
+  if (m){
+    if (!canMoveFromChat()){
+      return "Permission denied. Only Forklift (or Admin) can move items.";
+    }
+
+    const key = m[2].trim();
+    const item = findItemByAnyKey(key);
+    if (!item) return `I couldn't find ${escapeHtml(key)}.`;
+
+    // Lane move
+    if (String(m[3]||"").match(/^\d{1,2}$/)){
+      const laneNum = Math.max(1, Math.min(12, parseInt(m[3],10)));
+      const laneLabel = `Lane ${laneNum}`;
+      await moveToLane(item.id, laneLabel);
+      return `Moved <b>${escapeHtml(item.job)}</b> to <b>${laneLabel}</b>.`;
+    }
+
+    // Machine move
+    const machine = String(m[3]||"").trim().toUpperCase();
+    await moveToMachine(item.id, machine);
+    return `Moved <b>${escapeHtml(item.job)}</b> to <b>${escapeHtml(machine)}</b>.`;
+  }
+
+  return "I didn't understand that. Type <b>help</b> for commands.";
+}
+
+
 // ====== STATE ======
 let rawItems = [];
 let rawLocations = [];
@@ -2182,7 +2304,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
 });
 
-// ===== TRACE Assistant — Pro Dock JS (SAFE COMMAND MODE) =====
+// ===== TRACE Assistant — Pro Dock JS (COMMAND MODE + MOVE SUPPORT) =====
 (() => {
   try {
     const fab = document.getElementById("chatFab");
@@ -2199,7 +2321,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     const time = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-    // Local escape (so we don't depend on other functions)
+    // Keep UI safe: always escape content we inject into the DOM
     const esc = (s) =>
       String(s ?? "")
         .replaceAll("&", "&amp;")
@@ -2225,156 +2347,188 @@ window.addEventListener("DOMContentLoaded", async () => {
     fab.addEventListener("click", open);
     close.addEventListener("click", shut);
 
-    // ===== Command Engine =====
-    const norm = (s) => String(s ?? "").trim().toLowerCase();
+    // --------- Chat Helpers (move-focused) ----------
+    function normalizeChat(s){ return String(s||"").trim().toLowerCase(); }
 
-    function say(msg) {
-      add("bot", msg);
+    function findItemByAnyKey(keyRaw){
+      const inv = Array.isArray(window.inventory) ? window.inventory : (Array.isArray(inventory) ? inventory : []);
+      const key = String(keyRaw || "").trim().toUpperCase();
+      if (!key) return null;
+
+      // 1) Exact match on job/item #
+      let hit = inv.find(x => String(x.job||"").toUpperCase() === key);
+      if (hit) return hit;
+
+      // 2) Optional MO support (only if you later add `mo` to mapped items)
+      hit = inv.find(x => String(x.mo||"").toUpperCase() === key);
+      if (hit) return hit;
+
+      // 3) Partial match fallback
+      hit = inv.find(x => String(x.job||"").toUpperCase().includes(key));
+      if (hit) return hit;
+
+      hit = inv.find(x => String(x.mo||"").toUpperCase().includes(key));
+      if (hit) return hit;
+
+      return null;
     }
 
-    function help() {
-      say(
-        "Commands:\n" +
-        "• lane 3 / show lane 7\n" +
-        "• machine S8 / show machine S61\n" +
-        "• job 400848 / find job 400848\n" +
-        "• history\n" +
-        "• status\n" +
-        "• help"
-      );
+    function canMoveFromChat(){
+      const r = (typeof window.role !== "undefined") ? window.role : (typeof role !== "undefined" ? role : "forklift");
+      const au = (typeof window.adminUnlocked !== "undefined") ? window.adminUnlocked : (typeof adminUnlocked !== "undefined" ? adminUnlocked : false);
+      return (r === "forklift") || (r === "admin" && au);
     }
 
-    function status() {
-      const effectiveRole = (window.role === "admin" && window.adminUnlocked) ? "ADMIN" : String(window.role || "forklift").toUpperCase();
-      const sel = window.selectedLocation ? `${window.selectedLocation.type} ${window.selectedLocation.value}` : "—";
-      say(`SYSTEM ONLINE. Role: ${effectiveRole}. Selected: ${sel}.`);
+    function formatLocation(item){
+      if (item.machine) return `Machine ${item.machine}`;
+      if (item.lane) return item.lane;
+      return "Unknown location";
     }
 
-    function openHistory() {
-      if (!window.els || !els.historyPanel) {
-        say("History panel not found.");
-        return;
+    async function handleChatCommand(rawText){
+      const t = normalizeChat(rawText);
+
+      // HELP
+      if (t === "help" || t === "?"){
+        return [
+          "Commands:",
+          "• move 16900 to lane 2",
+          "• move 16900 to s8",
+          "• where is 16900",
+          "• whats in lane 3",
+          "• whats on s8",
+          "• status"
+        ].join("\n");
       }
-      const openNow = els.historyPanel.style.display !== "none";
-      els.historyPanel.style.display = openNow ? "none" : "block";
-      if (!openNow) {
-        if (typeof window.refreshHistoryFromDb === "function" && typeof window.renderHistory === "function") {
-          window.refreshHistoryFromDb().then(() => window.renderHistory());
+
+      // STATUS
+      if (t === "status"){
+        const r = (typeof window.role !== "undefined") ? window.role : (typeof role !== "undefined" ? role : "forklift");
+        const au = (typeof window.adminUnlocked !== "undefined") ? window.adminUnlocked : (typeof adminUnlocked !== "undefined" ? adminUnlocked : false);
+        const effectiveRole = (r === "admin" && au) ? "ADMIN" : String(r || "forklift").toUpperCase();
+        return `SYSTEM ONLINE. Role: ${effectiveRole}.`;
+      }
+
+      // WHERE IS
+      let m = t.match(/^(where\s+is|where'?s)\s+(.+)$/i);
+      if (m){
+        const key = m[2].trim();
+        const item = findItemByAnyKey(key);
+        if (!item) return `I couldn't find ${key}.`;
+        return `Item ${item.job} is in ${formatLocation(item)}.`;
+      }
+
+      // WHAT'S IN LANE
+      m = t.match(/^what'?s?\s+in\s+lane\s+(\d{1,2})$/i) || t.match(/^what\s+is\s+in\s+lane\s+(\d{1,2})$/i);
+      if (m){
+        const laneNum = Math.max(1, Math.min(12, parseInt(m[1],10)));
+        const laneLabel = `Lane ${laneNum}`;
+        const inv = Array.isArray(window.inventory) ? window.inventory : (Array.isArray(inventory) ? inventory : []);
+        const list = inv.filter(x => String(x.lane||"") === laneLabel);
+
+        if (list.length === 0) return `${laneLabel} is empty.`;
+
+        const shown = list
+          .slice(0, 25)
+          .map(x => `• ${x.job} (${x.status || "—"})`)
+          .join("\n");
+
+        const more = list.length > 25 ? `\n…and ${list.length - 25} more.` : "";
+        return `${laneLabel} has ${list.length} item(s):\n${shown}${more}`;
+      }
+
+      // WHAT'S ON MACHINE
+      m = t.match(/^what'?s?\s+on\s+(?:machine\s+)?(.+)$/i);
+      if (m){
+        const machine = m[1].trim().toUpperCase();
+        const inv = Array.isArray(window.inventory) ? window.inventory : (Array.isArray(inventory) ? inventory : []);
+        const list = inv.filter(x => String(x.machine||"").toUpperCase() === machine);
+
+        if (list.length === 0) return `${machine} is empty.`;
+
+        const shown = list
+          .slice(0, 25)
+          .map(x => `• ${x.job} (${x.status || "—"})`)
+          .join("\n");
+
+        const more = list.length > 25 ? `\n…and ${list.length - 25} more.` : "";
+        return `${machine} has ${list.length} item(s):\n${shown}${more}`;
+      }
+
+      // MOVE COMMANDS
+      // "move 16900 to lane 2"
+      // "move mo-5048 to s8"
+      // "put 16900 in lane 5"
+      // "send 16900 to machine s9"
+      m =
+        t.match(/^(move|send|put)\s+(.+?)\s+(?:to|in)\s+lane\s+(\d{1,2})$/i) ||
+        t.match(/^(move|send|put)\s+(.+?)\s+to\s+(?:machine\s+)?(.+)$/i);
+
+      if (m){
+        if (!canMoveFromChat()){
+          return "Permission denied. Only Forklift (or Admin) can move items.";
         }
-        say("Opening History.");
-      } else {
-        say("Closing History.");
-      }
-    }
 
- function showLane(n, { list=false } = {}) {
-  if (typeof window.selectLane !== "function") { say("Lane system not ready yet."); return; }
-  if (n < 1 || n > 12) { say("Lane must be 1–12."); return; }
+        const key = m[2].trim();
+        const item = findItemByAnyKey(key);
+        if (!item) return `I couldn't find ${key}.`;
 
-  const lane = `Lane ${n}`;
-  window.selectLane(lane);
+        // Lane move
+        if (String(m[3]||"").match(/^\d{1,2}$/)){
+          const laneNum = Math.max(1, Math.min(12, parseInt(m[3],10)));
+          const laneLabel = `Lane ${laneNum}`;
 
-  const inv = Array.isArray(window.inventory) ? window.inventory : [];
-  const jobs = inv
-    .filter(x => String(x.lane || "") === lane)
-    .sort((a,b) => (parseInt(a.job,10)||0) - (parseInt(b.job,10)||0));
+          if (typeof window.moveToLane === "function") {
+            await window.moveToLane(item.id, laneLabel);
+          } else if (typeof moveToLane === "function") {
+            await moveToLane(item.id, laneLabel);
+          } else {
+            return "Move function not ready yet (moveToLane missing).";
+          }
 
-  if (jobs.length === 0) {
-    say(`${lane} is empty.`);
-    return;
-  }
+          return `Moved ${item.job} to ${laneLabel}.`;
+        }
 
-  if (!list) {
-    say(`Showing ${lane}. Jobs: ${jobs.length}.`);
-    return;
-  }
+        // Machine move
+        const machine = String(m[3]||"").trim().toUpperCase();
 
-  const topN = 10;
-  const top = jobs.slice(0, topN).map(j => j.job).join(", ");
-  const more = jobs.length > topN ? ` (+${jobs.length - topN} more)` : "";
-  say(`${lane} has ${jobs.length} job${jobs.length===1?"":"s"}: ${top}${more}`);
-}
+        if (typeof window.moveToMachine === "function") {
+          await window.moveToMachine(item.id, machine);
+        } else if (typeof moveToMachine === "function") {
+          await moveToMachine(item.id, machine);
+        } else {
+          return "Move function not ready yet (moveToMachine missing).";
+        }
 
-    function showMachine(name) {
-      if (typeof window.selectMachine !== "function") { say("Machine system not ready yet."); return; }
-      const raw = String(name || "").trim();
-      if (!raw) { say("Try: machine S8"); return; }
-
-      const list = Array.isArray(window.MACHINES) ? window.MACHINES : [];
-      const found = list.find(x => norm(x) === norm(raw)) || raw;
-
-      window.selectMachine(found);
-
-      const inv = Array.isArray(window.inventory) ? window.inventory : [];
-      const count = inv.filter(x => norm(x.machine || "") === norm(found)).length;
-      say(`Showing Machine ${found}. Jobs: ${count}.`);
-    }
-
-    function findJob(jobRaw) {
-      if (!window.cleanJob) { say("Job tools not ready yet."); return; }
-      const job = window.cleanJob(jobRaw);
-      if (!job) { say("Try: job 400848"); return; }
-
-      if (window.els && els.globalSearch && typeof window.renderGlobalSearch === "function") {
-        els.globalSearch.value = job;
-        window.renderGlobalSearch();
+        return `Moved ${item.job} to ${machine}.`;
       }
 
-      const inv = Array.isArray(window.inventory) ? window.inventory : [];
-      const match = inv.find(x => norm(x.job) === norm(job));
-
-      if (match) {
-        if (match.machine) window.selectMachine(match.machine);
-        else if (match.lane) window.selectLane(match.lane);
-
-        if (typeof window.loadToForm === "function" && match.id != null) window.loadToForm(match.id);
-
-        const loc = match.machine ? `Machine ${match.machine}` : (match.lane || "Unknown");
-        say(`Found Job ${job}. Location: ${loc}.`);
-      } else {
-        say(`No exact match for Job ${job}. Check the results list.`);
-      }
+      return 'I didn’t understand that. Type "help" for commands.';
     }
 
-    function handle(text) {
-      const t = String(text || "").trim();
-      const tl = norm(t);
-      if (!tl) return;
-
-      if (tl === "help" || tl === "commands" || tl === "/help") return help();
-      if (tl === "status" || tl === "/status") return status();
-      if (tl === "history" || tl === "show history" || tl === "open history") return openHistory();
-
-      let m = tl.match(/(?:show\s+|what(?:'s|\s+is)?\s+in\s+)?lane\s+(\d{1,2})/i);
-      if (m) return showLane(Number(m[1]), { list: tl.includes("what") && tl.includes("in") });
-
-      m = t.match(/(?:show\s+)?machine\s+([A-Za-z0-9 ]{1,20})/i);
-      if (m) return showMachine(m[1]);
-
-      m = tl.match(/(?:find\s+|where\s+is\s+|show\s+)?job\s*#?\s*([A-Za-z0-9-]{3,})/i);
-      if (m) return findJob(m[1]);
-
-      if (/^\d{3,}$/.test(tl)) return findJob(tl);
-
-      say('Try: "lane 3", "machine S8", "job 400848", or "help".');
-    }
-
-    form.addEventListener("submit", (e) => {
+    // --------- Submit wiring ----------
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const text = input.value.trim();
       if (!text) return;
+
       input.value = "";
-
       add("me", text);
-      thinking.classList.add("show");
 
-      setTimeout(() => {
+      thinking.classList.add("show");
+      try {
+        const reply = await handleChatCommand(text);
         thinking.classList.remove("show");
-        handle(text);
-      }, 180);
+        add("bot", reply);
+      } catch (err) {
+        console.error("Chat command failed:", err);
+        thinking.classList.remove("show");
+        add("bot", "I hit an error running that command. Check console.");
+      }
     });
 
-    add("bot", "SYSTEM ONLINE. Type “help” for commands.");
+    // Boot message (only once per page load)
+    add("bot", 'SYSTEM ONLINE. Type "help" for commands.');
   } catch (err) {
     // If assistant fails, never break the app
     console.error("TRACE Assistant failed:", err);
