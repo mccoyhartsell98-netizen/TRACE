@@ -1851,8 +1851,8 @@ function renderLaneList(){
     const div = document.createElement("div");
     div.className = "resultItem" + (item.id===selectedId ? " active" : "");
 
-    const at = item.updatedAt ? ` • Updated ${formatTimestamp(item.updatedAt)}` : "";
-    const at = item.updatedAt ? ` • Updated ${formatTimestamp(item.updatedAt)}` : "";
+    const by = item.updatedBy ? ` • By: ${escapeHtml(item.updatedBy)}` : "";
+    const at = item.updatedAt ? ` • Updated ${escapeHtml(formatTimestamp(item.updatedAt))}` : "";
     const status = item.status ? escapeHtml(item.status) : "—";
     const notes = item.notes ? escapeHtml(item.notes) : "—";
 
@@ -1897,8 +1897,8 @@ function renderMachineList(){
     const div = document.createElement("div");
     div.className = "resultItem" + (item.id===selectedId ? " active" : "");
 
-    const at = item.updatedAt ? ` • Updated ${formatTimestamp(item.updatedAt)}` : "";
-    const at = item.updatedAt ? ` • Updated ${formatTimestamp(item.updatedAt)}` : "";
+    const by = item.updatedBy ? ` • By: ${escapeHtml(item.updatedBy)}` : "";
+    const at = item.updatedAt ? ` • Updated ${escapeHtml(formatTimestamp(item.updatedAt))}` : "";
     const status = item.status ? escapeHtml(item.status) : "—";
     const notes = item.notes ? escapeHtml(item.notes) : "—";
 
