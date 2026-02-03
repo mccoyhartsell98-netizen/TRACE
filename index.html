@@ -956,7 +956,7 @@
             <div class="results" id="machineResults" style="margin-top:10px;"></div>
 
             <div class="hint">
-              Flow: <b>Search Job #</b> → <b>Move</b> → choose <b>Lane</b> or <b>Machine</b>.
+              Flow: <b>Search Item or MO</b> → <b>Move</b> → choose <b>Lane</b> or <b>Machine</b>.
               <br/>
               Keys: <span class="kbd">1–9</span> quick lanes • <span class="kbd">F</span> fullscreen • <span class="kbd">ESC</span> close move box
             </div>
@@ -1776,7 +1776,7 @@ function renderGlobalSearch(){
   els.globalResults.innerHTML = "";
 
   if(!q){
-    els.globalResults.innerHTML = `<div style="color:var(--muted)">Type a Job # to search all lanes/machines.</div>`;
+    els.globalResults.innerHTML = `<div style="color:var(--muted)">Type a Item # or MO to search all lanes/machines.</div>`;
     return;
   }
 
