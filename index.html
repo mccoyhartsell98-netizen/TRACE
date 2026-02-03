@@ -896,9 +896,6 @@
         <div></div>
         <img src="./trace-logo.png.png" alt="TRACE" class="logo">
         <div class="status">
-          <div class="pill" id="rolePill">ROLE: FORKLIFT</div>
-          <div class="pill" id="itemsPill">ITEMS: 0</div>
-          <div class="pill">F = FULLSCREEN</div>
         </div>
       </div>
 
@@ -938,7 +935,7 @@
               <div class="laneTitle" id="laneTitle">Lane 1</div>
               <div class="laneCount" id="laneCount">0 items</div>
             </div>
-
+            <div class="pill" id="itemsPill">ITEMS: 0</div>
             <input id="laneSearch" type="text" placeholder="Filter within this lane (optional)">
             <div class="results" id="laneResults" style="margin-top:10px;"></div>
 
@@ -946,7 +943,7 @@
 
             <h2 style="margin-top:0;">Machines</h2>
             <div class="laneGrid" id="machineGrid"></div>
-
+            
             <div class="laneHeader">
               <div class="laneTitle" id="machineTitle">Machine: S8</div>
               <div class="laneCount" id="machineCount">0 jobs</div>
@@ -1659,7 +1656,9 @@ function setRole(nextRole){
 
 function updateRoleUI(){
   const effectiveRole = (role === "admin" && adminUnlocked) ? "ADMIN" : role.toUpperCase();
-  els.rolePill.textContent = `ROLE: ${effectiveRole}`;
+   if (els.rolePill) {
+    els.rolePill.textContent = `ROLE: ${effectiveRole}`;
+  }
 
   const canDelete = (role === "admin" && adminUnlocked);
   els.deleteBtn.disabled = !canDelete || !selectedId;
@@ -2285,12 +2284,17 @@ els.mo.addEventListener("input", () => {
 });
 
 document.addEventListener("keydown", (e) => {
-  if (e.key.toLowerCase() === "f") toggleFullscreen();
-  if(e.key === "Escape") closeMoveOverlay();
-
   const tag = document.activeElement?.tagName?.toLowerCase();
-  const typing = tag === "input" || tag === "textarea" || document.documentElement?.isContentEditable;
+  const typing =
+    tag === "input" ||
+    tag === "textarea" ||
+    document.documentElement?.isContentEditable;
+
+  // don't fire shortcuts while typing
   if (typing) return;
+
+  if (e.key.toLowerCase() === "f") toggleFullscreen();
+  if (e.key === "Escape") closeMoveOverlay();
 
   if (/^[1-9]$/.test(e.key)) {
     const laneNum = parseInt(e.key, 10);
