@@ -1406,6 +1406,18 @@ function pick(obj, keys){
   return undefined;
 }
 
+function formatTimestamp(ts){
+  if(!ts) return "";
+  const d = new Date(ts);
+  if (isNaN(d)) return "";
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  });
+}
+
 function normalizeChat(s){ return String(s||"").trim().toLowerCase(); }
 
 function findItemByAnyKey(keyRaw){
@@ -1588,6 +1600,7 @@ function mapItemsToUI(raw){
   return arr.map(it => {
     const id = pick(it, ["item_id","id","itemId"]);
     const job = cleanJob(pick(it, ["job_number","job","jobNumber","sku"]) ?? "");
+    const mo = cleanJob(pick(it, ["mo","mo_number","moNumber","mo_id","moId"]) ?? "");
     const qty = parseInt(it.qty || "0", 10) || 0;
     const status = (pick(it, ["status"]) ?? "").toString();
     const notes  = (pick(it, ["notes"]) ?? "").toString();
@@ -1601,7 +1614,7 @@ function mapItemsToUI(raw){
     const machine = (loc && loc.type === "machine") ? loc.machineName : "";
 
     return {
-      id, job, qty, status, notes, updatedBy, createdAt, updatedAt,
+      id, job, mo, qty, status, notes, updatedBy, createdAt, updatedAt,
       location_id: (location_id !== undefined && location_id !== null) ? Number(location_id) : null,
       lane, machine
     };
@@ -1838,13 +1851,14 @@ function renderLaneList(){
     const div = document.createElement("div");
     div.className = "resultItem" + (item.id===selectedId ? " active" : "");
 
-    const by = item.updatedBy ? ` • ${escapeHtml(item.updatedBy)}` : "";
-    const at = item.updatedAt ? ` • ${escapeHtml(item.updatedAt)}` : "";
+    const at = item.updatedAt ? ` • Updated ${formatTimestamp(item.updatedAt)}` : "";
+    const at = item.updatedAt ? ` • Updated ${formatTimestamp(item.updatedAt)}` : "";
     const status = item.status ? escapeHtml(item.status) : "—";
     const notes = item.notes ? escapeHtml(item.notes) : "—";
 
     div.innerHTML = `
       <div class="big">Item #${escapeHtml(item.job)}</div>
+       ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b> </div>` : ``}
       <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
       <div class="meta">${escapeHtml(item.lane)} • Notes: ${notes}${by}${at}</div>
     `;
@@ -1883,13 +1897,14 @@ function renderMachineList(){
     const div = document.createElement("div");
     div.className = "resultItem" + (item.id===selectedId ? " active" : "");
 
-    const by = item.updatedBy ? ` • ${escapeHtml(item.updatedBy)}` : "";
-    const at = item.updatedAt ? ` • ${escapeHtml(item.updatedAt)}` : "";
+    const at = item.updatedAt ? ` • Updated ${formatTimestamp(item.updatedAt)}` : "";
+    const at = item.updatedAt ? ` • Updated ${formatTimestamp(item.updatedAt)}` : "";
     const status = item.status ? escapeHtml(item.status) : "—";
     const notes = item.notes ? escapeHtml(item.notes) : "—";
 
     div.innerHTML = `
       <div class="big">Item #${escapeHtml(item.job)}</div>
+      ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ``}
       <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
       <div class="meta">Machine: ${escapeHtml(item.machine)} • Notes: ${notes}${by}${at}</div>
     `;
@@ -1908,7 +1923,7 @@ function renderGlobalSearch(){
   }
 
   const matches = inventory
-    .filter(x => normalize(x.job).includes(q))
+    .filter(x => normalize(x.job).includes(q) || normalize(x.mo).includes(q))
     .slice(0, 15);
 
   if(matches.length === 0){
@@ -1929,6 +1944,7 @@ function renderGlobalSearch(){
 
     div.innerHTML = `
       <div class="big">Item #${escapeHtml(item.job)}</div>
+      ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ``}
       <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
       <div class="meta">${location} • Notes: ${notes}</div>
       ${canMove ? `<div class="btnRow" style="margin-top:10px;"><button class="primary" data-move="1">Move</button></div>` : ``}
