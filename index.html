@@ -2012,6 +2012,7 @@ async function upsertItem(){
   }
 
   const jobRaw = cleanJob(els.job.value).trim();
+  const moRaw  = cleanJob(els.mo.value).trim();
   if(!jobRaw){
     await uiAlert("Validation Error", "Job # is required.");
     els.job.focus();
@@ -2029,7 +2030,7 @@ async function upsertItem(){
     return;
   }
 
-  const payload = { job_number: jobRaw, qty, status, notes, updated_by: updatedBy, location_id };
+  const payload = { job_number: jobRaw, mo: moRaw, qty, status, notes, updated_by: updatedBy, location_id };
 
   if(!selectedId){
     const exists = inventory.some(x => normalize(x.job) === normalize(jobRaw));
