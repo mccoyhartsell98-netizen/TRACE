@@ -641,6 +641,149 @@
       .pill{ padding:5px 9px; font-size:12px; }
       .laneGrid{ grid-template-columns: repeat(3,1fr); }
     }
+     
+/* ===== PRODUCTION TOP BAR (v0.8+) ===== */
+.topBar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding: 10px 14px;
+  margin: 0 auto 10px auto;
+  max-width: 1100px; /* match .wrap vibe */
+  border-radius: 14px;
+  background: rgba(10,12,16,.55);
+  border: 1px solid rgba(120,160,255,.18);
+  box-shadow: 0 12px 40px rgba(0,0,0,.35);
+  backdrop-filter: blur(10px);
+}
+
+.topBarLeft{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.prodLabel{
+  letter-spacing: .28em;
+  font-weight: 900;
+  font-size: 12px;
+  opacity: .85;
+  padding-left: 2px;
+  white-space:nowrap;
+}
+
+.prodTabs{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.prodTab{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(120,160,255,.18);
+  background: rgba(18,22,32,.55);
+  color: rgba(235,245,255,.92);
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: .08em;
+  cursor:pointer;
+  transition: transform .12s ease, background .12s ease, box-shadow .12s ease, border-color .12s ease, opacity .12s ease;
+  user-select:none;
+}
+
+.prodTab:hover{
+  transform: translateY(-1px);
+  border-color: rgba(120,160,255,.30);
+  background: rgba(22,28,42,.65);
+}
+
+.prodTab.active{
+  transform: translateY(-1px);
+  border-color: rgba(120,160,255,.55);
+  background: rgba(26,34,56,.78);
+  box-shadow: 0 0 0 1px rgba(120,160,255,.18),
+              0 10px 28px rgba(0,0,0,.35),
+              0 0 26px rgba(80,140,255,.22);
+}
+
+.prodTab .icon{
+  opacity:.95;
+  font-size: 14px;
+  transform: translateY(-.5px);
+}
+
+.prodTab .count{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width: 28px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.25);
+  font-weight: 900;
+  font-size: 12px;
+  opacity: .92;
+}
+
+.prodDivider{
+  height: 1px;
+  margin: 10px auto 14px auto;
+  max-width: 1100px;
+  background: linear-gradient(90deg, rgba(80,140,255,.0), rgba(80,140,255,.45), rgba(80,140,255,.0));
+  opacity: .85;
+}
+
+.topBarRight{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.utilGroup{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+/* Make Unlock/Admin feel "stateful" */
+.btnOutline{
+  border: 1px solid rgba(120,160,255,.22) !important;
+  background: rgba(18,22,32,.35) !important;
+}
+.btnOutline:hover{
+  border-color: rgba(120,160,255,.38) !important;
+  background: rgba(22,28,42,.55) !important;
+}
+.btnAdminOn{
+  border-color: rgba(120,160,255,.55) !important;
+  background: rgba(26,34,56,.78) !important;
+  box-shadow: 0 0 18px rgba(80,140,255,.22);
+}
+
+/* Mode panels (LANES / QUEUE / HOLD) */
+.modeFade{ transition: opacity .14s ease, transform .14s ease; }
+.modeHidden{
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events:none;
+  height: 0 !important;
+  overflow:hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
 
     /* ===== TRACE Assistant — Pro Dock (Drift/Intercom vibe) ===== */
     .chatFab{
@@ -898,8 +1041,46 @@
         <div class="status">
         </div>
       </div>
+        
+<!-- ===== PRODUCTION BAR ===== -->
+<div class="topBar">
+  <div class="topBarLeft">
+    <div class="prodLabel">PRODUCTION</div>
 
-      <div class="rolebar">
+    <div class="prodTabs">
+      <button id="tabQueue" class="prodTab" type="button" title="Jobs ready to run">
+        <span class="icon">⏳</span>
+        QUEUE <span id="queueCount" class="count">0</span>
+      </button>
+
+      <button id="tabHold" class="prodTab" type="button" title="Blocked or waiting jobs">
+        <span class="icon">⛔</span>
+        HOLD <span id="holdCount" class="count">0</span>
+      </button>
+
+      <button id="tabLanes" class="prodTab active" type="button" title="Physical lanes + machines view">
+        <span class="icon">🧭</span>
+        LANES
+      </button>
+    </div>
+  </div>
+
+  <div class="topBarRight">
+    <div class="utilGroup">
+      <span id="roleMount"></span>
+      <span id="adminMount"></span>
+    </div>
+
+    <div class="utilGroup">
+      <span id="historyMount"></span>
+      <span id="logoutMount"></span>
+    </div>
+  </div>
+</div>
+
+<div class="prodDivider"></div>
+
+      <div class="rolebar" id="rolebarOld" style="display:none;">
         <div class="roleLeft">
           <select id="roleSelect">
             <option value="forklift">Forklift</option>
@@ -1385,6 +1566,36 @@ const els = {
   historySearch: document.getElementById("historySearch"),
   historyResults: document.getElementById("historyResults"),
 };
+ 
+// ====== TOP BAR MOUNTING ======
+function mountTopBarControls(){
+  const roleMount = document.getElementById("roleMount");
+  const adminMount = document.getElementById("adminMount");
+  const historyMount = document.getElementById("historyMount");
+  const logoutMount = document.getElementById("logoutMount");
+
+  if (els.roleSelect && roleMount && !roleMount.contains(els.roleSelect)) {
+    roleMount.appendChild(els.roleSelect);
+  }
+
+  // Admin buttons: only one shows at a time
+  if (els.adminUnlockBtn && adminMount && !adminMount.contains(els.adminUnlockBtn)) {
+    adminMount.appendChild(els.adminUnlockBtn);
+    els.adminUnlockBtn.classList.add("btnOutline");
+  }
+  if (els.adminLockBtn && adminMount && !adminMount.contains(els.adminLockBtn)) {
+    adminMount.appendChild(els.adminLockBtn);
+    els.adminLockBtn.classList.add("btnAdminOn");
+  }
+
+  if (els.historyBtn && historyMount && !historyMount.contains(els.historyBtn)) {
+    historyMount.appendChild(els.historyBtn);
+  }
+  const logoutBtnEl = document.getElementById("logoutBtn");
+  if (logoutBtnEl && logoutMount && !logoutMount.contains(logoutBtnEl)) {
+    logoutMount.appendChild(logoutBtnEl);
+  }
+}
 
 // ====== HELPERS ======
 function normalize(s){ return (s ?? "").trim().toLowerCase(); }
@@ -2302,12 +2513,32 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+// ====== MODE / TOP BAR ======
+function setMode(mode){
+  const tabQueue = document.getElementById("tabQueue");
+  const tabHold  = document.getElementById("tabHold");
+  const tabLanes = document.getElementById("tabLanes");
+
+  [tabQueue, tabHold, tabLanes].forEach(b => b && b.classList.remove("active"));
+
+  if(mode === "queue") tabQueue?.classList.add("active");
+  else if(mode === "hold") tabHold?.classList.add("active");
+  else tabLanes?.classList.add("active");
+
+  // v0.8 safe behavior: we don't hide panels yet
+}
+
+document.getElementById("tabQueue")?.addEventListener("click", ()=> setMode("queue"));
+document.getElementById("tabHold") ?.addEventListener("click", ()=> setMode("hold"));
+document.getElementById("tabLanes")?.addEventListener("click", ()=> setMode("lanes"));
+
+
 // ====== INIT (CALLED AFTER LOGIN) ======
 window.initApp = async function initApp() {
   try {
     buildLaneButtons();
     buildMachineButtons();
-
+    mountTopBarControls();
     els.laneTitle.textContent = selectedLane;
     els.machineTitle.textContent = `Machine: ${selectedMachine}`;
 
