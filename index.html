@@ -1368,7 +1368,8 @@
       </div>
 
       <form id="chatComposer" class="chatComposer" autocomplete="off">
-        <input id="chatInput" type="text" placeholder="Ask: "show lane 3", "find job 400848", "what's on S8?"" />
+        <input id="chatInput" type="text"
+          placeholder='Ask: "show lane 3", "find job 400848", "what&apos;s on S8?"' />
         <button type="submit" class="chatSend">Send</button>
       </form>
     </section>
@@ -1640,8 +1641,6 @@ apiGet("/health")
 
 // ====== DOM ELEMENTS ======
 const els = {
-  itemsPill: document.getElementById("itemsPill"),
-  rolePill: document.getElementById("rolePill"),
   roleSelect: document.getElementById("roleSelect"),
   adminUnlockBtn: document.getElementById("adminUnlockBtn"),
   adminLockBtn: document.getElementById("adminLockBtn"),
@@ -1738,55 +1737,41 @@ function formatTimestamp(ts){
 
 // ====== WORKFLOW HELPERS ======
 function getStatusBadge(status) {
+  const s = String(status || "").toUpperCase();
   const badges = {
-    'QUEUED': '<span class="statusBadge queued">QUEUED</span>',
+    'QUEUED':   '<span class="statusBadge queued">QUEUED</span>',
     'PRINTING': '<span class="statusBadge printing">PRINTING</span>',
-    'DONE': '<span class="statusBadge done">DONE</span>',
-    'HOLD': '<span class="statusBadge hold">HOLD</span>'
+    'DONE':     '<span class="statusBadge done">DONE</span>',
+    'HOLD':     '<span class="statusBadge hold">HOLD</span>'
   };
-  return badges[status] || '';
+  return badges[s] || '';
 }
 
 function renderWorkflowButtons(item) {
   const canEdit = (role === 'machine') || (role === 'admin' && adminUnlocked);
   if (!canEdit) return '';
-  
+
+  const ws = String(item.workflow_status || 'QUEUED').toUpperCase();
   const buttons = [];
-  
-  if (item.status === 'QUEUED' || item.status === 'HOLD') {
-    buttons.push(`
-      <button class="workflowBtn start primary" data-action="start" data-id="${item.id}">
-        ▶️ Start Printing
-      </button>
-    `);
+
+  if (ws === 'QUEUED' || ws === 'HOLD') {
+    buttons.push(`<button class="workflowBtn start primary" data-action="start" data-id="${item.id}">▶️ Start Printing</button>`);
   }
-  
-  if (item.status === 'PRINTING') {
-    buttons.push(`
-      <button class="workflowBtn done primary" data-action="done" data-id="${item.id}">
-        ✓ Mark Done
-      </button>
-    `);
+
+  if (ws === 'PRINTING') {
+    buttons.push(`<button class="workflowBtn done primary" data-action="done" data-id="${item.id}">✓ Mark Done</button>`);
   }
-  
-  if (item.status !== 'HOLD' && item.status !== 'DONE') {
-    buttons.push(`
-      <button class="workflowBtn hold danger" data-action="hold" data-id="${item.id}">
-        ⛔ Hold
-      </button>
-    `);
+
+  if (ws !== 'HOLD' && ws !== 'DONE') {
+    buttons.push(`<button class="workflowBtn hold danger" data-action="hold" data-id="${item.id}">⛔ Hold</button>`);
   }
-  
-  if (item.status === 'HOLD') {
-    buttons.push(`
-      <button class="workflowBtn start primary" data-action="resume" data-id="${item.id}">
-        ↩️ Resume
-      </button>
-    `);
+
+  if (ws === 'HOLD') {
+    buttons.push(`<button class="workflowBtn start primary" data-action="resume" data-id="${item.id}">↩️ Resume</button>`);
   }
-  
-  return buttons.length > 0 
-    ? `<div class="btnRow" style="margin-top:10px;gap:8px;">${buttons.join('')}</div>` 
+
+  return buttons.length
+    ? `<div class="btnRow" style="margin-top:10px;gap:8px;">${buttons.join('')}</div>`
     : '';
 }
 
@@ -1833,13 +1818,13 @@ async function handleWorkflowAction(action, itemId) {
   if (!initials) return;
   
   try {
-    await apiFetch(`/items/${itemId}/status`, {
-      method: 'PUT',
-      body: JSON.stringify({ 
-        status: newStatus, 
-        updated_by: initials.trim()
-      })
-    });
+    await apiFetch(`/items/${itemId}/workflow`, {
+  method: "PUT",
+  body: JSON.stringify({
+    workflow_status: newStatus,
+    updated_by: initials.trim()
+  })
+});
     
     await loadInventory();
     renderLaneList();
@@ -1916,11 +1901,13 @@ function buildLocationIndexes(){
 function mapItemsToUI(raw){
   const arr = Array.isArray(raw) ? raw : [];
   return arr.map(it => {
-    const id = pick(it, ["item_id","id","itemId"]);
+    const id = Number(pick(it, ["item_id","id","itemId"]));
     const job = cleanJob(pick(it, ["job_number","job","jobNumber","sku"]) ?? "");
     const mo = cleanJob(pick(it, ["mo","mo_number","moNumber","mo_id","moId"]) ?? "");
     const qty = parseInt(it.qty || "0", 10) || 0;
-    const itemStatus = (pick(it, ["status"]) ?? "").toString();
+    const workflow_status = (pick(it, ["workflow_status"]) ?? "QUEUED")
+     .toString().trim().toUpperCase();
+    const status = (pick(it, ["status"]) ?? "").toString().trim().toUpperCase();
     const notes  = (pick(it, ["notes"]) ?? "").toString();
     const updatedBy = (pick(it, ["updated_by","updatedBy"]) ?? "").toString();
     const createdAt = (pick(it, ["created_at","createdAt"]) ?? "").toString();
@@ -1935,11 +1922,25 @@ function mapItemsToUI(raw){
     const completed_at = (pick(it, ["completed_at","completedAt"]) ?? "").toString();
     const held_at = (pick(it, ["held_at","heldAt"]) ?? "").toString();
 
-    return {
-      id, job, mo, qty, status: itemStatus, notes, updatedBy, createdAt, updatedAt,
+      return {
+      id,
+      job,
+      mo,
+      qty,
+      workflow_status,
+      status,
+      notes,
+      updatedBy,
+      createdAt,
+      updatedAt,
       location_id: (location_id !== undefined && location_id !== null) ? Number(location_id) : null,
-      lane, machine, started_at, completed_at, held_at
+      lane,
+      machine,
+      started_at,
+      completed_at,
+      held_at
     };
+
   }).filter(x => String(x.job).length > 0 && normalize(x.status) !== "deleted");
 }
 
@@ -1955,7 +1956,6 @@ async function loadInventory(){
   const data = await apiGet("/items");
   rawItems = Array.isArray(data) ? data : (data.items || data.rows || []);
   inventory = mapItemsToUI(rawItems);
-  if (els.itemsPill) els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
   window.inventory = inventory;
 }
 
@@ -1967,8 +1967,8 @@ function setRole(nextRole){
   if(role !== "admin"){
     adminUnlocked = false;
     window.adminUnlocked = adminUnlocked;
-    els.adminLockBtn.style.display = "none";
-    els.adminUnlockBtn.style.display = "inline-block";
+    if (els.adminLockBtn) els.adminLockBtn.style.display = "none";
+    if (els.adminUnlockBtn) els.adminUnlockBtn.style.display = "inline-block";
   }
   updateRoleUI();
   renderLaneList();
@@ -1978,26 +1978,24 @@ function setRole(nextRole){
 }
 
 function updateRoleUI(){
-  const effectiveRole = (role === "admin" && adminUnlocked) ? "ADMIN" : role.toUpperCase();
-   if (els.rolePill) {
-    els.rolePill.textContent = `ROLE: ${effectiveRole}`;
-  }
+  const r = role;
 
-  const canDelete = (role === "admin" && adminUnlocked);
-  els.deleteBtn.disabled = !canDelete || !selectedId;
+  const canDelete = (r === "admin" && adminUnlocked);
+  if (els.deleteBtn) els.deleteBtn.disabled = !canDelete || !selectedId;
 
-  const forklift = role === "forklift";
-  const admin = (role === "admin" && adminUnlocked);
+  const forklift = (r === "forklift");
+  const admin = (r === "admin" && adminUnlocked);
   const canCreate = admin;
   const hasSelection = !!selectedId;
 
-  els.job.disabled = hasSelection || !canCreate;
-  els.qty.disabled = forklift;
-  els.status.disabled = forklift;
-  els.notes.disabled = forklift;
-  els.updatedBy.disabled = forklift;
-  els.saveBtn.disabled = forklift;
-  els.newBtn.disabled = forklift;
+  if (els.job) els.job.disabled = hasSelection || !canCreate;
+  if (els.qty) els.qty.disabled = forklift;
+  if (els.status) els.status.disabled = forklift;
+  if (els.notes) els.notes.disabled = forklift;
+  if (els.updatedBy) els.updatedBy.disabled = forklift;
+
+  if (els.saveBtn) els.saveBtn.disabled = forklift;
+  if (els.newBtn) els.newBtn.disabled = forklift;
 }
 
 // ====== HISTORY (DB-backed) ======
@@ -2086,7 +2084,8 @@ if (els.clearHistoryBtn) {
 async function renderQueueView() {
   try {
     const data = await apiGet('/items?view=queue');
-    const queueItems = mapItemsToUI(data);
+    const rows = Array.isArray(data) ? data : (data.items || data.rows || []);
+    const queueItems = mapItemsToUI(rows);
     
     els.globalResults.innerHTML = '';
     
@@ -2100,7 +2099,7 @@ async function renderQueueView() {
       const div = document.createElement('div');
       div.className = 'resultItem';
       
-      const statusBadge = getStatusBadge(item.status);
+      const statusBadge = getStatusBadge(item.workflow_status);
       const notes = item.notes ? escapeHtml(item.notes) : '—';
       
       div.innerHTML = `
@@ -2132,7 +2131,8 @@ async function renderQueueView() {
 async function renderHoldView() {
   try {
     const data = await apiGet('/items?view=hold');
-    const holdItems = mapItemsToUI(data);
+    const rows = Array.isArray(data) ? data : (data.items || data.rows || []);
+    const holdItems = mapItemsToUI(rows);
     
     els.globalResults.innerHTML = '';
     
@@ -2146,7 +2146,7 @@ async function renderHoldView() {
       const div = document.createElement('div');
       div.className = 'resultItem';
       
-      const statusBadge = getStatusBadge(item.status);
+      const statusBadge = getStatusBadge(item.workflow_status);
       const notes = item.notes ? escapeHtml(item.notes) : '—';
       const heldAt = item.held_at ? formatTimestamp(item.held_at) : '—';
       
@@ -2287,7 +2287,7 @@ function renderLaneList(){
   if(q){
     laneItems = laneItemsAll.filter(x =>
       normalize(x.job).includes(q) ||
-      normalize(x.status).includes(q)
+      normalize(x.status).includes(q) || normalize(x.workflow_status).includes(q)
     );
   }
 
@@ -2313,7 +2313,7 @@ function renderLaneList(){
     const at = item.updatedAt ? ` • Updated ${escapeHtml(formatTimestamp(item.updatedAt))}` : '';
     const itemStatus = item.status ? escapeHtml(item.status) : '—';
     const notes = item.notes ? escapeHtml(item.notes) : '—';
-    const statusBadge = getStatusBadge(item.status);
+    const statusBadge = getStatusBadge(item.workflow_status);
 
     div.innerHTML = `
       <div class="big">Item #${escapeHtml(item.job)} ${statusBadge}</div>
@@ -2369,7 +2369,7 @@ function renderMachineList(){
     const at = item.updatedAt ? ` • Updated ${escapeHtml(formatTimestamp(item.updatedAt))}` : '';
     const itemStatus = item.status ? escapeHtml(item.status) : '—';
     const notes = item.notes ? escapeHtml(item.notes) : '—';
-    const statusBadge = getStatusBadge(item.status);
+    const statusBadge = getStatusBadge(item.workflow_status);
 
     div.innerHTML = `
       <div class="big">Item #${escapeHtml(item.job)} ${statusBadge}</div>
@@ -2419,7 +2419,7 @@ function renderGlobalSearch(){
     const location = item.machine
       ? `Machine: ${escapeHtml(item.machine)}`
       : (item.lane ? escapeHtml(item.lane) : '—');
-    const statusBadge = getStatusBadge(item.status);
+    const statusBadge = getStatusBadge(item.workflow_status);
 
     div.innerHTML = `
       <div class="big">Item #${escapeHtml(item.job)} ${statusBadge}</div>
@@ -2500,6 +2500,7 @@ async function upsertItem(){
 
   const jobRaw = cleanJob(els.job.value).trim();
   const moRaw  = cleanJob(els.mo.value).trim();
+
   if(!jobRaw){
     await uiAlert('Validation Error', 'Job # is required.');
     els.job.focus();
@@ -2507,7 +2508,7 @@ async function upsertItem(){
   }
 
   const qty = Math.max(0, parseInt(els.qty.value || '0', 10));
-  const itemStatus = (els.status.value || '').trim().slice(0, 40);
+  const itemStatus = (els.status.value || '').trim().slice(0, 40); // machine notes like RUNNING
   const notes  = (els.notes.value  || '').trim().slice(0, 120);
   const updatedBy = (els.updatedBy.value || '').trim().slice(0, 10);
 
@@ -2517,7 +2518,16 @@ async function upsertItem(){
     return;
   }
 
-  const payload = { job_number: jobRaw, mo: moRaw, qty, status: itemStatus, notes, updated_by: updatedBy, location_id };
+  // IMPORTANT: don't auto-force workflow_status from "status" (see section 2)
+  const payload = {
+    job_number: jobRaw,
+    mo: moRaw,
+    qty,
+    status: itemStatus,
+    notes,
+    updated_by: updatedBy,
+    location_id
+  };
 
   if(!selectedId){
     const exists = inventory.some(x => normalize(x.job) === normalize(jobRaw));
@@ -2537,7 +2547,8 @@ async function upsertItem(){
     renderLaneList();
     renderMachineList();
     renderGlobalSearch();
-    clearForm();
+
+    await uiAlert("Saved", "Job updated successfully.");
   }catch(err){
     console.error('SAVE FAILED', err);
     await uiAlert('Save Failed', 'Save failed. Open DevTools → Network and check the /items request.');
@@ -2735,38 +2746,22 @@ els.deleteBtn.addEventListener('click', deleteSelected);
 els.moveCloseBtn.addEventListener('click', closeMoveOverlay);
 els.moveOverlay.addEventListener('click', (e) => { if(e.target === els.moveOverlay) closeMoveOverlay(); });
 
-els.roleSelect.addEventListener('change', (e) => {
+els.roleSelect.addEventListener('change', async (e) => {
   const v = e.target.value;
-  if(v === 'admin') setRole('admin');
-  else setRole(v);
-});
 
-els.adminUnlockBtn.addEventListener('click', async () => {
-  const pin = await uiPrompt('Admin Access', 'Enter Admin PIN:', {
-    placeholder: 'PIN',
-    hint: 'Admin-only actions: create + delete + restore',
-    mask: true
-  });
-
-  if (pin === null) return;
-
-  const enteredPin = String(pin).trim();
-  if (!enteredPin) {
-    await uiAlert('Admin Access', 'PIN is required.');
-    return;
-  }
-  if (enteredPin !== ADMIN_PIN) {
-    await uiAlert('Access Denied', 'Wrong PIN.');
-    els.roleSelect.value = 'forklift';
-    setRole('forklift');
+  if (v === 'admin') {
+    // If they aren't unlocked, force them to unlock instead of granting edit UI
+    if (!adminUnlocked) {
+      e.target.value = 'forklift';
+      setRole('forklift');
+      await uiAlert("Admin Locked", "Tap 'Unlock Admin' and enter the PIN.");
+      return;
+    }
+    setRole('admin');
     return;
   }
 
-  adminUnlocked = true;
-  els.adminUnlockBtn.style.display = 'none';
-  els.adminLockBtn.style.display = 'inline-block';
-  els.roleSelect.value = 'admin';
-  setRole('admin');
+  setRole(v);
 });
 
 els.adminLockBtn.addEventListener('click', () => {
