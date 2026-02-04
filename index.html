@@ -1555,7 +1555,7 @@ async function startAfterLogin() {
   if (typeof window.initApp === "function") await window.initApp();
 }
 
-// ====== DIALOG SYSTEM ======
+// ====== DIALOG SYSTEM (SAFE INIT) ======
 (function initDialog(){
   const d = {
     overlay: document.getElementById("dialogOverlay"),
@@ -1568,6 +1568,15 @@ async function startAfterLogin() {
     cancel: document.getElementById("dialogCancelBtn"),
     close: document.getElementById("dialogCloseBtn"),
   };
+
+  // ✅ If any required element is missing, don’t crash the entire app
+  const required = ["overlay","title","msg","inputWrap","input","hint","ok","cancel","close"];
+  for (const k of required){
+    if (!d[k]) {
+      console.warn("Dialog init skipped, missing:", k);
+      return;
+    }
+  }
 
   let resolver = null;
 
@@ -1627,6 +1636,7 @@ async function startAfterLogin() {
     });
   };
 })();
+
 
 // ====== API HELPERS ======
 async function apiGet(path){ return apiFetch(path, { method:"GET" }); }
@@ -2868,7 +2878,11 @@ window.initApp = async function initApp() {
 
 // ====== BOOT ENTRYPOINT ======
 window.addEventListener('DOMContentLoaded', async () => {
+  console.log("✅ DOMContentLoaded fired");
+
   wireLoginUI();
+  console.log("✅ wireLoginUI() called");
+
   if (AUTH.token) {
     hideLogin();
     await startAfterLogin();
@@ -2876,6 +2890,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     showLogin();
   }
 });
+
 
 // ===== TRACE Assistant =====
 (() => {
