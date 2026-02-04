@@ -1233,11 +1233,1798 @@
     </div>
   </div>
 
-  <!-- ✅ IMPORTANT: Your <script> block stays the same (unchanged). -->
-  <!-- Paste your existing script exactly as-is below this line. -->
-
 <script>
-/* KEEP YOUR EXISTING SCRIPT EXACTLY AS YOU POSTED IT */
+console.log("🔥 SCRIPT STARTED");
+/* ==========================================
+   TRACE INVENTORY - UNIFIED JAVASCRIPT
+   With Workflow Tracking Integrated
+========================================== */
+
+// ====== CONSTANTS & CONFIG ======
+const API_BASE = "https://trace-api-sak3.onrender.com";
+const ADMIN_PIN = "4793";
+const MACHINES = ["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane"];
+
+// ====== AUTH STATE ======
+const AUTH = {
+  token: localStorage.getItem("trace_token") || null,
+  role:  localStorage.getItem("trace_role")  || "forklift",
+  email: localStorage.getItem("trace_email") || ""
+};
+
+function setAuth({ token, role, email }) {
+  AUTH.token = token || null;
+  AUTH.role  = role  || "forklift";
+  AUTH.email = email || "";
+
+  if (AUTH.token) localStorage.setItem("trace_token", AUTH.token);
+  else localStorage.removeItem("trace_token");
+
+  localStorage.setItem("trace_role", AUTH.role);
+  localStorage.setItem("trace_email", AUTH.email);
+}
+
+function authHeaders(extra = {}) {
+  return {
+    ...extra,
+    ...(AUTH.token ? { "Authorization": `Bearer ${AUTH.token}` } : {})
+  };
+}
+
+async function apiFetch(path, opts = {}) {
+  const url = API_BASE + path;
+  const headers = authHeaders({
+    "Content-Type": "application/json",
+    ...(opts.headers || {})
+  });
+
+  const res = await fetch(url, { ...opts, headers });
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+async function doLogin(email, password) {
+  return apiFetch("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({
+      email: email,
+      username: email,
+      password: password
+    })
+  });
+}
+
+// ====== LOGIN UI ======
+function showLogin() {
+  const el = document.getElementById("loginOverlay");
+  if (el) el.style.display = "flex";
+}
+function hideLogin() {
+  const el = document.getElementById("loginOverlay");
+  if (el) el.style.display = "none";
+}
+function wireLoginUI() {
+  const btn = document.getElementById("loginBtn");
+  const msg = document.getElementById("loginMsg");
+  const emailEl = document.getElementById("loginEmail");
+  const passEl  = document.getElementById("loginPass");
+  console.log("🔍 LOGIN ELEMENTS:", { btn, msg, emailEl, passEl });
+  if (!btn || !msg || !emailEl || !passEl) return;
+
+  async function submit() {
+    msg.textContent = "";
+    btn.disabled = true;
+    const old = btn.textContent;
+    btn.textContent = "Logging in...";
+
+    const email = emailEl.value.trim();
+    const pass  = passEl.value;
+
+    try {
+      const r = await doLogin(email, pass);
+      if (!r || r.ok === false) throw new Error(r?.error || "Login failed");
+
+      setAuth({
+        token: r.token,
+        role:  r.user?.role || "forklift",
+        email: r.user?.email || email
+      });
+
+      hideLogin();
+      await startAfterLogin();
+    } catch (e) {
+      console.error("Login error:", e);
+      msg.textContent = e.message || "Login failed - check console for details";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = old || "Login";
+    }
+  }
+
+  btn.addEventListener("click", submit);
+  passEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") submit();
+  });
+}
+
+// ====== INTRO ANIMATION ======
+function playTraceIntro() {
+  return new Promise((resolve) => {
+    const steps = [
+      "INITIALIZING SYSTEMS",
+      "SYNCING LOCATIONS",
+      "VERIFYING INVENTORY",
+      "AUTH READY",
+      "SYSTEM ONLINE"
+    ];
+
+    const hudText = document.getElementById("traceHudText");
+    const boot = document.getElementById("traceBoot");
+    const appRoot = document.getElementById("appRoot");
+
+    if (!boot || !appRoot || !hudText) {
+      if (appRoot) {
+        appRoot.classList.remove("isHidden");
+        appRoot.classList.add("isVisible");
+      }
+      if (boot) boot.remove();
+      return resolve();
+    }
+
+    const seen = sessionStorage.getItem("trace_intro_seen") === "1";
+    if (seen) {
+      boot.remove();
+      appRoot.classList.remove("isHidden");
+      appRoot.classList.add("isVisible");
+      return resolve();
+    }
+
+    let i = 0;
+    const stepMs = 780;
+
+    const timer = setInterval(() => {
+      i++;
+      if (i >= steps.length) {
+        clearInterval(timer);
+        sessionStorage.setItem("trace_intro_seen", "1");
+
+        appRoot.classList.remove("isHidden");
+        appRoot.classList.add("isVisible");
+
+        setTimeout(() => {
+          boot.classList.add("fade");
+          boot.setAttribute("aria-hidden", "true");
+          setTimeout(() => {
+            boot.remove();
+            resolve();
+          }, 1100);
+        }, 650);
+
+        return;
+      }
+      hudText.textContent = steps[i];
+    }, stepMs);
+  });
+}
+
+// ====== AFTER LOGIN ======
+async function startAfterLogin() {
+  await playTraceIntro();
+  if (typeof window.initApp === "function") await window.initApp();
+}
+
+// ====== DIALOG SYSTEM (SAFE INIT) ======
+(function initDialog(){
+  const d = {
+    overlay: document.getElementById("dialogOverlay"),
+    title: document.getElementById("dialogTitle"),
+    msg: document.getElementById("dialogMsg"),
+    inputWrap: document.getElementById("dialogInputWrap"),
+    input: document.getElementById("dialogInput"),
+    hint: document.getElementById("dialogHint"),
+    ok: document.getElementById("dialogOkBtn"),
+    cancel: document.getElementById("dialogCancelBtn"),
+    close: document.getElementById("dialogCloseBtn"),
+  };
+
+  // ✅ If any required element is missing, don’t crash the entire app
+  const required = ["overlay","title","msg","inputWrap","input","hint","ok","cancel","close"];
+  for (const k of required){
+    if (!d[k]) {
+      console.warn("Dialog init skipped, missing:", k);
+      return;
+    }
+  }
+
+  let resolver = null;
+
+  function close(result){
+    const capturedValue = d.input.value;
+    d.overlay.classList.remove("show");
+    d.input.value = "";
+    d.hint.textContent = "";
+    d.inputWrap.style.display = "none";
+
+    if(resolver){
+      resolver({ ...result, value: capturedValue });
+      resolver = null;
+    }
+  }
+
+  d.ok.addEventListener("click", () => close({ ok:true, value:d.input.value }));
+  d.cancel.addEventListener("click", () => close({ ok:false }));
+  d.close.addEventListener("click", () => close({ ok:false }));
+  d.overlay.addEventListener("click", (e) => { if(e.target === d.overlay) close({ ok:false }); });
+
+  window.uiAlert = function(title, message){
+    d.title.textContent = title || "TRACE";
+    d.msg.textContent = message || "";
+    d.cancel.style.display = "none";
+    d.ok.textContent = "OK";
+    d.inputWrap.style.display = "none";
+    d.overlay.classList.add("show");
+    return new Promise(res => { resolver = () => res(true); });
+  };
+
+  window.uiConfirm = function(title, message, okText="OK", cancelText="Cancel"){
+    d.title.textContent = title || "TRACE";
+    d.msg.textContent = message || "";
+    d.cancel.style.display = "inline-block";
+    d.cancel.textContent = cancelText;
+    d.ok.textContent = okText;
+    d.inputWrap.style.display = "none";
+    d.overlay.classList.add("show");
+    return new Promise(res => { resolver = (r) => res(!!r.ok); });
+  };
+
+  window.uiPrompt = function(title, message, { placeholder="Enter value...", hint="", mask=true } = {}){
+    d.title.textContent = title || "TRACE";
+    d.msg.textContent = message || "";
+    d.cancel.style.display = "inline-block";
+    d.cancel.textContent = "Cancel";
+    d.ok.textContent = "OK";
+    d.inputWrap.style.display = "block";
+    d.input.type = mask ? "password" : "text";
+    d.input.placeholder = placeholder;
+    d.hint.textContent = hint || "";
+    d.overlay.classList.add("show");
+    setTimeout(() => d.input.focus(), 50);
+    return new Promise(res => {
+      resolver = (r) => res(r.ok ? (r.value ?? "") : null);
+    });
+  };
+})();
+
+
+// ====== API HELPERS ======
+async function apiGet(path){ return apiFetch(path, { method:"GET" }); }
+async function apiPost(path, body){ return apiFetch(path, { method:"POST", body: JSON.stringify(body) }); }
+async function apiPut(path, body){ return apiFetch(path, { method:"PUT", body: JSON.stringify(body) }); }
+async function apiDelete(path){ return apiFetch(path, { method:"DELETE" }); }
+
+// Health check
+apiGet("/health")
+  .then(d => console.log("✅ API CONNECTED", d))
+  .catch(e => console.warn("⚠️ API health check failed:", e.message));
+
+// ====== DOM ELEMENTS ======
+const els = {
+  roleSelect: document.getElementById("roleSelect"),
+  adminUnlockBtn: document.getElementById("adminUnlockBtn"),
+  adminLockBtn: document.getElementById("adminLockBtn"),
+  globalSearch: document.getElementById("globalSearch"),
+  globalResults: document.getElementById("globalResults"),
+  laneGrid: document.getElementById("laneGrid"),
+  laneTitle: document.getElementById("laneTitle"),
+  laneCount: document.getElementById("laneCount"),
+  laneSearch: document.getElementById("laneSearch"),
+  laneResults: document.getElementById("laneResults"),
+  machineGrid: document.getElementById("machineGrid"),
+  machineTitle: document.getElementById("machineTitle"),
+  machineCount: document.getElementById("machineCount"),
+  machineSearch: document.getElementById("machineSearch"),
+  machineResults: document.getElementById("machineResults"),
+  moveOverlay: document.getElementById("moveOverlay"),
+  moveTitle: document.getElementById("moveTitle"),
+  moveCloseBtn: document.getElementById("moveCloseBtn"),
+  moveLaneGrid: document.getElementById("moveLaneGrid"),
+  moveMachineGrid: document.getElementById("moveMachineGrid"),
+  job: document.getElementById("job"),
+  mo: document.getElementById("mo"),
+  qty: document.getElementById("qty"),
+  status: document.getElementById("status"),
+  notes: document.getElementById("notes"),
+  updatedBy: document.getElementById("updatedBy"),
+  saveBtn: document.getElementById("saveBtn"),
+  newBtn: document.getElementById("newBtn"),
+  deleteBtn: document.getElementById("deleteBtn"),
+  historyBtn: document.getElementById("historyBtn"),
+  clearHistoryBtn: document.getElementById("clearHistoryBtn"),
+  historyPanel: document.getElementById("historyPanel"),
+  historySearch: document.getElementById("historySearch"),
+  historyResults: document.getElementById("historyResults"),
+};
+ 
+// ====== TOP BAR MOUNTING ======
+function mountTopBarControls(){
+  const roleMount = document.getElementById("roleMount");
+  const adminMount = document.getElementById("adminMount");
+  const historyMount = document.getElementById("historyMount");
+  const logoutMount = document.getElementById("logoutMount");
+
+  if (els.roleSelect && roleMount && !roleMount.contains(els.roleSelect)) {
+    roleMount.appendChild(els.roleSelect);
+  }
+
+  if (els.adminUnlockBtn && adminMount && !adminMount.contains(els.adminUnlockBtn)) {
+    adminMount.appendChild(els.adminUnlockBtn);
+    els.adminUnlockBtn.classList.add("btnOutline");
+  }
+  if (els.adminLockBtn && adminMount && !adminMount.contains(els.adminLockBtn)) {
+    adminMount.appendChild(els.adminLockBtn);
+    els.adminLockBtn.classList.add("btnAdminOn");
+  }
+
+  if (els.historyBtn && historyMount && !historyMount.contains(els.historyBtn)) {
+    historyMount.appendChild(els.historyBtn);
+  }
+  const logoutBtnEl = document.getElementById("logoutBtn");
+  if (logoutBtnEl && logoutMount && !logoutMount.contains(logoutBtnEl)) {
+    logoutMount.appendChild(logoutBtnEl);
+  }
+}
+
+// ====== HELPERS ======
+function normalize(s){ return (s ?? "").trim().toLowerCase(); }
+function cleanJob(s){
+  return String(s ?? "").trim().toUpperCase().replace(/[^A-Z0-9-]/g, "");
+}
+function escapeHtml(s){
+  return String(s ?? "")
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+function pick(obj, keys){
+  for(const k of keys){
+    if(obj && obj[k] !== undefined && obj[k] !== null) return obj[k];
+  }
+  return undefined;
+}
+
+function formatTimestamp(ts){
+  if(!ts) return "";
+  const d = new Date(ts);
+  if (isNaN(d)) return "";
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  });
+}
+
+// ====== WORKFLOW HELPERS ======
+function getStatusBadge(status) {
+  const s = String(status || "").toUpperCase();
+  const badges = {
+    'QUEUED':   '<span class="statusBadge queued">QUEUED</span>',
+    'PRINTING': '<span class="statusBadge printing">PRINTING</span>',
+    'DONE':     '<span class="statusBadge done">DONE</span>',
+    'HOLD':     '<span class="statusBadge hold">HOLD</span>'
+  };
+  return badges[s] || '';
+}
+
+function renderWorkflowButtons(item) {
+  const canEdit = (role === 'machine') || (role === 'admin' && adminUnlocked);
+  if (!canEdit) return '';
+
+  const ws = String(item.workflow_status || 'QUEUED').toUpperCase();
+  const buttons = [];
+
+  if (ws === 'QUEUED' || ws === 'HOLD') {
+    buttons.push(`<button class="workflowBtn start primary" data-action="start" data-id="${item.id}">▶️ Start Printing</button>`);
+  }
+
+  if (ws === 'PRINTING') {
+    buttons.push(`<button class="workflowBtn done primary" data-action="done" data-id="${item.id}">✓ Mark Done</button>`);
+  }
+
+  if (ws !== 'HOLD' && ws !== 'DONE') {
+    buttons.push(`<button class="workflowBtn hold danger" data-action="hold" data-id="${item.id}">⛔ Hold</button>`);
+  }
+
+  if (ws === 'HOLD') {
+    buttons.push(`<button class="workflowBtn start primary" data-action="resume" data-id="${item.id}">↩️ Resume</button>`);
+  }
+
+  return buttons.length
+    ? `<div class="btnRow" style="margin-top:10px;gap:8px;">${buttons.join('')}</div>`
+    : '';
+}
+
+async function handleWorkflowAction(action, itemId) {
+  const item = inventory.find(x => x.id === parseInt(itemId));
+  if (!item) {
+    await uiAlert('Error', 'Item not found');
+    return;
+  }
+  
+  let newStatus;
+  let confirmMsg;
+  
+  switch(action) {
+    case 'start':
+      newStatus = 'PRINTING';
+      confirmMsg = `Start printing Item #${item.job}?`;
+      break;
+    case 'done':
+      newStatus = 'DONE';
+      confirmMsg = `Mark Item #${item.job} as DONE?`;
+      break;
+    case 'hold':
+      newStatus = 'HOLD';
+      confirmMsg = `Move Item #${item.job} to HOLD?`;
+      break;
+    case 'resume':
+      newStatus = 'QUEUED';
+      confirmMsg = `Resume Item #${item.job} from HOLD?`;
+      break;
+    default:
+      return;
+  }
+  
+  const ok = await uiConfirm('Confirm Action', confirmMsg, 'Confirm', 'Cancel');
+  if (!ok) return;
+  
+  const initials = await uiPrompt(
+    'Enter Initials', 
+    'Who is performing this action?',
+    { placeholder: 'e.g. JD', mask: false }
+  );
+  
+  if (!initials) return;
+  
+  try {
+    await apiFetch(`/items/${itemId}/workflow`, {
+  method: "PUT",
+  body: JSON.stringify({
+    workflow_status: newStatus,
+    updated_by: initials.trim()
+  })
+});
+    
+    await loadInventory();
+    renderLaneList();
+    renderMachineList();
+    renderGlobalSearch();
+    
+    if (currentMode === 'queue') renderQueueView();
+    if (currentMode === 'hold') renderHoldView();
+    
+    await uiAlert('Success', `Item #${item.job} → ${newStatus}`);
+    
+  } catch (err) {
+    console.error('Workflow action failed:', err);
+    await uiAlert('Action Failed', err.message || 'Failed to update status');
+  }
+}
+
+// ====== STATE ======
+let rawItems = [];
+let rawLocations = [];
+let locations = [];
+let locById = new Map();
+let locIdByLane = new Map();
+let locIdByMachine = new Map();
+let inventory = [];
+let selectedLane = "Lane 1";
+let selectedMachine = MACHINES[0];
+let selectedId = null;
+let selectedLocation = { type:"lane", value:"Lane 1" };
+let role = "forklift";
+let adminUnlocked = false;
+let moveTargetId = null;
+let currentMode = 'lanes';
+
+// ====== LOCATION MAPPING ======
+function mapLocations(raw){
+  const arr = Array.isArray(raw) ? raw : [];
+  return arr.map(r => {
+    const location_id = Number(pick(r, ["location_id","id","locationId"]));
+    const laneVal = pick(r, ["lane","lane_number","laneNum","lane_no","lane_id"]);
+    const machineVal = pick(r, ["machine","machine_name","machineName","name","label"]);
+
+    const laneNum = (laneVal !== undefined && laneVal !== null && String(laneVal).trim() !== "")
+      ? Number(String(laneVal).replace(/\D/g,""))
+      : null;
+
+    const machineName = (machineVal !== undefined && machineVal !== null && String(machineVal).trim() !== "")
+      ? String(machineVal).trim()
+      : "";
+
+    const type = machineName ? "machine" : (laneNum ? "lane" : "unknown");
+    const label = type === "lane" ? `Lane ${laneNum}` : (type === "machine" ? machineName : "");
+
+    return { location_id, type, laneNum, machineName, label, raw:r };
+  }).filter(x => Number.isFinite(x.location_id));
+}
+
+function buildLocationIndexes(){
+  locById = new Map();
+  locIdByLane = new Map();
+  locIdByMachine = new Map();
+
+  locations.forEach(l => {
+    locById.set(l.location_id, l);
+    if(l.type === "lane" && l.laneNum){
+      locIdByLane.set(`Lane ${l.laneNum}`, l.location_id);
+    }
+    if(l.type === "machine" && l.machineName){
+      locIdByMachine.set(l.machineName, l.location_id);
+    }
+  });
+}
+
+function mapItemsToUI(raw){
+  const arr = Array.isArray(raw) ? raw : [];
+  return arr.map(it => {
+    const id = Number(pick(it, ["item_id","id","itemId"]));
+    const job = cleanJob(pick(it, ["job_number","job","jobNumber","sku"]) ?? "");
+    const mo = cleanJob(pick(it, ["mo","mo_number","moNumber","mo_id","moId"]) ?? "");
+    const qty = parseInt(it.qty || "0", 10) || 0;
+    const workflow_status = (pick(it, ["workflow_status"]) ?? "QUEUED")
+     .toString().trim().toUpperCase();
+    const status = (pick(it, ["status"]) ?? "").toString().trim().toUpperCase();
+    const notes  = (pick(it, ["notes"]) ?? "").toString();
+    const updatedBy = (pick(it, ["updated_by","updatedBy"]) ?? "").toString();
+    const createdAt = (pick(it, ["created_at","createdAt"]) ?? "").toString();
+    const updatedAt = (pick(it, ["updated_at","updatedAt"]) ?? "").toString();
+    const location_id = pick(it, ["location_id","locationId"]);
+    const loc = locById.get(Number(location_id));
+
+    const lane = (loc && loc.type === "lane") ? `Lane ${loc.laneNum}` : "";
+    const machine = (loc && loc.type === "machine") ? loc.machineName : "";
+    
+    const started_at = (pick(it, ["started_at","startedAt"]) ?? "").toString();
+    const completed_at = (pick(it, ["completed_at","completedAt"]) ?? "").toString();
+    const held_at = (pick(it, ["held_at","heldAt"]) ?? "").toString();
+
+      return {
+      id,
+      job,
+      mo,
+      qty,
+      workflow_status,
+      status,
+      notes,
+      updatedBy,
+      createdAt,
+      updatedAt,
+      location_id: (location_id !== undefined && location_id !== null) ? Number(location_id) : null,
+      lane,
+      machine,
+      started_at,
+      completed_at,
+      held_at
+    };
+
+  }).filter(x => String(x.job).length > 0 && normalize(x.status) !== "deleted");
+}
+
+// ====== LOADERS ======
+async function loadLocations(){
+  const data = await apiGet("/locations");
+  rawLocations = Array.isArray(data) ? data : (data.locations || data.rows || []);
+  locations = mapLocations(rawLocations);
+  buildLocationIndexes();
+}
+
+async function loadInventory(){
+  const data = await apiGet("/items");
+  rawItems = Array.isArray(data) ? data : (data.items || data.rows || []);
+  inventory = mapItemsToUI(rawItems);
+  window.inventory = inventory;
+}
+
+// ====== ROLE MANAGEMENT ======
+function setRole(nextRole){
+  role = nextRole;
+  window.role = role;
+  window.adminUnlocked = adminUnlocked;
+  if(role !== "admin"){
+    adminUnlocked = false;
+    window.adminUnlocked = adminUnlocked;
+    if (els.adminLockBtn) els.adminLockBtn.style.display = "none";
+    if (els.adminUnlockBtn) els.adminUnlockBtn.style.display = "inline-block";
+  }
+  updateRoleUI();
+  renderLaneList();
+  renderMachineList();
+  renderGlobalSearch();
+  window.adminUnlocked = adminUnlocked;
+}
+
+function updateRoleUI(){
+  const r = role;
+
+  const canDelete = (r === "admin" && adminUnlocked);
+  if (els.deleteBtn) els.deleteBtn.disabled = !canDelete || !selectedId;
+
+  const forklift = (r === "forklift");
+  const admin = (r === "admin" && adminUnlocked);
+  const canCreate = admin;
+  const hasSelection = !!selectedId;
+
+  if (els.job) els.job.disabled = hasSelection || !canCreate;
+  if (els.qty) els.qty.disabled = forklift;
+  if (els.status) els.status.disabled = forklift;
+  if (els.notes) els.notes.disabled = forklift;
+  if (els.updatedBy) els.updatedBy.disabled = forklift;
+
+  if (els.saveBtn) els.saveBtn.disabled = forklift;
+  if (els.newBtn) els.newBtn.disabled = forklift;
+}
+
+// ====== HISTORY (DB-backed) ======
+let deletedDbCache = [];
+
+async function refreshHistoryFromDb(){
+  try{
+    const d = await apiGet("/deleted-items");
+    deletedDbCache = Array.isArray(d.deleted) ? d.deleted : [];
+  }catch(e){
+    console.error("HISTORY LOAD FAILED", e);
+    deletedDbCache = [];
+    await uiAlert("History Failed", "Could not load deleted history from API.");
+  }
+}
+
+function renderHistory(){
+  const q = normalize(els.historySearch?.value || "");
+  let list = deletedDbCache;
+
+  if(q){
+    list = list.filter(x =>
+      normalize(x.job_number).includes(q) ||
+      normalize(x.description).includes(q) ||
+      normalize(x.deleted_by).includes(q) ||
+      normalize(x.delete_reason).includes(q)
+    );
+  }
+
+  els.historyResults.innerHTML = "";
+
+  if(list.length === 0){
+    els.historyResults.innerHTML = `<div style="color:var(--muted)">No deleted jobs yet.</div>`;
+    return;
+  }
+
+  list.slice(0, 120).forEach(item => {
+    const lane = item.lane ? `Lane ${item.lane}` : "";
+    const mach = item.machine ? `Machine ${item.machine}` : "";
+    const from = mach || lane || "—";
+
+    const div = document.createElement("div");
+    div.className = "resultItem";
+    div.innerHTML = `
+      <div class="big">Job #${escapeHtml(item.job_number || "")}</div>
+      <div class="meta">${escapeHtml(item.description || "—")}</div>
+      <div class="meta">
+        Deleted: ${escapeHtml(item.deleted_at || "")}
+        ${item.deleted_by ? ` • By: ${escapeHtml(item.deleted_by)}` : ""}
+        ${item.delete_reason ? ` • Reason: ${escapeHtml(item.delete_reason)}` : ""}
+        • From: ${escapeHtml(from)}
+      </div>
+    `;
+    els.historyResults.appendChild(div);
+  });
+}
+
+if (els.clearHistoryBtn) {
+  els.clearHistoryBtn.addEventListener("click", async () => {
+    if (role !== "admin" || !adminUnlocked) {
+      await uiAlert("Permission Denied", "Admin only.");
+      return;
+    }
+
+    const ok = await uiConfirm(
+      "Clear History",
+      "This will permanently delete deleted jobs older than 7 days.",
+      "Clear",
+      "Cancel"
+    );
+    if (!ok) return;
+
+    try {
+      await apiDelete("/deleted-items/cleanup?days=7");
+      await refreshHistoryFromDb();
+      renderHistory();
+      await uiAlert("History Cleaned", "Old deleted jobs were removed.");
+    } catch (e) {
+      console.error("Clear history failed:", e);
+      await uiAlert("Error", "Failed to clear history.");
+    }
+  });
+}
+
+// ====== WORKFLOW VIEWS ======
+async function renderQueueView() {
+  try {
+    const data = await apiGet('/items?view=queue');
+    const rows = Array.isArray(data) ? data : (data.items || data.rows || []);
+    const queueItems = mapItemsToUI(rows);
+    
+    els.globalResults.innerHTML = '';
+    
+    if (queueItems.length === 0) {
+      els.globalResults.innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center;">Queue is empty</div>';
+      document.getElementById('queueCount').textContent = '0';
+      return;
+    }
+    
+    queueItems.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'resultItem';
+      
+      const statusBadge = getStatusBadge(item.workflow_status);
+      const notes = item.notes ? escapeHtml(item.notes) : '—';
+      
+      div.innerHTML = `
+        <div class="big">Item #${escapeHtml(item.job)} ${statusBadge}</div>
+        ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ''}
+        <div class="qty">Qty: ${item.qty} • Status: ${escapeHtml(item.status)}</div>
+        <div class="meta">Notes: ${notes}</div>
+        ${renderWorkflowButtons(item)}
+      `;
+      
+      div.querySelectorAll('[data-action]').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          await handleWorkflowAction(btn.dataset.action, btn.dataset.id);
+        });
+      });
+      
+      div.addEventListener('click', () => loadToForm(item.id));
+      els.globalResults.appendChild(div);
+    });
+    
+    document.getElementById('queueCount').textContent = queueItems.length;
+  } catch (err) {
+    console.error('Failed to load queue:', err);
+    els.globalResults.innerHTML = '<div style="color:var(--bad)">Failed to load queue</div>';
+  }
+}
+
+async function renderHoldView() {
+  try {
+    const data = await apiGet('/items?view=hold');
+    const rows = Array.isArray(data) ? data : (data.items || data.rows || []);
+    const holdItems = mapItemsToUI(rows);
+    
+    els.globalResults.innerHTML = '';
+    
+    if (holdItems.length === 0) {
+      els.globalResults.innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center;">No items on hold</div>';
+      document.getElementById('holdCount').textContent = '0';
+      return;
+    }
+    
+    holdItems.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'resultItem';
+      
+      const statusBadge = getStatusBadge(item.workflow_status);
+      const notes = item.notes ? escapeHtml(item.notes) : '—';
+      const heldAt = item.held_at ? formatTimestamp(item.held_at) : '—';
+      
+      div.innerHTML = `
+        <div class="big">Item #${escapeHtml(item.job)} ${statusBadge}</div>
+        ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ''}
+        <div class="qty">Qty: ${item.qty}</div>
+        <div class="meta">Held: ${heldAt} • Notes: ${notes}</div>
+        ${renderWorkflowButtons(item)}
+      `;
+      
+      div.querySelectorAll('[data-action]').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          await handleWorkflowAction(btn.dataset.action, btn.dataset.id);
+        });
+      });
+      
+      div.addEventListener('click', () => loadToForm(item.id));
+      els.globalResults.appendChild(div);
+    });
+    
+    document.getElementById('holdCount').textContent = holdItems.length;
+  } catch (err) {
+    console.error('Failed to load hold items:', err);
+    els.globalResults.innerHTML = '<div style="color:var(--bad)">Failed to load hold items</div>';
+  }
+}
+
+async function renderCompletedToday() {
+  const panel = document.getElementById('completedPanel');
+  const results = document.getElementById('completedResults');
+  
+  if (!panel || !results) return;
+  
+  try {
+    const data = await apiGet('/items/completed/today');
+    const completed = Array.isArray(data.completed) ? data.completed : [];
+    
+    results.innerHTML = '';
+    document.getElementById('completedCount').textContent = completed.length;
+    
+    if (completed.length === 0) {
+      results.innerHTML = '<div style="color:var(--muted);padding:10px;">No jobs completed today</div>';
+      return;
+    }
+    
+    const mapped = mapItemsToUI(completed);
+    
+    mapped.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'resultItem';
+      
+      const completedAt = item.completed_at ? formatTimestamp(item.completed_at) : '—';
+      const notes = item.notes ? escapeHtml(item.notes) : '—';
+      
+      div.innerHTML = `
+        <div class="big">Item #${escapeHtml(item.job)} <span class="statusBadge done">DONE</span></div>
+        ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ''}
+        <div class="qty">Qty: ${item.qty}</div>
+        <div class="meta">Completed: ${completedAt} • Notes: ${notes}</div>
+      `;
+      
+      results.appendChild(div);
+    });
+    
+  } catch (err) {
+    console.error('Failed to load completed items:', err);
+    results.innerHTML = '<div style="color:var(--bad)">Failed to load completed items</div>';
+  }
+}
+
+// ====== BUTTON BUILDERS ======
+function buildLaneButtons(){
+  els.laneGrid.innerHTML = "";
+  for(let i=1;i<=12;i++){
+    const lane = `Lane ${i}`;
+    const btn = document.createElement("div");
+    btn.className = "laneBtn" + (lane===selectedLane ? " active" : "");
+    btn.textContent = lane;
+    btn.addEventListener("click", () => selectLane(lane));
+    els.laneGrid.appendChild(btn);
+  }
+}
+
+function buildMachineButtons(){
+  els.machineGrid.innerHTML = "";
+  MACHINES.forEach(m => {
+    const btn = document.createElement("div");
+    btn.className = "laneBtn" + (m===selectedMachine ? " active" : "");
+    btn.textContent = m;
+    btn.addEventListener("click", () => selectMachine(m));
+    els.machineGrid.appendChild(btn);
+  });
+}
+
+// ====== SELECTORS ======
+function selectLane(lane){
+  selectedLane = lane;
+  selectedLocation = { type:"lane", value: lane };
+  selectedId = null;
+  buildLaneButtons();
+  els.laneTitle.textContent = lane;
+  els.laneSearch.value = "";
+  clearForm();
+  renderLaneList();
+  renderGlobalSearch();
+}
+
+function selectMachine(m){
+  selectedMachine = m;
+  selectedLocation = { type:"machine", value: m };
+  selectedId = null;
+  buildMachineButtons();
+  els.machineTitle.textContent = `Machine: ${m}`;
+  els.machineSearch.value = "";
+  clearForm();
+  renderMachineList();
+  renderGlobalSearch();
+}
+
+function getSelectedLocationId(){
+  if(selectedLocation.type === "lane"){
+    return locIdByLane.get(selectedLocation.value) ?? null;
+  }
+  if(selectedLocation.type === "machine"){
+    return locIdByMachine.get(selectedLocation.value) ?? null;
+  }
+  return null;
+}
+
+// ====== RENDER LISTS ======
+function renderLaneList(){
+  const q = normalize(els.laneSearch.value);
+  const laneItemsAll = inventory.filter(x => String(x.lane ?? '') === selectedLane);
+
+  let laneItems = laneItemsAll;
+  if(q){
+    laneItems = laneItemsAll.filter(x =>
+      normalize(x.job).includes(q) ||
+      normalize(x.status).includes(q) || normalize(x.workflow_status).includes(q)
+    );
+  }
+
+  els.laneCount.textContent = `${laneItemsAll.length} items`;
+  els.laneResults.innerHTML = '';
+
+  if(laneItemsAll.length === 0){
+    els.laneResults.innerHTML = `<div style="color:var(--muted)">Empty lane.</div>`;
+    return;
+  }
+  if(laneItems.length === 0){
+    els.laneResults.innerHTML = `<div style="color:var(--muted)">No match in this lane.</div>`;
+    return;
+  }
+
+  laneItems.sort((a,b) => (parseInt(a.job,10)||0) - (parseInt(b.job,10)||0));
+
+  laneItems.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'resultItem' + (item.id===selectedId ? ' active' : '');
+
+    const by = item.updatedBy ? ` • By: ${escapeHtml(item.updatedBy)}` : '';
+    const at = item.updatedAt ? ` • Updated ${escapeHtml(formatTimestamp(item.updatedAt))}` : '';
+    const itemStatus = item.status ? escapeHtml(item.status) : '—';
+    const notes = item.notes ? escapeHtml(item.notes) : '—';
+    const statusBadge = getStatusBadge(item.workflow_status);
+
+    div.innerHTML = `
+      <div class="big">Item #${escapeHtml(item.job)} ${statusBadge}</div>
+      ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ''}
+      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${itemStatus}</div>
+      <div class="meta">${escapeHtml(item.lane)} • Notes: ${notes}${by}${at}</div>
+      ${renderWorkflowButtons(item)}
+    `;
+    
+    div.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await handleWorkflowAction(btn.dataset.action, btn.dataset.id);
+      });
+    });
+    
+    div.addEventListener('click', ()=> loadToForm(item.id));
+    els.laneResults.appendChild(div);
+  });
+}
+
+function renderMachineList(){
+  const q = normalize(els.machineSearch.value);
+  const machineItemsAll = inventory.filter(x => String(x.machine ?? '') === selectedMachine);
+
+  let machineItems = machineItemsAll;
+  if(q){
+    machineItems = machineItemsAll.filter(x =>
+      normalize(x.job).includes(q) ||
+      normalize(x.status).includes(q)
+    );
+  }
+
+  els.machineCount.textContent = `${machineItemsAll.length} jobs`;
+  els.machineResults.innerHTML = '';
+
+  if(machineItemsAll.length === 0){
+    els.machineResults.innerHTML = `<div style="color:var(--muted)">Empty machine.</div>`;
+    return;
+  }
+  if(machineItems.length === 0){
+    els.machineResults.innerHTML = `<div style="color:var(--muted)">No match on this machine.</div>`;
+    return;
+  }
+
+  machineItems.sort((a,b) => (parseInt(a.job,10)||0) - (parseInt(b.job,10)||0));
+
+  machineItems.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'resultItem' + (item.id===selectedId ? ' active' : '');
+
+    const by = item.updatedBy ? ` • By: ${escapeHtml(item.updatedBy)}` : '';
+    const at = item.updatedAt ? ` • Updated ${escapeHtml(formatTimestamp(item.updatedAt))}` : '';
+    const itemStatus = item.status ? escapeHtml(item.status) : '—';
+    const notes = item.notes ? escapeHtml(item.notes) : '—';
+    const statusBadge = getStatusBadge(item.workflow_status);
+
+    div.innerHTML = `
+      <div class="big">Item #${escapeHtml(item.job)} ${statusBadge}</div>
+      ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ''}
+      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${itemStatus}</div>
+      <div class="meta">Machine: ${escapeHtml(item.machine)} • Notes: ${notes}${by}${at}</div>
+      ${renderWorkflowButtons(item)}
+    `;
+    
+    div.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await handleWorkflowAction(btn.dataset.action, btn.dataset.id);
+      });
+    });
+    
+    div.addEventListener('click', ()=> loadToForm(item.id));
+    els.machineResults.appendChild(div);
+  });
+}
+
+function renderGlobalSearch(){
+  const q = normalize(els.globalSearch.value);
+  els.globalResults.innerHTML = '';
+
+  if(!q){
+    els.globalResults.innerHTML = `<div style="color:var(--muted)">Type a Item # or MO to search all lanes/machines.</div>`;
+    return;
+  }
+
+  const matches = inventory
+    .filter(x => normalize(x.job).includes(q) || normalize(x.mo).includes(q))
+    .slice(0, 15);
+
+  if(matches.length === 0){
+    els.globalResults.innerHTML = `<div style="color:var(--muted)">No match found.</div>`;
+    return;
+  }
+
+  matches.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'resultItem';
+
+    const itemStatus = item.status ? escapeHtml(item.status) : '—';
+    const notes = item.notes ? escapeHtml(item.notes) : '—';
+    const canMove = (role === 'forklift') || (role === 'admin' && adminUnlocked);
+    const location = item.machine
+      ? `Machine: ${escapeHtml(item.machine)}`
+      : (item.lane ? escapeHtml(item.lane) : '—');
+    const statusBadge = getStatusBadge(item.workflow_status);
+
+    div.innerHTML = `
+      <div class="big">Item #${escapeHtml(item.job)} ${statusBadge}</div>
+      ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ''}
+      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${itemStatus}</div>
+      <div class="meta">${location} • Notes: ${notes}</div>
+      ${renderWorkflowButtons(item)}
+      ${canMove ? `<div class="btnRow" style="margin-top:10px;"><button class="primary" data-move="1">Move Location</button></div>` : ''}
+    `;
+
+    const moveBtn = div.querySelector('[data-move]');
+    if(moveBtn){
+      moveBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openMoveOverlay(item.id);
+      });
+    }
+    
+    div.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await handleWorkflowAction(btn.dataset.action, btn.dataset.id);
+      });
+    });
+
+    div.addEventListener('click', () => {
+      if(item.machine) selectMachine(item.machine);
+      else if(item.lane) selectLane(item.lane);
+      loadToForm(item.id);
+    });
+
+    els.globalResults.appendChild(div);
+  });
+}
+
+// ====== FORM ======
+function clearForm(){
+  selectedId = null;
+  els.mo.value = ''; 
+  els.job.value = '';
+  els.qty.value = '';
+  els.status.value = '';
+  els.notes.value = '';
+  els.updatedBy.value = '';
+  updateRoleUI();
+}
+
+function loadToForm(id){
+  const item = inventory.find(x => x.id === id);
+  if(!item) return;
+  selectedId = id;
+
+  els.mo.value = item.mo ?? '';
+  els.job.value = item.job ?? '';
+  els.qty.value = String(item.qty ?? 0);
+  els.status.value = item.status ?? '';
+  els.notes.value = item.notes ?? '';
+  els.updatedBy.value = item.updatedBy ?? '';
+
+  updateRoleUI();
+  renderLaneList();
+  renderMachineList();
+}
+
+// ====== CRUD ======
+async function upsertItem(){
+  const machineRole = role === 'machine';
+  const admin = (role === 'admin' && adminUnlocked);
+
+  if(!(machineRole || admin)){
+    await uiAlert('Permission Denied', 'Forklift role cannot edit job details.');
+    return;
+  }
+  if(machineRole && !selectedId){
+    await uiAlert('Permission Denied', 'Machine role cannot create new jobs. Ask Admin.');
+    return;
+  }
+
+  const jobRaw = cleanJob(els.job.value).trim();
+  const moRaw  = cleanJob(els.mo.value).trim();
+
+  if(!jobRaw){
+    await uiAlert('Validation Error', 'Job # is required.');
+    els.job.focus();
+    return;
+  }
+
+  const qty = Math.max(0, parseInt(els.qty.value || '0', 10));
+  const itemStatus = (els.status.value || '').trim().slice(0, 40); // machine notes like RUNNING
+  const notes  = (els.notes.value  || '').trim().slice(0, 120);
+  const updatedBy = (els.updatedBy.value || '').trim().slice(0, 10);
+
+  const location_id = getSelectedLocationId();
+  if(!location_id){
+    await uiAlert('Location Error', `No DB mapping for selected ${selectedLocation.type}: ${selectedLocation.value}. Check /locations seed.`);
+    return;
+  }
+
+  // IMPORTANT: don't auto-force workflow_status from "status" (see section 2)
+  const payload = {
+    job_number: jobRaw,
+    mo: moRaw,
+    qty,
+    status: itemStatus,
+    notes,
+    updated_by: updatedBy,
+    location_id
+  };
+
+  if(!selectedId){
+    const exists = inventory.some(x => normalize(x.job) === normalize(jobRaw));
+    if(exists){
+      await uiAlert('Duplicate Job', 'That Job # already exists. Search it and update it instead.');
+      return;
+    }
+  }
+
+  try{
+    if(selectedId) await apiPut(`/items/${selectedId}`, payload);
+    else await apiPost(`/items`, payload);
+
+    await loadLocations();
+    await loadInventory();
+
+    renderLaneList();
+    renderMachineList();
+    renderGlobalSearch();
+
+    await uiAlert("Saved", "Job updated successfully.");
+  }catch(err){
+    console.error('SAVE FAILED', err);
+    await uiAlert('Save Failed', 'Save failed. Open DevTools → Network and check the /items request.');
+  }
+}
+
+async function deleteSelected(){
+  const admin = (role === 'admin' && adminUnlocked);
+  if(!admin){
+    await uiAlert('Permission Denied', 'Admin only.');
+    return;
+  }
+  if(!selectedId){
+    await uiAlert('No Selection', 'Select a job first.');
+    return;
+  }
+
+  const item = inventory.find(x => x.id === selectedId);
+  if(!item){
+    await uiAlert('Error', 'Could not find selected job.');
+    return;
+  }
+
+  const ok = await uiConfirm('Confirm Delete', `Delete Item #${item.job}?`, 'Delete', 'Cancel');
+  if (!ok) return;
+
+  try{
+    await apiDelete(`/items/${selectedId}`);
+
+    await loadLocations();
+    await loadInventory();
+
+    clearForm();
+    renderLaneList();
+    renderMachineList();
+    renderGlobalSearch();
+
+    if(els.historyPanel.style.display !== 'none'){
+      await refreshHistoryFromDb();
+      renderHistory();
+    }
+  }catch(err){
+    console.error('DELETE FAILED', err);
+    await uiAlert('Delete Failed', 'Delete failed. Check DevTools → Network.');
+  }
+}
+
+// ====== MOVE ======
+function openMoveOverlay(id){
+  const item = inventory.find(x => x.id === id);
+  if(!item) return;
+
+  const allowed = (role === 'forklift') || (role === 'admin' && adminUnlocked);
+  if(!allowed){
+    uiAlert('Permission Denied', 'Only Forklift (or Admin) can move jobs.');
+    return;
+  }
+
+  moveTargetId = id;
+  els.moveTitle.textContent = `Move Item #${item.job}`;
+
+  els.moveLaneGrid.innerHTML = '';
+  for(let i=1;i<=12;i++){
+    const lane = `Lane ${i}`;
+    const btn = document.createElement('div');
+    btn.className = 'laneBtn';
+    btn.textContent = lane;
+    btn.addEventListener('click', async () => {
+      await moveToLane(moveTargetId, lane);
+      closeMoveOverlay();
+    });
+    els.moveLaneGrid.appendChild(btn);
+  }
+
+  els.moveMachineGrid.innerHTML = '';
+  MACHINES.forEach(m => {
+    const btn = document.createElement('div');
+    btn.className = 'laneBtn';
+    btn.textContent = m;
+    btn.addEventListener('click', async () => {
+      await moveToMachine(moveTargetId, m);
+      closeMoveOverlay();
+    });
+    els.moveMachineGrid.appendChild(btn);
+  });
+
+  els.moveOverlay.classList.add('show');
+}
+
+function closeMoveOverlay(){
+  els.moveOverlay.classList.remove('show');
+  moveTargetId = null;
+}
+
+async function moveToLane(id, lane){
+  const location_id = locIdByLane.get(lane) ?? null;
+  if(!location_id){
+    await uiAlert('Location Error', `No DB mapping for ${lane}. Check /locations seed.`);
+    return;
+  }
+
+  try{
+    await apiPut(`/items/${id}`, { location_id });
+    await loadLocations();
+    await loadInventory();
+
+    selectLane(lane);
+    renderLaneList();
+    renderMachineList();
+    renderGlobalSearch();
+    loadToForm(id);
+  }catch(err){
+    console.error('MOVE TO LANE FAILED', err);
+    await uiAlert('Move Failed', 'Move failed. Check DevTools → Network.');
+  }
+}
+
+async function moveToMachine(id, machine){
+  const location_id = locIdByMachine.get(machine) ?? null;
+  if(!location_id){
+    await uiAlert('Location Error', `No DB mapping for machine ${machine}. Check /locations seed.`);
+    return;
+  }
+
+  try{
+    await apiPut(`/items/${id}`, { location_id });
+    await loadLocations();
+    await loadInventory();
+
+    selectMachine(machine);
+    renderLaneList();
+    renderMachineList();
+    renderGlobalSearch();
+    loadToForm(id);
+  }catch(err){
+    console.error('MOVE TO MACHINE FAILED', err);
+    await uiAlert('Move Failed', 'Move failed. Check DevTools → Network.');
+  }
+}
+
+// ====== FULLSCREEN ======
+function toggleFullscreen(){
+  if(!document.fullscreenElement){
+    document.documentElement.requestFullscreen().catch(()=>{});
+  }else{
+    document.exitFullscreen().catch(()=>{});
+  }
+}
+
+// ====== MODE SWITCHING ======
+function setMode(mode){
+  currentMode = mode;
+  
+  const tabQueue = document.getElementById('tabQueue');
+  const tabHold = document.getElementById('tabHold');
+  const tabLanes = document.getElementById('tabLanes');
+  
+  [tabQueue, tabHold, tabLanes].forEach(b => b && b.classList.remove('active'));
+  
+  const completedPanel = document.getElementById('completedPanel');
+  if (completedPanel) completedPanel.classList.remove('show');
+  
+  if (mode === 'queue') {
+    tabQueue?.classList.add('active');
+    renderQueueView();
+  } else if (mode === 'hold') {
+    tabHold?.classList.add('active');
+    renderHoldView();
+  } else {
+    tabLanes?.classList.add('active');
+    renderLaneList();
+    renderMachineList();
+  }
+}
+
+// ====== EVENTS ======
+const logoutBtn = document.getElementById('logoutBtn');
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', () => {
+    localStorage.removeItem('trace_token');
+    localStorage.removeItem('trace_role');
+    localStorage.removeItem('trace_email');
+    sessionStorage.removeItem('trace_intro_seen');
+    location.reload();
+  });
+}
+els.globalSearch.addEventListener('input', renderGlobalSearch);
+els.laneSearch.addEventListener('input', renderLaneList);
+els.machineSearch.addEventListener('input', renderMachineList);
+
+els.saveBtn.addEventListener('click', upsertItem);
+els.newBtn.addEventListener('click', clearForm);
+els.deleteBtn.addEventListener('click', deleteSelected);
+
+els.moveCloseBtn.addEventListener('click', closeMoveOverlay);
+els.moveOverlay.addEventListener('click', (e) => { if(e.target === els.moveOverlay) closeMoveOverlay(); });
+
+els.roleSelect.addEventListener('change', async (e) => {
+  const v = e.target.value;
+
+  if (v === 'admin') {
+    // If they aren't unlocked, force them to unlock instead of granting edit UI
+    if (!adminUnlocked) {
+      e.target.value = 'forklift';
+      setRole('forklift');
+      await uiAlert("Admin Locked", "Tap 'Unlock Admin' and enter the PIN.");
+      return;
+    }
+    setRole('admin');
+    return;
+  }
+
+setRole(v);
+});
+
+els.adminUnlockBtn.addEventListener('click', async () => {
+  const pin = await uiPrompt('Admin Access', 'Enter Admin PIN:', {
+    placeholder: 'PIN',
+    hint: 'Admin-only actions: create + delete + restore',
+    mask: true
+  });
+
+  if (pin === null) return;
+
+  const enteredPin = String(pin).trim();
+  if (!enteredPin) {
+    await uiAlert('Admin Access', 'PIN is required.');
+    return;
+  }
+  if (enteredPin !== ADMIN_PIN) {
+    await uiAlert('Access Denied', 'Wrong PIN.');
+    els.roleSelect.value = 'forklift';
+    setRole('forklift');
+    return;
+  }
+
+  adminUnlocked = true;
+  els.adminUnlockBtn.style.display = 'none';
+  els.adminLockBtn.style.display = 'inline-block';
+  els.roleSelect.value = 'admin';
+  setRole('admin');
+});
+
+els.adminLockBtn.addEventListener('click', () => {
+  adminUnlocked = false;
+  els.adminLockBtn.style.display = 'none';
+  els.adminUnlockBtn.style.display = 'inline-block';
+  els.roleSelect.value = 'forklift';
+  setRole('forklift');
+});
+
+els.historyBtn.addEventListener('click', async () => {
+  const open = els.historyPanel.style.display !== 'none';
+  els.historyPanel.style.display = open ? 'none' : 'block';
+
+  if(!open){
+    await refreshHistoryFromDb();
+    renderHistory();
+  }
+});
+
+els.historySearch.addEventListener('input', renderHistory);
+
+els.job.addEventListener('input', () => {
+  els.job.value = cleanJob(els.job.value);
+});
+
+els.mo.addEventListener('input', () => {
+  els.mo.value = cleanJob(els.mo.value);
+});
+
+document.addEventListener('keydown', (e) => {
+  const tag = document.activeElement?.tagName?.toLowerCase();
+  const typing =
+    tag === 'input' ||
+    tag === 'textarea' ||
+    document.documentElement?.isContentEditable;
+
+  if (typing) return;
+
+  if (e.key.toLowerCase() === 'f') toggleFullscreen();
+  if (e.key === 'Escape') closeMoveOverlay();
+
+  if (/^[1-9]$/.test(e.key)) {
+    const laneNum = parseInt(e.key, 10);
+    if (laneNum >= 1 && laneNum <= 12) selectLane(`Lane ${laneNum}`);
+  }
+});
+
+document.getElementById('tabQueue')?.addEventListener('click', () => setMode('queue'));
+document.getElementById('tabHold')?.addEventListener('click', () => setMode('hold'));
+document.getElementById('tabLanes')?.addEventListener('click', () => setMode('lanes'));
+
+const completedToggle = document.getElementById('completedToggleBtn');
+if (completedToggle) {
+  completedToggle.addEventListener('click', async () => {
+    const panel = document.getElementById('completedPanel');
+    if (!panel) return;
+    
+    const isOpen = panel.classList.contains('show');
+    
+    if (isOpen) {
+      panel.classList.remove('show');
+      completedToggle.textContent = 'Show Completed Today';
+    } else {
+      panel.classList.add('show');
+      completedToggle.textContent = 'Hide Completed';
+      await renderCompletedToday();
+    }
+  });
+}
+
+// ====== INIT (CALLED AFTER LOGIN) ======
+window.initApp = async function initApp() {
+  try {
+    buildLaneButtons();
+    buildMachineButtons();
+    mountTopBarControls();
+    els.laneTitle.textContent = selectedLane;
+    els.machineTitle.textContent = `Machine: ${selectedMachine}`;
+
+    selectedLocation = { type: 'lane', value: selectedLane };
+    setRole('forklift');
+
+    els.globalResults.innerHTML = `<div style="color:var(--muted)">Loading...</div>`;
+
+    await loadLocations();
+    await loadInventory();
+
+    renderLaneList();
+    renderMachineList();
+    renderGlobalSearch();
+
+    console.log('✅ INIT COMPLETE');
+  } catch (err) {
+    console.error('❌ Init failed:', err);
+    els.globalResults.innerHTML = `
+      <div style="color:var(--bad); font-weight:900;">API / INIT ERROR</div>
+      <div style="color:var(--muted); margin-top:6px;">
+        Check DevTools → Console + Network for /locations and /items.
+      </div>
+    `;
+  }
+};
+
+// ====== BOOT ENTRYPOINT ======
+console.log("🚀 Script loaded, attaching DOMContentLoaded...");
+
+window.addEventListener('DOMContentLoaded', async () => {
+  console.log("✅ DOMContentLoaded fired");
+  
+  wireLoginUI();
+  console.log("✅ wireLoginUI() called");
+
+  if (AUTH.token) {
+    console.log("✅ Token found, hiding login");
+    hideLogin();
+    await startAfterLogin();
+  } else {
+    console.log("✅ No token, showing login");
+    showLogin();
+  }
+});
+
+
+// ===== TRACE Assistant =====
+(() => {
+  try {
+    const fab = document.getElementById('chatFab');
+    const dock = document.getElementById('chatDock');
+    const close = document.getElementById('chatClose');
+
+    const form = document.getElementById('chatComposer');
+    const input = document.getElementById('chatInput');
+    const log = document.getElementById('chatLog');
+    const thinking = document.getElementById('chatThinking');
+
+    if (!fab || !dock || !close || !form || !input || !log || !thinking) return;
+
+    const time = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const esc = (s) =>
+      String(s ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+
+    function add(role, text) {
+      const row = document.createElement('div');
+      row.className = 'msg ' + (role === 'me' ? 'me' : 'bot');
+      row.innerHTML = `
+        <div class="bub">${esc(text)}</div>
+        <div class="time">${time()}</div>
+      `;
+      log.appendChild(row);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function open() { dock.classList.add('open'); setTimeout(() => input.focus(), 50); }
+    function shut() { dock.classList.remove('open'); }
+
+    fab.addEventListener('click', open);
+    close.addEventListener('click', shut);
+
+    function normalizeChat(s){ return String(s||'').trim().toLowerCase(); }
+
+    function findItemByAnyKey(keyRaw){
+      const inv = Array.isArray(window.inventory) ? window.inventory : (Array.isArray(inventory) ? inventory : []);
+      const key = String(keyRaw || '').trim().toUpperCase();
+      if (!key) return null;
+
+      let hit = inv.find(x => String(x.job||'').toUpperCase() === key);
+      if (hit) return hit;
+
+      hit = inv.find(x => String(x.mo||'').toUpperCase() === key);
+      if (hit) return hit;
+
+      hit = inv.find(x => String(x.job||'').toUpperCase().includes(key));
+      if (hit) return hit;
+
+      hit = inv.find(x => String(x.mo||'').toUpperCase().includes(key));
+      if (hit) return hit;
+
+      return null;
+    }
+
+    function canMoveFromChat(){
+      const r = (typeof window.role !== 'undefined') ? window.role : (typeof role !== 'undefined' ? role : 'forklift');
+      const au = (typeof window.adminUnlocked !== 'undefined') ? window.adminUnlocked : (typeof adminUnlocked !== 'undefined' ? adminUnlocked : false);
+      return (r === 'forklift') || (r === 'admin' && au);
+    }
+
+    function formatLocation(item){
+      if (item.machine) return `Machine ${item.machine}`;
+      if (item.lane) return item.lane;
+      return 'Unknown location';
+    }
+
+    async function handleChatCommand(rawText){
+      const t = normalizeChat(rawText);
+
+      if (t === 'help' || t === '?'){
+        return [
+          'Commands:',
+          '• move 16900 to lane 2',
+          '• move 16900 to s8',
+          '• where is 16900',
+          '• whats in lane 3',
+          '• whats on s8',
+          '• show queue',
+          '• show hold',
+          '• completed today',
+          '• status'
+        ].join('\n');
+      }
+
+      if (t === 'status'){
+        const r = (typeof window.role !== 'undefined') ? window.role : (typeof role !== 'undefined' ? role : 'forklift');
+        const au = (typeof window.adminUnlocked !== 'undefined') ? window.adminUnlocked : (typeof adminUnlocked !== 'undefined' ? adminUnlocked : false);
+        const effectiveRole = (r === 'admin' && au) ? 'ADMIN' : String(r || 'forklift').toUpperCase();
+        return `SYSTEM ONLINE. Role: ${effectiveRole}.`;
+      }
+
+      if (t === 'show queue' || t === 'whats in queue') {
+        if (typeof setMode === 'function') setMode('queue');
+        return 'Showing Queue view.';
+      }
+      
+      if (t === 'show hold' || t === 'whats on hold') {
+        if (typeof setMode === 'function') setMode('hold');
+        return 'Showing Hold view.';
+      }
+      
+      if (t === 'completed today' || t === 'what was completed today' || t === 'show completed') {
+        try {
+          const data = await apiGet('/items/completed/today');
+          const completed = Array.isArray(data.completed) ? data.completed : [];
+          
+          if (completed.length === 0) return 'No jobs completed today.';
+          
+          const list = completed.slice(0, 10).map(x => 
+            `• ${esc(x.job_number || x.job)} (Qty: ${x.qty || 0})`
+          ).join('\n');
+          
+          const more = completed.length > 10 ? `\n…and ${completed.length - 10} more.` : '';
+          return `Completed today (${completed.length} total):\n${list}${more}`;
+        } catch(e) {
+          return 'Failed to fetch completed items.';
+        }
+      }
+
+      let m = t.match(/^(where\s+is|where'?s)\s+(.+)$/i);
+      if (m){
+        const key = m[2].trim();
+        const item = findItemByAnyKey(key);
+        if (!item) return `I couldn't find ${key}.`;
+        return `Item ${item.job} is in ${formatLocation(item)}.`;
+      }
+
+      m = t.match(/^what'?s?\s+in\s+lane\s+(\d{1,2})$/i) || t.match(/^what\s+is\s+in\s+lane\s+(\d{1,2})$/i);
+      if (m){
+        const laneNum = Math.max(1, Math.min(12, parseInt(m[1],10)));
+        const laneLabel = `Lane ${laneNum}`;
+        const inv = Array.isArray(window.inventory) ? window.inventory : (Array.isArray(inventory) ? inventory : []);
+        const list = inv.filter(x => String(x.lane||'') === laneLabel);
+
+        if (list.length === 0) return `${laneLabel} is empty.`;
+
+        const shown = list
+          .slice(0, 25)
+          .map(x => `• ${x.job} (${x.status || '—'})`)
+          .join('\n');
+
+        const more = list.length > 25 ? `\n…and ${list.length - 25} more.` : '';
+        return `${laneLabel} has ${list.length} item(s):\n${shown}${more}`;
+      }
+
+      m = t.match(/^what'?s?\s+on\s+(?:machine\s+)?(.+)$/i);
+      if (m){
+        const machine = m[1].trim().toUpperCase();
+        const inv = Array.isArray(window.inventory) ? window.inventory : (Array.isArray(inventory) ? inventory : []);
+        const list = inv.filter(x => String(x.machine||'').toUpperCase() === machine);
+
+        if (list.length === 0) return `${machine} is empty.`;
+
+        const shown = list
+          .slice(0, 25)
+          .map(x => `• ${x.job} (${x.status || '—'})`)
+          .join('\n');
+
+        const more = list.length > 25 ? `\n…and ${list.length - 25} more.` : '';
+        return `${machine} has ${list.length} item(s):\n${shown}${more}`;
+      }
+
+      m =
+        t.match(/^(move|send|put)\s+(.+?)\s+(?:to|in)\s+lane\s+(\d{1,2})$/i) ||
+        t.match(/^(move|send|put)\s+(.+?)\s+to\s+(?:machine\s+)?(.+)$/i);
+
+      if (m){
+        if (!canMoveFromChat()){
+          return 'Permission denied. Only Forklift (or Admin) can move items.';
+        }
+
+        const key = m[2].trim();
+        const item = findItemByAnyKey(key);
+        if (!item) return `I couldn't find ${key}.`;
+
+        if (String(m[3]||'').match(/^\d{1,2}$/)){
+          const laneNum = Math.max(1, Math.min(12, parseInt(m[3],10)));
+          const laneLabel = `Lane ${laneNum}`;
+
+          if (typeof window.moveToLane === 'function') {
+            await window.moveToLane(item.id, laneLabel);
+          } else if (typeof moveToLane === 'function') {
+            await moveToLane(item.id, laneLabel);
+          } else {
+            return 'Move function not ready yet (moveToLane missing).';
+          }
+
+          return `Moved ${item.job} to ${laneLabel}.`;
+        }
+
+        const machine = String(m[3]||'').trim().toUpperCase();
+
+        if (typeof window.moveToMachine === 'function') {
+          await window.moveToMachine(item.id, machine);
+        } else if (typeof moveToMachine === 'function') {
+          await moveToMachine(item.id, machine);
+        } else {
+          return 'Move function not ready yet (moveToMachine missing).';
+        }
+
+        return `Moved ${item.job} to ${machine}.`;
+      }
+
+      return `I didn't understand that. Type "help" for commands.`;
+    }
+   
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+
+      input.value = '';
+      add('me', text);
+
+      thinking.classList.add('show');
+      try {
+        const reply = await handleChatCommand(text);
+        thinking.classList.remove('show');
+        add('bot', reply);
+      } catch (err) {
+        console.error('Chat command failed:', err);
+        thinking.classList.remove('show');
+        add('bot', 'I hit an error running that command. Check console.');
+      }
+    });
+
+    add('bot', 'SYSTEM ONLINE. Type "help" for commands.');
+  } catch (err) {
+    console.error('TRACE Assistant failed:', err);
+  }
+})();
+
 </script>
 
 </body>
