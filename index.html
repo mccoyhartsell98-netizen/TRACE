@@ -2604,19 +2604,41 @@ if (logoutBtn) {
     sessionStorage.removeItem('trace_intro_seen');
     location.reload();
   });
+if (els.globalSearch) {
+  els.globalSearch.addEventListener('input', renderGlobalSearch);
 }
-els.globalSearch.addEventListener('input', renderGlobalSearch);
-els.laneSearch.addEventListener('input', renderLaneList);
-els.machineSearch.addEventListener('input', renderMachineList);
 
-els.saveBtn.addEventListener('click', upsertItem);
-els.newBtn.addEventListener('click', clearForm);
-els.deleteBtn.addEventListener('click', deleteSelected);
+if (els.laneSearch) {
+  els.laneSearch.addEventListener('input', renderLaneList);
+}
 
-els.moveCloseBtn.addEventListener('click', closeMoveOverlay);
-els.moveOverlay.addEventListener('click', (e) => { if(e.target === els.moveOverlay) closeMoveOverlay(); });
+if (els.machineSearch) {
+  els.machineSearch.addEventListener('input', renderMachineList);
+}
 
-els.roleSelect.addEventListener('change', async (e) => {
+if (els.saveBtn) {
+  els.saveBtn.addEventListener('click', upsertItem);
+}
+
+if (els.newBtn) {
+  els.newBtn.addEventListener('click', clearForm);
+}
+
+if (els.deleteBtn) {
+  els.deleteBtn.addEventListener('click', deleteSelected);
+}
+
+if (els.moveCloseBtn) {
+  els.moveCloseBtn.addEventListener('click', closeMoveOverlay);
+}
+
+if (els.moveOverlay) {
+  els.moveOverlay.addEventListener('click', (e) => {
+    if (e.target === els.moveOverlay) closeMoveOverlay();
+  });
+}
+
+if.roleSelect.addEventListener('change', async (e) => {
   const v = e.target.value;
 
   if (v === 'admin') {
