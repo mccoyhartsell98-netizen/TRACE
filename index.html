@@ -3138,9 +3138,9 @@ window.addEventListener('DOMContentLoaded', async () => {
         return `Moved ${item.job} to ${machine}.`;
       }
 
-      return 'I didn't understand that. Type "help" for commands.';
+      return `I didn't understand that. Type "help" for commands.`;
     }
-
+   
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const text = input.value.trim();
