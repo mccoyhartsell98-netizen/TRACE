@@ -2907,16 +2907,20 @@ window.initApp = async function initApp() {
 };
 
 // ====== BOOT ENTRYPOINT ======
+console.log("🚀 Script loaded, attaching DOMContentLoaded...");
+
 window.addEventListener('DOMContentLoaded', async () => {
   console.log("✅ DOMContentLoaded fired");
-
+  
   wireLoginUI();
   console.log("✅ wireLoginUI() called");
 
   if (AUTH.token) {
+    console.log("✅ Token found, hiding login");
     hideLogin();
     await startAfterLogin();
   } else {
+    console.log("✅ No token, showing login");
     showLogin();
   }
 });
