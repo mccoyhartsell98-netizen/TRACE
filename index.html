@@ -1182,6 +1182,23 @@
 
   <div class="versionBadge">TRACE v0.8 • Internal Beta</div>
 
+<!-- MOVE OVERLAY -->
+<div class="overlay" id="moveOverlay">
+  <div class="modal">
+    <div class="modalTop">
+      <div class="modalTitle" id="moveTitle">Move</div>
+      <button class="ghost" id="moveCloseBtn">Close</button>
+    </div>
+
+    <h2>Lanes</h2>
+    <div class="laneGrid" id="moveLaneGrid"></div>
+
+    <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
+
+    <h2>Machines</h2>
+    <div class="laneGrid" id="moveMachineGrid"></div>
+  </div>
+</div>
   <!-- APP ROOT -->
   <div id="appRoot" class="appRoot isHidden">
     <div class="wrap">
@@ -1225,16 +1242,132 @@
       </div>
 
       <div class="prodDivider"></div>
+<div class="rolebar" id="rolebarOld" style="display:none;">
+  <div class="roleLeft">
+    <select id="roleSelect">
+      <option value="forklift">Forklift</option>
+      <option value="machine">Machine</option>
+      <option value="admin">Admin (locked)</option>
+    </select>
+    <button id="adminUnlockBtn" class="primary">Unlock Admin</button>
+    <button id="adminLockBtn" class="ghost" style="display:none;">Lock Admin</button>
+  </div>
 
-      <!-- (REST OF YOUR FILE IS UNCHANGED) -->
-      <!-- ✅ KEEP EVERYTHING BELOW EXACTLY AS YOU HAD IT -->
-      <!-- ... -->
+  <div style="display:flex;gap:10px;align-items:center;">
+    <button class="ghost" id="historyBtn">History</button>
+    <button class="ghost" id="logoutBtn">Logout</button>
+  </div>
+</div>
+
+<div class="grid">
+  <!-- LEFT -->
+  <div class="card">
+    <h2>Search</h2>
+
+    <div class="scroll">
+      <input id="globalSearch" type="text" placeholder="Search Item # or MO (example: 6910153 or MO-5048)">
+
+      <div class="results" id="globalResults" style="margin-top:10px;"></div>
+
+      <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
+
+      <h2 style="margin-top:0;">Lanes</h2>
+      <div class="laneGrid" id="laneGrid"></div>
+
+      <div class="laneHeader">
+        <div class="laneTitle" id="laneTitle">Lane 1</div>
+        <div class="laneCount" id="laneCount">0 items</div>
+      </div>
+      
+      <input id="laneSearch" type="text" placeholder="Filter within this lane (optional)">
+      <div class="results" id="laneResults" style="margin-top:10px;"></div>
+
+      <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
+
+      <h2 style="margin-top:0;">Machines</h2>
+      <div class="laneGrid" id="machineGrid"></div>
+      
+      <div class="laneHeader">
+        <div class="laneTitle" id="machineTitle">Machine: S8</div>
+        <div class="laneCount" id="machineCount">0 jobs</div>
+      </div>
+
+      <input id="machineSearch" type="text" placeholder="Filter within this machine (optional)">
+      <div class="results" id="machineResults" style="margin-top:10px;"></div>
+
+      <div class="hint">
+        Flow: <b>Search Item or MO</b> → <b>Move</b> → choose <b>Lane</b> or <b>Machine</b>.
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="card">
+    <h2>Job Update</h2>
+
+    <div class="scroll">
+      <div class="formGrid">
+        <div class="full">
+          <input id="mo" type="text" placeholder="MO # (numbers / letters / hyphen allowed)">
+        </div> 
+
+        <div class="full">
+          <input id="job" type="text" placeholder="Item # (numbers / letters / hyphen allowed)" required>
+        </div>
+
+        <div>
+          <input id="qty" type="number" min="0" step="1" placeholder="Qty">
+        </div>
+
+        <div>
+          <input id="status" type="text" placeholder="Status (example: RUNNING)">
+        </div>
+
+        <div class="full">
+          <input id="notes" type="text" placeholder="Notes (optional)">
+        </div>
+
+        <div class="full">
+          <input id="updatedBy" type="text" placeholder="Updated by (initials)">
+        </div>
+
+        <div class="full btnRow">
+          <button class="primary" id="saveBtn">Save / Update</button>
+          <button id="newBtn">New</button>
+          <button class="danger" id="deleteBtn" disabled>Delete</button>
+        </div>
+      </div>
+
+      <!-- HISTORY PANEL -->
+      <div id="historyPanel" style="display:none; margin-top:12px;">
+        <h2>Deleted Item History</h2>
+        <input id="historySearch" type="text" placeholder="Search deleted jobs...">
+        <div class="results" id="historyResults" style="margin-top:10px;"></div>
+        <button id="clearHistoryBtn" class="danger" style="margin-top:10px;">Clear (keep 7 days)</button>
+      </div>
+
+      <!-- COMPLETED TODAY PANEL -->
+      <div id="completedPanel" class="completedPanel">
+        <div class="completedHeader">
+          <div class="completedTitle">✓ Completed Today</div>
+          <div class="completedCount" id="completedCount">0</div>
+        </div>
+        <div id="completedResults" class="results"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+      
 
     </div>
   </div>
 
 <script>
 console.log("🔥 SCRIPT STARTED");
+const on = (el, evt, fn) => {
+  if (el) el.addEventListener(evt, fn);
+};
 /* ==========================================
    TRACE INVENTORY - UNIFIED JAVASCRIPT
    With Workflow Tracking Integrated
@@ -2595,6 +2728,7 @@ function setMode(mode){
 }
 
 // ====== EVENTS ======
+// ====== EVENTS ======
 const logoutBtn = document.getElementById('logoutBtn');
 if (logoutBtn) {
   logoutBtn.addEventListener('click', () => {
@@ -2604,113 +2738,94 @@ if (logoutBtn) {
     sessionStorage.removeItem('trace_intro_seen');
     location.reload();
   });
-if (els.globalSearch) {
-  els.globalSearch.addEventListener('input', renderGlobalSearch);
 }
 
-if (els.laneSearch) {
-  els.laneSearch.addEventListener('input', renderLaneList);
-}
+if (els.roleSelect) {
+  els.roleSelect.addEventListener('change', async (e) => {
+    const v = e.target.value;
 
-if (els.machineSearch) {
-  els.machineSearch.addEventListener('input', renderMachineList);
-}
-
-if (els.saveBtn) {
-  els.saveBtn.addEventListener('click', upsertItem);
-}
-
-if (els.newBtn) {
-  els.newBtn.addEventListener('click', clearForm);
-}
-
-if (els.deleteBtn) {
-  els.deleteBtn.addEventListener('click', deleteSelected);
-}
-
-if (els.moveCloseBtn) {
-  els.moveCloseBtn.addEventListener('click', closeMoveOverlay);
-}
-
-if (els.moveOverlay) {
-  els.moveOverlay.addEventListener('click', (e) => {
-    if (e.target === els.moveOverlay) closeMoveOverlay();
-  });
-}
-
-const on = (el, evt, fn) => { if (el) el.addEventListener(evt, fn); };
-  const v = e.target.value;
-
-  if (v === 'admin') {
-    // If they aren't unlocked, force them to unlock instead of granting edit UI
-    if (!adminUnlocked) {
-      e.target.value = 'forklift';
-      setRole('forklift');
-      await uiAlert("Admin Locked", "Tap 'Unlock Admin' and enter the PIN.");
+    if (v === 'admin') {
+      if (!adminUnlocked) {
+        e.target.value = 'forklift';
+        setRole('forklift');
+        await uiAlert("Admin Locked", "Tap 'Unlock Admin' and enter the PIN.");
+        return;
+      }
+      setRole('admin');
       return;
     }
-    setRole('admin');
-    return;
-  }
 
-setRole(v);
-});
-
-els.adminUnlockBtn.addEventListener('click', async () => {
-  const pin = await uiPrompt('Admin Access', 'Enter Admin PIN:', {
-    placeholder: 'PIN',
-    hint: 'Admin-only actions: create + delete + restore',
-    mask: true
+    setRole(v);
   });
+}
 
-  if (pin === null) return;
+if (els.adminUnlockBtn) {
+  els.adminUnlockBtn.addEventListener('click', async () => {
+    const pin = await uiPrompt('Admin Access', 'Enter Admin PIN:', {
+      placeholder: 'PIN',
+      hint: 'Admin-only actions: create + delete + restore',
+      mask: true
+    });
 
-  const enteredPin = String(pin).trim();
-  if (!enteredPin) {
-    await uiAlert('Admin Access', 'PIN is required.');
-    return;
-  }
-  if (enteredPin !== ADMIN_PIN) {
-    await uiAlert('Access Denied', 'Wrong PIN.');
+    if (pin === null) return;
+
+    const enteredPin = String(pin).trim();
+    if (!enteredPin) {
+      await uiAlert('Admin Access', 'PIN is required.');
+      return;
+    }
+    if (enteredPin !== ADMIN_PIN) {
+      await uiAlert('Access Denied', 'Wrong PIN.');
+      els.roleSelect.value = 'forklift';
+      setRole('forklift');
+      return;
+    }
+
+    adminUnlocked = true;
+    els.adminUnlockBtn.style.display = 'none';
+    els.adminLockBtn.style.display = 'inline-block';
+    els.roleSelect.value = 'admin';
+    setRole('admin');
+  });
+}
+
+if (els.adminLockBtn) {
+  els.adminLockBtn.addEventListener('click', () => {
+    adminUnlocked = false;
+    els.adminLockBtn.style.display = 'none';
+    els.adminUnlockBtn.style.display = 'inline-block';
     els.roleSelect.value = 'forklift';
     setRole('forklift');
-    return;
-  }
+  });
+}
 
-  adminUnlocked = true;
-  els.adminUnlockBtn.style.display = 'none';
-  els.adminLockBtn.style.display = 'inline-block';
-  els.roleSelect.value = 'admin';
-  setRole('admin');
-});
+if (els.historyBtn) {
+  els.historyBtn.addEventListener('click', async () => {
+    const open = els.historyPanel.style.display !== 'none';
+    els.historyPanel.style.display = open ? 'none' : 'block';
 
-els.adminLockBtn.addEventListener('click', () => {
-  adminUnlocked = false;
-  els.adminLockBtn.style.display = 'none';
-  els.adminUnlockBtn.style.display = 'inline-block';
-  els.roleSelect.value = 'forklift';
-  setRole('forklift');
-});
+    if(!open){
+      await refreshHistoryFromDb();
+      renderHistory();
+    }
+  });
+}
 
-els.historyBtn.addEventListener('click', async () => {
-  const open = els.historyPanel.style.display !== 'none';
-  els.historyPanel.style.display = open ? 'none' : 'block';
+if (els.historySearch) {
+  els.historySearch.addEventListener('input', renderHistory);
+}
 
-  if(!open){
-    await refreshHistoryFromDb();
-    renderHistory();
-  }
-});
+if (els.job) {
+  els.job.addEventListener('input', () => {
+    els.job.value = cleanJob(els.job.value);
+  });
+}
 
-els.historySearch.addEventListener('input', renderHistory);
-
-els.job.addEventListener('input', () => {
-  els.job.value = cleanJob(els.job.value);
-});
-
-els.mo.addEventListener('input', () => {
-  els.mo.value = cleanJob(els.mo.value);
-});
+if (els.mo) {
+  els.mo.addEventListener('input', () => {
+    els.mo.value = cleanJob(els.mo.value);
+  });
+}
 
 document.addEventListener('keydown', (e) => {
   const tag = document.activeElement?.tagName?.toLowerCase();
