@@ -2638,7 +2638,7 @@ if (els.moveOverlay) {
   });
 }
 
-if.roleSelect.addEventListener('change', async (e) => {
+const on = (el, evt, fn) => { if (el) el.addEventListener(evt, fn); };
   const v = e.target.value;
 
   if (v === 'admin') {
