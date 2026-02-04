@@ -1452,6 +1452,7 @@ function wireLoginUI() {
   const msg = document.getElementById("loginMsg");
   const emailEl = document.getElementById("loginEmail");
   const passEl  = document.getElementById("loginPass");
+  console.log("🔍 LOGIN ELEMENTS:", { btn, msg, emailEl, passEl });
   if (!btn || !msg || !emailEl || !passEl) return;
 
   async function submit() {
@@ -2773,6 +2774,37 @@ els.roleSelect.addEventListener('change', async (e) => {
   }
 
   setRole(v);
+});
+
+setRole(v);
+});
+
+els.adminUnlockBtn.addEventListener('click', async () => {
+  const pin = await uiPrompt('Admin Access', 'Enter Admin PIN:', {
+    placeholder: 'PIN',
+    hint: 'Admin-only actions: create + delete + restore',
+    mask: true
+  });
+
+  if (pin === null) return;
+
+  const enteredPin = String(pin).trim();
+  if (!enteredPin) {
+    await uiAlert('Admin Access', 'PIN is required.');
+    return;
+  }
+  if (enteredPin !== ADMIN_PIN) {
+    await uiAlert('Access Denied', 'Wrong PIN.');
+    els.roleSelect.value = 'forklift';
+    setRole('forklift');
+    return;
+  }
+
+  adminUnlocked = true;
+  els.adminUnlockBtn.style.display = 'none';
+  els.adminLockBtn.style.display = 'inline-block';
+  els.roleSelect.value = 'admin';
+  setRole('admin');
 });
 
 els.adminLockBtn.addEventListener('click', () => {
