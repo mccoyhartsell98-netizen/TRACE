@@ -701,6 +701,26 @@
       .laneGrid{ grid-template-columns: repeat(3,1fr); }
     }
      
+
+.menuOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 9998;
+}
+
+.sideMenu {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 320px;
+  height: 100vh;
+  background: rgba(10,14,22,.96);
+  border-left: 1px solid rgba(255,255,255,.15);
+  z-index: 9999;
+  padding: 16px;
+}
+
 /* ===== PRODUCTION TOP BAR (v0.8+) ===== */
 .topBar{
   display:flex;
