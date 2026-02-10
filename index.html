@@ -1,6 +1,12 @@
 <!-- 
-  TRACE INVENTORY - STRUCTURE FIX (History + DOM nesting)
+  TRACE INVENTORY - WITH WORKFLOW TRACKING INTEGRATED
   © 2026 Mccoy Hartsell — All rights reserved.
+  
+  NEW FEATURES:
+  - Job statuses: QUEUED, PRINTING, DONE, HOLD
+  - One-click workflow buttons
+  - Queue and Hold views  
+  - Completed Today tracking
 -->
 
 <!DOCTYPE html>
@@ -119,6 +125,7 @@
     html, body{ height:100%; margin:0; }
     body{
       overflow:hidden;
+      padding-top: 90px;
       font-family:Arial,Helvetica,sans-serif;
       color:var(--text);
       background:
@@ -345,42 +352,12 @@
       max-width:1100px;
       height:100vh;
       margin:0 auto;
-      padding:18px 18px 16px;
+      padding:0 18px 16px;
       display:flex;
       flex-direction:column;
       gap:12px;
     }
-    .top{
-      display:grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items:center;
-      gap:10px;
-      flex:0 0 auto;
-    }
-    .logo{
-      grid-column:2;
-      justify-self:center;
-      width:680px;
-      max-width:96vw;
-      height:auto;
-      display:block;
-      filter:
-        drop-shadow(0 0 12px rgba(58,122,254,0.35))
-        drop-shadow(0 0 28px rgba(58,122,254,0.15));
-    }
-    .status{
-      grid-column:3;
-      justify-self:end;
-      display:flex;
-      gap:10px;
-      align-items:center;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-      text-align:right;
-      color:var(--muted);
-      font-size:14px;
-      line-height:1.2;
-    }
+   
     .pill{
       padding:6px 10px;
       border:1px solid var(--stroke);
@@ -465,7 +442,12 @@
       grid-template-columns: 1.2fr .8fr;
       gap:14px;
     }
-    .card{
+
+    .grid{
+      margin-top: -34px; /* tweak -20 to -50 */
+    }
+    
+     .card{
       background:var(--panel);
       border:1px solid var(--stroke);
       border-radius:12px;
@@ -561,6 +543,108 @@
     .tiny{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.35;}
     .btnRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
 
+    /* ===== WORKFLOW TRACKING STYLES ===== */
+    .statusBadge{
+      display:inline-block;
+      padding:3px 8px;
+      border-radius:6px;
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.3px;
+      margin-left:8px;
+      vertical-align:middle;
+    }
+    .statusBadge.queued{
+      background:rgba(255,209,102,.24);
+      color:#ffd166;
+      border:1px solid rgba(255,209,102,.35);
+    }
+    .statusBadge.printing{
+      background:rgba(58,122,254,.24);
+      color:#5a9eff;
+      border:1px solid rgba(58,122,254,.35);
+    }
+    .statusBadge.done{
+      background:rgba(138,255,138,.24);
+      color:#8aff8a;
+      border:1px solid rgba(138,255,138,.35);
+    }
+    .statusBadge.hold{
+      background:rgba(255,107,107,.24);
+      color:#ff6b6b;
+      border:1px solid rgba(255,107,107,.35);
+    }
+
+    .workflowBtn{
+      padding:8px 12px !important;
+      font-size:12px !important;
+      font-weight:900 !important;
+      border-radius:8px;
+      cursor:pointer;
+      transition: all .12s ease;
+      white-space:nowrap;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+    .workflowBtn:hover{
+      transform:translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,.25);
+    }
+    .workflowBtn:active{ transform:translateY(0); }
+    .workflowBtn.start{
+      background:rgba(58,122,254,.24) !important;
+      border-color:rgba(58,122,254,.55) !important;
+      color:#5a9eff !important;
+    }
+    .workflowBtn.start:hover{ background:rgba(58,122,254,.32) !important; }
+    .workflowBtn.done{
+      background:rgba(138,255,138,.24) !important;
+      border-color:rgba(138,255,138,.55) !important;
+      color:#8aff8a !important;
+    }
+    .workflowBtn.done:hover{ background:rgba(138,255,138,.32) !important; }
+    .workflowBtn.hold{
+      background:rgba(255,107,107,.16) !important;
+      border-color:rgba(255,107,107,.45) !important;
+      color:#ff6b6b !important;
+    }
+    .workflowBtn.hold:hover{ background:rgba(255,107,107,.22) !important; }
+
+    .completedPanel{
+      display:none;
+      margin-top:14px;
+      padding:14px;
+      border:1px solid rgba(138,255,138,.35);
+      border-radius:12px;
+      background:rgba(138,255,138,.06);
+    }
+    .completedPanel.show{ display:block; }
+    .completedHeader{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:12px;
+      padding-bottom:10px;
+      border-bottom:1px solid rgba(138,255,138,.25);
+    }
+    .completedTitle{
+      font-size:15px;
+      font-weight:900;
+      letter-spacing:.5px;
+      color:var(--good);
+      text-transform:uppercase;
+    }
+    .completedCount{
+      background:rgba(138,255,138,.24);
+      color:var(--good);
+      padding:4px 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:900;
+    }
+    #completedResults{ max-height:400px; overflow-y:auto; }
+
     .hint{
       margin-top:12px;
       color:var(--muted);
@@ -612,216 +696,371 @@
       color:var(--muted);
       text-transform:uppercase;
     }
-
-    @media (max-width: 980px){
-      body{overflow:auto;}
-      .wrap{height:auto;}
-      .grid{grid-template-columns:1fr;}
-      .top{
-        grid-template-columns:1fr;
-        justify-items:center;
-        gap:10px;
-      }
-      .logo{
-        grid-column:1;
-        justify-self:center;
-        width:520px;
-        max-width:92vw;
-      }
-      .status{
-        display:flex;
-        grid-column:1;
-        justify-self:center;
-        justify-content:center;
-        text-align:center;
-        gap:8px;
-        font-size:12px;
-        flex-wrap:wrap;
-      }
+ 
       .pill{ padding:5px 9px; font-size:12px; }
       .laneGrid{ grid-template-columns: repeat(3,1fr); }
     }
+     
+/* ===== PRODUCTION TOP BAR (v0.8+) ===== */
+.topBar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding: 10px 14px;
+  margin: 0 0 10px 0;
+  max-width: 100%;
+  border-radius: 0;
+  background: rgba(10,12,16,.55);
+  border: 1px solid rgba(120,160,255,.18);
+  box-shadow: 0 12px 40px rgba(0,0,0,.35);
+  backdrop-filter: blur(10px);
+}
 
-    /* ===== TRACE Assistant — Pro Dock (Drift/Intercom vibe) ===== */
-    .chatFab{
-      position:fixed;
-      right:18px;
-      bottom:18px;
-      width:58px;
-      height:58px;
-      border-radius:18px;
-      z-index:99999;
-      display:grid;
-      place-items:center;
-      cursor:pointer;
-      border:1px solid rgba(58,122,254,.45);
-      background: linear-gradient(180deg, rgba(58,122,254,.22), rgba(22,26,34,.92));
-      box-shadow: 0 16px 50px rgba(0,0,0,.55);
-      backdrop-filter: blur(8px);
-    }
-    .chatFab:hover{ transform: translateY(-1px); }
-    .chatFab:active{ transform: translateY(0px); }
-    .chatFab-ico{ font-size:22px; filter: drop-shadow(0 6px 18px rgba(0,0,0,.45)); }
+.topBar{
+  position: fixed;
+  top: 16px;
+  left: 0;
+  right: 0;
+  transform: none;
+  width: calc(100% - 24px);
+  margin: 0 12px;
+  z-index: 9999;
+}
 
-    .chatDock{
-      position:fixed;
-      right:18px;
-      bottom:88px;
-      width:min(420px, calc(100vw - 36px));
-      height:min(540px, calc(100vh - 140px));
-      border-radius:18px;
-      z-index:99999;
-      overflow:hidden;
-      display:flex;
-      flex-direction:column;
+.topBarLeft{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  flex: 1;
+  min-width: 0;
+}
 
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(12,14,18,.72);
-      box-shadow: 0 28px 80px rgba(0,0,0,.65);
-      backdrop-filter: blur(14px);
+.prodLabel{
+  letter-spacing: .28em;
+  font-weight: 900;
+  font-size: 12px;
+  opacity: .85;
+  padding-left: 2px;
+  white-space:nowrap;
+}
 
-      transform: translateY(14px);
-      opacity:0;
-      pointer-events:none;
-      transition: transform 180ms ease, opacity 180ms ease;
-    }
-    .chatDock.open{
-      transform: translateY(0);
-      opacity:1;
-      pointer-events:auto;
-    }
+.prodTabs{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
 
-    .chatTop{
-      padding:14px 14px 12px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      border-bottom:1px solid rgba(255,255,255,.08);
-      background: linear-gradient(180deg, rgba(0,0,0,.28), rgba(0,0,0,0));
-    }
-    .chatBrand{ display:flex; gap:10px; align-items:center; }
-    .chatMark{
-      width:36px; height:36px;
-      border-radius:12px;
-      display:grid; place-items:center;
-      font-weight:900;
-      letter-spacing:.06em;
-      color:#fff;
-      border:1px solid rgba(58,122,254,.45);
-      background: rgba(58,122,254,.18);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
-    }
-    .chatTitle{ font-weight:900; letter-spacing:.08em; font-size:12px; text-transform:uppercase; }
-    .chatSub{ font-size:12px; color:rgba(255,255,255,.68); margin-top:2px; display:flex; align-items:center; gap:8px; }
-    .chatDot{
-      width:8px; height:8px; border-radius:50%;
-      background: rgba(138,255,138,.95);
-      box-shadow: 0 0 12px rgba(138,255,138,.45);
-      display:inline-block;
-    }
-    .chatX{
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.06);
-      color:#fff;
-      border-radius:12px;
-      width:40px;
-      height:40px;
-      font-weight:900;
-      cursor:pointer;
-    }
-    .chatX:hover{ background: rgba(255,255,255,.10); }
+.prodTab{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(120,160,255,.18);
+  background: rgba(18,22,32,.55);
+  color: rgba(235,245,255,.92);
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: .08em;
+  cursor:pointer;
+  transition: transform .12s ease, background .12s ease, box-shadow .12s ease, border-color .12s ease, opacity .12s ease;
+  user-select:none;
+}
 
-    .chatLog{
-      flex:1;
-      overflow:auto;
-      padding:14px;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(255,255,255,.18) transparent;
-    }
-    .chatLog::-webkit-scrollbar{ width:8px; }
-    .chatLog::-webkit-scrollbar-thumb{
-      background: rgba(255,255,255,.14);
-      border-radius: 999px;
-      border: 2px solid transparent;
-      background-clip: content-box;
-    }
+.prodTab:hover{
+  transform: translateY(-1px);
+  border-color: rgba(120,160,255,.30);
+  background: rgba(22,28,42,.65);
+}
 
-    .msg{ display:flex; gap:10px; align-items:flex-end; }
-    .msg.me{ flex-direction:row-reverse; }
-    .bub{
-      max-width: 78%;
-      padding:10px 12px;
-      border-radius:16px;
-      line-height:1.25;
-      font-size:14px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.06);
-    }
-    .msg.me .bub{
-      border-color: rgba(58,122,254,.30);
-      background: rgba(58,122,254,.14);
-    }
-    .time{
-      font-size:11px;
-      color: rgba(255,255,255,.45);
-      margin: 0 6px;
-    }
+.prodTab.active{
+  transform: translateY(-1px);
+  border-color: rgba(120,160,255,.55);
+  background: rgba(26,34,56,.78);
+  box-shadow: 0 0 0 1px rgba(120,160,255,.18),
+              0 10px 28px rgba(0,0,0,.35),
+              0 0 26px rgba(80,140,255,.22);
+}
 
-    .chatThinking{
-      display:none;
-      padding:10px 14px;
-      border-top:1px solid rgba(255,255,255,.08);
-      color: rgba(255,255,255,.72);
-      background: rgba(0,0,0,.18);
-      font-weight:700;
-      gap:10px;
-      align-items:center;
-    }
-    .chatThinking.show{ display:flex; }
-    .chatSpin{
-      width:12px; height:12px; border-radius:50%;
-      border:2px solid rgba(255,255,255,.22);
-      border-top-color: rgba(58,122,254,.9);
-      animation: spin 800ms linear infinite;
-    }
-    @keyframes spin{ to{ transform: rotate(360deg); } }
+.prodTab .icon{
+  opacity:.95;
+  font-size: 14px;
+  transform: translateY(-.5px);
+}
 
-    .chatComposer{
-      display:flex;
-      gap:10px;
-      padding:12px;
-      border-top:1px solid rgba(255,255,255,.08);
-      background: rgba(0,0,0,.18);
-    }
-    .chatComposer input{
-      flex:1;
-      padding:12px 12px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(10,12,16,.65);
-      color:#fff;
-      outline:none;
-    }
-    .chatComposer input:focus{
-      border-color: rgba(58,122,254,.55);
-      box-shadow: 0 0 0 3px rgba(58,122,254,.18);
-    }
-    .chatSend{
-      padding:10px 14px;
-      border-radius:14px;
-      font-weight:900;
-      border:1px solid rgba(58,122,254,.45);
-      background: rgba(58,122,254,.22);
-    }
-    .chatSend:hover{ background: rgba(58,122,254,.30); }
+.prodTab .count{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width: 28px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.25);
+  font-weight: 900;
+  font-size: 12px;
+  opacity: .92;
+}
 
-    @media (max-width: 520px){
-      .chatDock{ right:12px; left:12px; width:auto; }
-      .chatFab{ right:12px; bottom:12px; }
-    }
+.prodDivider{
+  height: 1px;
+  margin: 10px auto 14px auto;
+  max-width: 1100px;
+  background: linear-gradient(90deg, rgba(80,140,255,.0), rgba(80,140,255,.45), rgba(80,140,255,.0));
+  opacity: .85;
+}
+
+.topBarRight{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.utilGroup{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.btnOutline{
+  border: 1px solid rgba(120,160,255,.22) !important;
+  background: rgba(18,22,32,.35) !important;
+}
+.btnOutline:hover{
+  border-color: rgba(120,160,255,.38) !important;
+  background: rgba(22,28,42,.55) !important;
+}
+.btnAdminOn{
+  border-color: rgba(120,160,255,.55) !important;
+  background: rgba(26,34,56,.78) !important;
+  box-shadow: 0 0 18px rgba(80,140,255,.22);
+}
+
+.modeFade{ transition: opacity .14s ease, transform .14s ease; }
+.modeHidden{
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events:none;
+  height: 0 !important;
+  overflow:hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+
+/* ===== TRACE Assistant — Pro Dock (Drift/Intercom vibe) ===== */
+.chatFab{
+  position:fixed;
+  right:18px;
+  bottom:18px;
+  width:58px;
+  height:58px;
+  border-radius:18px;
+  z-index:99999;
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  border:1px solid rgba(58,122,254,.45);
+  background: linear-gradient(180deg, rgba(58,122,254,.22), rgba(22,26,34,.92));
+  box-shadow: 0 16px 50px rgba(0,0,0,.55);
+  backdrop-filter: blur(8px);
+}
+.chatFab:hover{ transform: translateY(-1px); }
+.chatFab:active{ transform: translateY(0px); }
+.chatFab-ico{ font-size:22px; filter: drop-shadow(0 6px 18px rgba(0,0,0,.45)); }
+
+.chatDock{
+  position:fixed;
+  right:18px;
+  bottom:88px;
+  width:min(420px, calc(100vw - 36px));
+  height:min(540px, calc(100vh - 140px));
+  border-radius:18px;
+  z-index:99999;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(12,14,18,.72);
+  box-shadow: 0 28px 80px rgba(0,0,0,.65);
+  backdrop-filter: blur(14px);
+
+  transform: translateY(14px);
+  opacity:0;
+  pointer-events:none;
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+.chatDock.open{
+  transform: translateY(0);
+  opacity:1;
+  pointer-events:auto;
+}
+
+.chatTop{
+  padding:14px 14px 12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  background: linear-gradient(180deg, rgba(0,0,0,.28), rgba(0,0,0,0));
+}
+.chatBrand{ display:flex; gap:10px; align-items:center; }
+.chatMark{
+  width:36px; height:36px;
+  border-radius:12px;
+  display:grid; place-items:center;
+  font-weight:900;
+  letter-spacing:.06em;
+  color:#fff;
+  border:1px solid rgba(58,122,254,.45);
+  background: rgba(58,122,254,.18);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+}
+.chatTitle{ font-weight:900; letter-spacing:.08em; font-size:12px; text-transform:uppercase; }
+.chatSub{ font-size:12px; color:rgba(255,255,255,.68); margin-top:2px; display:flex; align-items:center; gap:8px; }
+.chatDot{
+  width:8px; height:8px; border-radius:50%;
+  background: rgba(138,255,138,.95);
+  box-shadow: 0 0 12px rgba(138,255,138,.45);
+  display:inline-block;
+}
+.chatX{
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.06);
+  color:#fff;
+  border-radius:12px;
+  width:40px;
+  height:40px;
+  font-weight:900;
+  cursor:pointer;
+}
+.chatX:hover{ background: rgba(255,255,255,.10); }
+
+.chatLog{
+  flex:1;
+  overflow:auto;
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.18) transparent;
+}
+.chatLog::-webkit-scrollbar{ width:8px; }
+.chatLog::-webkit-scrollbar-thumb{
+  background: rgba(255,255,255,.14);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.msg{ display:flex; gap:10px; align-items:flex-end; }
+.msg.me{ flex-direction:row-reverse; }
+.bub{
+  max-width: 78%;
+  padding:10px 12px;
+  border-radius:16px;
+  line-height:1.25;
+  font-size:14px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.06);
+}
+.msg.me .bub{
+  border-color: rgba(58,122,254,.30);
+  background: rgba(58,122,254,.14);
+}
+.time{
+  font-size:11px;
+  color: rgba(255,255,255,.45);
+  margin: 0 6px;
+}
+
+.chatThinking{
+  display:none;
+  padding:10px 14px;
+  border-top:1px solid rgba(255,255,255,.08);
+  color: rgba(255,255,255,.72);
+  background: rgba(0,0,0,.18);
+  font-weight:700;
+  gap:10px;
+  align-items:center;
+}
+.chatThinking.show{ display:flex; }
+.chatSpin{
+  width:12px; height:12px; border-radius:50%;
+  border:2px solid rgba(255,255,255,.22);
+  border-top-color: rgba(58,122,254,.9);
+  animation: spin 800ms linear infinite;
+}
+@keyframes spin{ to{ transform: rotate(360deg); } }
+
+.chatComposer{
+  display:flex;
+  gap:10px;
+  padding:12px;
+  border-top:1px solid rgba(255,255,255,.08);
+  background: rgba(0,0,0,.18);
+}
+.chatComposer input{
+  flex:1;
+  padding:12px 12px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(10,12,16,.65);
+  color:#fff;
+  outline:none;
+}
+.chatComposer input:focus{
+  border-color: rgba(58,122,254,.55);
+  box-shadow: 0 0 0 3px rgba(58,122,254,.18);
+}
+.chatSend{
+  padding:10px 14px;
+  border-radius:14px;
+  font-weight:900;
+  border:1px solid rgba(58,122,254,.45);
+  background: rgba(58,122,254,.22);
+}
+.chatSend:hover{ background: rgba(58,122,254,.30); }
+
+@media (max-width: 520px){
+  .chatDock{ right:12px; left:12px; width:auto; }
+  .chatFab{ right:12px; bottom:12px; }
+}
+
+/* =========================================================
+   ✅ PREMIUM "SOFTWARE-LOOK" HEADER OVERRIDES (ADDED)
+   - Makes TRACE logo small + app-like (not a giant hero)
+   - Keeps your existing HTML unchanged
+   ========================================================= */
+.top{
+  margin: 8px 0 10px !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 12px !important;
+}
+.top > div:first-child{ display:none !important; } /* hides the empty spacer div */
+.top .logo{
+  width: 320px !important;
+  max-width: 80vw !important;
+  opacity: .95 !important;
+}
+.top .status{
+  display:none !important; /* hide unused right-side status area for cleaner "software" look */
+}
+
+/* Pull content up slightly since header is smaller */
+.grid{
+  margin-top: -10px !important;
+}
   </style>
 </head>
 
@@ -829,7 +1068,7 @@
   <!-- LOGIN OVERLAY -->
   <div id="loginOverlay" class="loginOverlay">
     <div class="loginCard">
-     <div class="loginSub" style="margin-bottom:16px;">Secure Access</div>
+      <div class="loginSub" style="margin-bottom:16px;">Secure Access</div>
 
       <label class="loginLabel">Email</label>
       <input id="loginEmail" class="loginInput" type="email" placeholder="you@trace.app" autocomplete="username"/>
@@ -888,6 +1127,23 @@
 
   <div class="versionBadge">TRACE v0.8 • Internal Beta</div>
 
+<!-- MOVE OVERLAY -->
+<div class="overlay" id="moveOverlay">
+  <div class="modal">
+    <div class="modalTop">
+      <div class="modalTitle" id="moveTitle">Move</div>
+      <button class="ghost" id="moveCloseBtn">Close</button>
+    </div>
+
+    <h2>Lanes</h2>
+    <div class="laneGrid" id="moveLaneGrid"></div>
+
+    <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
+
+    <h2>Machines</h2>
+    <div class="laneGrid" id="moveMachineGrid"></div>
+  </div>
+</div>
   <!-- APP ROOT -->
   <div id="appRoot" class="appRoot isHidden">
     <div class="wrap">
@@ -895,197 +1151,195 @@
       <div class="top">
         <div></div>
         <img src="./trace-logo.png.png" alt="TRACE" class="logo">
-        <div class="status">
-        </div>
+        <div class="top"></div>
       </div>
 
-      <div class="rolebar">
-        <div class="roleLeft">
-          <select id="roleSelect">
-            <option value="forklift">Forklift</option>
-            <option value="machine">Machine</option>
-            <option value="admin">Admin (locked)</option>
-          </select>
-          <button id="adminUnlockBtn" class="primary">Unlock Admin</button>
-          <button id="adminLockBtn" class="ghost" style="display:none;">Lock Admin</button>
-        </div>
+      <!-- TOP BAR WITH WORKFLOW TABS -->
+      <div class="topBar">
+        <div class="topBarLeft">
+          <div class="prodTabs">
+            <button id="tabQueue" class="prodTab">
+              ⏳ Queue <span class="count" id="queueCount">0</span>
+            </button>
 
-        <div style="display:flex;gap:10px;align-items:center;">
-          <button class="ghost" id="historyBtn">History</button>
-          <button class="ghost" id="logoutBtn">Logout</button>
-       </div>
-      </div>
+            <button id="tabLanes" class="prodTab active">
+              🧭 Lanes
+            </button>
 
-      <div class="grid">
-        <!-- LEFT -->
-        <div class="card">
-          <h2>Search</h2>
-
-          <div class="scroll">
- <input id="globalSearch" type="text" placeholder="Search Item # or MO (example: 6910153 or MO-5048)">
-
-            <div class="results" id="globalResults" style="margin-top:10px;"></div>
-
-            <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
-
-            <h2 style="margin-top:0;">Lanes</h2>
-            <div class="laneGrid" id="laneGrid"></div>
-
-            <div class="laneHeader">
-              <div class="laneTitle" id="laneTitle">Lane 1</div>
-              <div class="laneCount" id="laneCount">0 items</div>
-            </div>
-            
-            <input id="laneSearch" type="text" placeholder="Filter within this lane (optional)">
-            <div class="results" id="laneResults" style="margin-top:10px;"></div>
-
-            <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
-
-            <h2 style="margin-top:0;">Machines</h2>
-            <div class="laneGrid" id="machineGrid"></div>
-            
-            <div class="laneHeader">
-              <div class="laneTitle" id="machineTitle">Machine: S8</div>
-              <div class="laneCount" id="machineCount">0 jobs</div>
-            </div>
-
-            <input id="machineSearch" type="text" placeholder="Filter within this machine (optional)">
-            <div class="results" id="machineResults" style="margin-top:10px;"></div>
-
-            <div class="hint">
-              Flow: <b>Search Item or MO</b> → <b>Move</b> → choose <b>Lane</b> or <b>Machine</b>.
-              <br/>
-              Keys: <span class="kbd">1–9</span> quick lanes • <span class="kbd">F</span> fullscreen • <span class="kbd">ESC</span> close move box
-            </div>
+            <button id="tabHold" class="prodTab">
+              ⛔ Hold <span class="count" id="holdCount">0</span>
+            </button>
           </div>
         </div>
 
-        <!-- RIGHT -->
-        <div class="card">
-          <h2>Job Update</h2>
+       <div class="topBarRight">
+  <div class="utilGroup">
+    <span id="roleMount"></span>
+    <span id="adminMount"></span>
+  </div>
 
-          <div class="scroll">
-            <div class="formGrid">
-              <div class="full">
-               <input id="mo" type="text" placeholder="MO # (numbers / letters / hyphen allowed)">
-             </div> 
-
-               <div class="full">
-               <input id="job" type="text" placeholder="Item # (numbers / letters / hyphen allowed)"  required>
-              </div>
-
-              <div>
-                <input id="qty" type="number" min="0" step="1" placeholder="Qty">
-              </div>
-
-              <div>
-                <input id="status" type="text" placeholder="Status (example: RUNNING)">
-              </div>
-
-              <div class="full">
-                <input id="notes" type="text" placeholder="Notes (optional)">
-              </div>
-
-              <div class="full">
-                <input id="updatedBy" type="text" placeholder="Updated by (initials)">
-              </div>
-
-              <div class="full btnRow">
-                <button class="primary" id="saveBtn">Save / Update</button>
-                <button id="newBtn">New</button>
-                <button class="danger" id="deleteBtn" disabled>Delete</button>
-              </div>
-            </div>
-
-            <div class="tiny" id="rulesBox">
-              <b>Rules:</b>
-              <ul>
-                <li><b>Item #</b> is the unique key. Once created it is locked.</li>
-                <li><b>Forklift</b>: can search + move jobs (no edit, no delete).</li>
-                <li><b>Machine</b>: can update qty/status/notes (cannot create new jobs, no delete, no move).</li>
-                <li><b>Admin</b>: can create jobs + delete (goes to History) + restore.</li>
-              </ul>
-            </div>
-
-            <!-- HISTORY PANEL (single, clean, no duplicate IDs) -->
-            <div id="historyPanel" style="display:none; margin-top:12px;">
-              <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-                <h2 style="margin:0;">Deleted Item History</h2>
-                <button
-                  id="clearHistoryBtn"
-                  type="button"
-                  class="danger"
-                  title="Deletes history older than 7 days"
-                >
-                  Clear (keep 7 days)
-                </button>
-              </div>
-
-              <input id="historySearch" type="text" placeholder="Search deleted jobs...">
-              <div class="results" id="historyResults" style="margin-top:10px;"></div>
-            </div>
-
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- MOVE OVERLAY -->
-    <div class="overlay" id="moveOverlay">
-      <div class="modal">
-        <div class="modalTop">
-          <div class="modalTitle" id="moveTitle">Move Job</div>
-          <button class="ghost" id="moveCloseBtn">Close</button>
-        </div>
-
-        <div style="color:var(--muted); font-weight:900; margin-bottom:8px;">Move to Lane</div>
-        <div class="laneGrid" id="moveLaneGrid"></div>
-
-        <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
-
-        <div style="color:var(--muted); font-weight:900; margin-bottom:8px;">Move to Machine</div>
-        <div class="laneGrid" id="moveMachineGrid"></div>
-
-        <div class="tiny" style="margin-top:12px;">
-          Rule: Moving to a <b>Machine</b> clears the lane. Moving to a <b>Lane</b> clears the machine.
-        </div>
-      </div>
-    </div>
-
-    <!-- TRACE Assistant (Pro UI) -->
-    <button id="chatFab" class="chatFab" aria-label="Open TRACE Assistant" title="TRACE Assistant">
-      <span class="chatFab-ico">🤖</span>
+  <div class="utilGroup">
+    <span id="historyMount"></span>
+    <button id="completedToggleBtn" class="ghost">
+      Show Completed Today
     </button>
+    <span id="logoutMount"></span>
+    <button id="menuBtn" class="iconBtn">☰</button>
+  </div>
+</div>
 
-    <section id="chatDock" class="chatDock" aria-label="TRACE Assistant">
-      <header class="chatTop">
-        <div class="chatBrand">
-          <div class="chatMark">T</div>
-          <div>
-            <div class="chatTitle">TRACE Assistant</div>
-            <div class="chatSub"><span class="chatDot"></span> Online • Ask lanes, machines, jobs</div>
-          </div>
-        </div>
-        <button id="chatClose" class="chatX" aria-label="Close">✕</button>
-      </header>
 
-      <div id="chatLog" class="chatLog"></div>
+      <div class="prodDivider"></div>
+<div class="rolebar" id="rolebarOld" style="display:none;">
+  <div class="roleLeft">
+    <select id="roleSelect">
+      <option value="forklift">Forklift</option>
+      <option value="machine">Machine</option>
+      <option value="admin">Admin (locked)</option>
+    </select>
+    <button id="adminUnlockBtn" class="primary">Unlock Admin</button>
+    <button id="adminLockBtn" class="ghost" style="display:none;">Lock Admin</button>
+  </div>
 
-      <div id="chatThinking" class="chatThinking">
-        <span class="chatSpin"></span> Thinking…
+  <div style="display:flex;gap:10px;align-items:center;">
+    <button class="ghost" id="historyBtn">History</button>
+    <button class="ghost" id="logoutBtn">Logout</button>
+  </div>
+</div>
+
+<div class="grid">
+  <!-- LEFT -->
+  <div class="card">
+    <h2>Search</h2>
+
+    <div class="scroll">
+      <input id="globalSearch" type="text" placeholder="Search Item # or MO (example: 6910153 or MO-5048)">
+
+      <div class="results" id="globalResults" style="margin-top:10px;"></div>
+
+      <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
+
+      <h2 style="margin-top:0;">Lanes</h2>
+      <div class="laneGrid" id="laneGrid"></div>
+
+      <div class="laneHeader">
+        <div class="laneTitle" id="laneTitle">Lane 1</div>
+        <div class="laneCount" id="laneCount">0 items</div>
+      </div>
+      
+      <input id="laneSearch" type="text" placeholder="Filter within this lane (optional)">
+      <div class="results" id="laneResults" style="margin-top:10px;"></div>
+
+      <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
+
+      <h2 style="margin-top:0;">Machines</h2>
+      <div class="laneGrid" id="machineGrid"></div>
+      
+      <div class="laneHeader">
+        <div class="laneTitle" id="machineTitle">Machine: S8</div>
+        <div class="laneCount" id="machineCount">0 jobs</div>
       </div>
 
-      <form id="chatComposer" class="chatComposer" autocomplete="off">
-        <input id="chatInput" type="text" placeholder="Ask: “show lane 3”, “find job 400848”, “what’s on S8?”" />
-        <button type="submit" class="chatSend">Send</button>
-      </form>
-    </section>
+      <input id="machineSearch" type="text" placeholder="Filter within this machine (optional)">
+      <div class="results" id="machineResults" style="margin-top:10px;"></div>
+
+      <div class="hint">
+        Flow: <b>Search Item or MO</b> → <b>Move</b> → choose <b>Lane</b> or <b>Machine</b>.
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="card">
+    <h2>Job Update</h2>
+
+    <div class="scroll">
+      <div class="formGrid">
+        <div class="full">
+          <input id="mo" type="text" placeholder="MO # (numbers / letters / hyphen allowed)">
+        </div> 
+
+        <div class="full">
+          <input id="job" type="text" placeholder="Item # (numbers / letters / hyphen allowed)" required>
+        </div>
+
+        <div>
+          <input id="qty" type="number" min="0" step="1" placeholder="Qty">
+        </div>
+
+        <div>
+          <input id="status" type="text" placeholder="Status (example: RUNNING)">
+        </div>
+
+        <div class="full">
+          <input id="notes" type="text" placeholder="Notes (optional)">
+        </div>
+
+        <div class="full">
+          <input id="updatedBy" type="text" placeholder="Updated by (initials)">
+        </div>
+
+        <div class="full btnRow">
+          <button class="primary" id="saveBtn">Save / Update</button>
+          <button id="newBtn">New</button>
+          <button class="danger" id="deleteBtn" disabled>Delete</button>
+        </div>
+      </div>
+
+      <!-- HISTORY PANEL -->
+      <div id="historyPanel" style="display:none; margin-top:12px;">
+        <h2>Deleted Item History</h2>
+        <input id="historySearch" type="text" placeholder="Search deleted jobs...">
+        <div class="results" id="historyResults" style="margin-top:10px;"></div>
+        <button id="clearHistoryBtn" class="danger" style="margin-top:10px;">Clear (keep 7 days)</button>
+      </div>
+
+      <!-- COMPLETED TODAY PANEL -->
+      <div id="completedPanel" class="completedPanel">
+        <div class="completedHeader">
+          <div class="completedTitle">✓ Completed Today</div>
+          <div class="completedCount" id="completedCount">0</div>
+        </div>
+        <div id="completedResults" class="results"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+      
+<!-- SIDE MENU OVERLAY -->
+<div id="sideMenuOverlay" class="menuOverlay hidden"></div>
+
+<!-- SLIDE-OUT MENU -->
+<aside id="sideMenu" class="sideMenu hidden">
+  <div class="sideMenuHeader">
+    <strong>TRACE MENU</strong>
+    <button id="menuCloseBtn" class="iconBtn">✕</button>
+  </div>
+
+  <button class="menuItem">Dashboard</button>
+  <button class="menuItem">Queue</button>
+  <button class="menuItem">Hold</button>
+  <button class="menuItem">Done Today</button>
+  <button class="menuItem">Pickups 🔔</button>
+
+  <hr>
+
+  <button class="menuItem">History</button>
+  <button class="menuItem">Logout</button>
+</aside>
+
+    </div>
   </div>
 
 <script>
+console.log("🔥 SCRIPT STARTED");
+const on = (el, evt, fn) => {
+  if (el) el.addEventListener(evt, fn);
+};
 /* ==========================================
    TRACE INVENTORY - UNIFIED JAVASCRIPT
-   (unchanged logic, only relies on cleaned DOM)
+   With Workflow Tracking Integrated
 ========================================== */
 
 // ====== CONSTANTS & CONFIG ======
@@ -1158,6 +1412,7 @@ function wireLoginUI() {
   const msg = document.getElementById("loginMsg");
   const emailEl = document.getElementById("loginEmail");
   const passEl  = document.getElementById("loginPass");
+  console.log("🔍 LOGIN ELEMENTS:", { btn, msg, emailEl, passEl });
   if (!btn || !msg || !emailEl || !passEl) return;
 
   async function submit() {
@@ -1262,7 +1517,7 @@ async function startAfterLogin() {
   if (typeof window.initApp === "function") await window.initApp();
 }
 
-// ====== DIALOG SYSTEM ======
+// ====== DIALOG SYSTEM (SAFE INIT) ======
 (function initDialog(){
   const d = {
     overlay: document.getElementById("dialogOverlay"),
@@ -1275,6 +1530,15 @@ async function startAfterLogin() {
     cancel: document.getElementById("dialogCancelBtn"),
     close: document.getElementById("dialogCloseBtn"),
   };
+
+  // ✅ If any required element is missing, don’t crash the entire app
+  const required = ["overlay","title","msg","inputWrap","input","hint","ok","cancel","close"];
+  for (const k of required){
+    if (!d[k]) {
+      console.warn("Dialog init skipped, missing:", k);
+      return;
+    }
+  }
 
   let resolver = null;
 
@@ -1335,6 +1599,7 @@ async function startAfterLogin() {
   };
 })();
 
+
 // ====== API HELPERS ======
 async function apiGet(path){ return apiFetch(path, { method:"GET" }); }
 async function apiPost(path, body){ return apiFetch(path, { method:"POST", body: JSON.stringify(body) }); }
@@ -1348,8 +1613,6 @@ apiGet("/health")
 
 // ====== DOM ELEMENTS ======
 const els = {
-  itemsPill: document.getElementById("itemsPill"),
-  rolePill: document.getElementById("rolePill"),
   roleSelect: document.getElementById("roleSelect"),
   adminUnlockBtn: document.getElementById("adminUnlockBtn"),
   adminLockBtn: document.getElementById("adminLockBtn"),
@@ -1385,6 +1648,35 @@ const els = {
   historySearch: document.getElementById("historySearch"),
   historyResults: document.getElementById("historyResults"),
 };
+ 
+// ====== TOP BAR MOUNTING ======
+function mountTopBarControls(){
+  const roleMount = document.getElementById("roleMount");
+  const adminMount = document.getElementById("adminMount");
+  const historyMount = document.getElementById("historyMount");
+  const logoutMount = document.getElementById("logoutMount");
+
+  if (els.roleSelect && roleMount && !roleMount.contains(els.roleSelect)) {
+    roleMount.appendChild(els.roleSelect);
+  }
+
+  if (els.adminUnlockBtn && adminMount && !adminMount.contains(els.adminUnlockBtn)) {
+    adminMount.appendChild(els.adminUnlockBtn);
+    els.adminUnlockBtn.classList.add("btnOutline");
+  }
+  if (els.adminLockBtn && adminMount && !adminMount.contains(els.adminLockBtn)) {
+    adminMount.appendChild(els.adminLockBtn);
+    els.adminLockBtn.classList.add("btnAdminOn");
+  }
+
+  if (els.historyBtn && historyMount && !historyMount.contains(els.historyBtn)) {
+    historyMount.appendChild(els.historyBtn);
+  }
+  const logoutBtnEl = document.getElementById("logoutBtn");
+  if (logoutBtnEl && logoutMount && !logoutMount.contains(logoutBtnEl)) {
+    logoutMount.appendChild(logoutBtnEl);
+  }
+}
 
 // ====== HELPERS ======
 function normalize(s){ return (s ?? "").trim().toLowerCase(); }
@@ -1415,127 +1707,112 @@ function formatTimestamp(ts){
   });
 }
 
-function normalizeChat(s){ return String(s||"").trim().toLowerCase(); }
-
-function findItemByAnyKey(keyRaw){
-  const key = String(keyRaw || "").trim().toUpperCase();
-
-  // 1) Match item/job number (your UI currently stores it in item.job)
-  let hit = inventory.find(x => String(x.job||"").toUpperCase() === key);
-  if (hit) return hit;
-
-  // 2) If you added MO support to the front-end later, match it here too:
-  // (only works if your mapped items include `mo` field)
-  hit = inventory.find(x => String(x.mo||"").toUpperCase() === key);
-  if (hit) return hit;
-
-  // 3) Fallback: partial match
-  hit = inventory.find(x => String(x.job||"").toUpperCase().includes(key));
-  if (hit) return hit;
-
-  hit = inventory.find(x => String(x.mo||"").toUpperCase().includes(key));
-  if (hit) return hit;
-
-  return null;
+// ====== WORKFLOW HELPERS ======
+function getStatusBadge(status) {
+  const s = String(status || "").toUpperCase();
+  const badges = {
+    'QUEUED':   '<span class="statusBadge queued">QUEUED</span>',
+    'PRINTING': '<span class="statusBadge printing">PRINTING</span>',
+    'DONE':     '<span class="statusBadge done">DONE</span>',
+    'HOLD':     '<span class="statusBadge hold">HOLD</span>'
+  };
+  return badges[s] || '';
 }
 
-function canMoveFromChat(){
-  return (role === "forklift") || (role === "admin" && adminUnlocked);
+function renderWorkflowButtons(item) {
+  const canEdit = (role === 'machine') || (role === 'admin' && adminUnlocked);
+  if (!canEdit) return '';
+
+  const ws = String(item.workflow_status || 'QUEUED').toUpperCase();
+  const buttons = [];
+
+  if (ws === 'QUEUED' || ws === 'HOLD') {
+    buttons.push(`<button class="workflowBtn start primary" data-action="start" data-id="${item.id}">▶️ Start Printing</button>`);
+  }
+
+  if (ws === 'PRINTING') {
+    buttons.push(`<button class="workflowBtn done primary" data-action="done" data-id="${item.id}">✓ Mark Done</button>`);
+  }
+
+  if (ws !== 'HOLD' && ws !== 'DONE') {
+    buttons.push(`<button class="workflowBtn hold danger" data-action="hold" data-id="${item.id}">⛔ Hold</button>`);
+  }
+
+  if (ws === 'HOLD') {
+    buttons.push(`<button class="workflowBtn start primary" data-action="resume" data-id="${item.id}">↩️ Resume</button>`);
+  }
+
+  return buttons.length
+    ? `<div class="btnRow" style="margin-top:10px;gap:8px;">${buttons.join('')}</div>`
+    : '';
 }
 
-function formatLocation(item){
-  if (item.machine) return `Machine ${item.machine}`;
-  if (item.lane) return item.lane;
-  return "Unknown location";
+async function handleWorkflowAction(action, itemId) {
+  const item = inventory.find(x => x.id === parseInt(itemId));
+  if (!item) {
+    await uiAlert('Error', 'Item not found');
+    return;
+  }
+  
+  let newStatus;
+  let confirmMsg;
+  
+  switch(action) {
+    case 'start':
+      newStatus = 'PRINTING';
+      confirmMsg = `Start printing Item #${item.job}?`;
+      break;
+    case 'done':
+      newStatus = 'DONE';
+      confirmMsg = `Mark Item #${item.job} as DONE?`;
+      break;
+    case 'hold':
+      newStatus = 'HOLD';
+      confirmMsg = `Move Item #${item.job} to HOLD?`;
+      break;
+    case 'resume':
+      newStatus = 'QUEUED';
+      confirmMsg = `Resume Item #${item.job} from HOLD?`;
+      break;
+    default:
+      return;
+  }
+  
+  const ok = await uiConfirm('Confirm Action', confirmMsg, 'Confirm', 'Cancel');
+  if (!ok) return;
+  
+  const initials = await uiPrompt(
+    'Enter Initials', 
+    'Who is performing this action?',
+    { placeholder: 'e.g. JD', mask: false }
+  );
+  
+  if (!initials) return;
+  
+  try {
+    await apiFetch(`/items/${itemId}/workflow`, {
+  method: "PUT",
+  body: JSON.stringify({
+    workflow_status: newStatus,
+    updated_by: initials.trim()
+  })
+});
+    
+    await loadInventory();
+    renderLaneList();
+    renderMachineList();
+    renderGlobalSearch();
+    
+    if (currentMode === 'queue') renderQueueView();
+    if (currentMode === 'hold') renderHoldView();
+    
+    await uiAlert('Success', `Item #${item.job} → ${newStatus}`);
+    
+  } catch (err) {
+    console.error('Workflow action failed:', err);
+    await uiAlert('Action Failed', err.message || 'Failed to update status');
+  }
 }
-
-async function handleChatCommand(rawText){
-  const t = normalizeChat(rawText);
-
-  // HELP
-  if (t === "help" || t === "?"){
-    return [
-      "Commands:",
-      "• move 16900 to lane 2",
-      "• move 16900 to s8",
-      "• where is 16900",
-      "• whats in lane 3",
-      "• whats on s8"
-    ].join("<br>");
-  }
-
-  // WHERE IS
-  // "where is 16900" / "where's mo-5048"
-  let m = t.match(/^(where\s+is|where'?s)\s+(.+)$/i);
-  if (m){
-    const key = m[2].trim();
-    const item = findItemByAnyKey(key);
-    if (!item) return `I couldn't find ${escapeHtml(key)}.`;
-    return `Item <b>${escapeHtml(item.job)}</b> is in <b>${escapeHtml(formatLocation(item))}</b>.`;
-  }
-
-  // WHAT'S IN LANE
-  // "whats in lane 3" / "what is in lane 12"
-  m = t.match(/^what'?s?\s+in\s+lane\s+(\d{1,2})$/i) || t.match(/^what\s+is\s+in\s+lane\s+(\d{1,2})$/i);
-  if (m){
-    const laneNum = Math.max(1, Math.min(12, parseInt(m[1],10)));
-    const laneLabel = `Lane ${laneNum}`;
-    const list = inventory.filter(x => String(x.lane||"") === laneLabel);
-    if (list.length === 0) return `<b>${laneLabel}</b> is empty.`;
-
-    const shown = list.slice(0, 25).map(x => `• <b>${escapeHtml(x.job)}</b> (${escapeHtml(x.status||"—")})`).join("<br>");
-    const more = list.length > 25 ? `<br>…and ${list.length - 25} more.` : "";
-    return `<b>${laneLabel}</b> has ${list.length} item(s):<br>${shown}${more}`;
-  }
-
-  // WHAT'S ON MACHINE
-  // "whats on s8" / "what's on machine s8"
-  m = t.match(/^what'?s?\s+on\s+(?:machine\s+)?(.+)$/i);
-  if (m){
-    const machine = m[1].trim().toUpperCase();
-    const list = inventory.filter(x => String(x.machine||"").toUpperCase() === machine);
-    if (list.length === 0) return `<b>${escapeHtml(machine)}</b> is empty.`;
-
-    const shown = list.slice(0, 25).map(x => `• <b>${escapeHtml(x.job)}</b> (${escapeHtml(x.status||"—")})`).join("<br>");
-    const more = list.length > 25 ? `<br>…and ${list.length - 25} more.` : "";
-    return `<b>${escapeHtml(machine)}</b> has ${list.length} item(s):<br>${shown}${more}`;
-  }
-
-  // MOVE COMMANDS
-  // "move 16900 to lane 2"
-  // "move mo-5048 to s8"
-  // "put 16900 in lane 5"
-  // "send 16900 to machine s9"
-  m =
-    t.match(/^(move|send|put)\s+(.+?)\s+(?:to|in)\s+lane\s+(\d{1,2})$/i) ||
-    t.match(/^(move|send|put)\s+(.+?)\s+to\s+(?:machine\s+)?(.+)$/i);
-
-  if (m){
-    if (!canMoveFromChat()){
-      return "Permission denied. Only Forklift (or Admin) can move items.";
-    }
-
-    const key = m[2].trim();
-    const item = findItemByAnyKey(key);
-    if (!item) return `I couldn't find ${escapeHtml(key)}.`;
-
-    // Lane move
-    if (String(m[3]||"").match(/^\d{1,2}$/)){
-      const laneNum = Math.max(1, Math.min(12, parseInt(m[3],10)));
-      const laneLabel = `Lane ${laneNum}`;
-      await moveToLane(item.id, laneLabel);
-      return `Moved <b>${escapeHtml(item.job)}</b> to <b>${laneLabel}</b>.`;
-    }
-
-    // Machine move
-    const machine = String(m[3]||"").trim().toUpperCase();
-    await moveToMachine(item.id, machine);
-    return `Moved <b>${escapeHtml(item.job)}</b> to <b>${escapeHtml(machine)}</b>.`;
-  }
-
-  return "I didn't understand that. Type <b>help</b> for commands.";
-}
-
 
 // ====== STATE ======
 let rawItems = [];
@@ -1552,6 +1829,7 @@ let selectedLocation = { type:"lane", value:"Lane 1" };
 let role = "forklift";
 let adminUnlocked = false;
 let moveTargetId = null;
+let currentMode = 'lanes';
 
 // ====== LOCATION MAPPING ======
 function mapLocations(raw){
@@ -1595,11 +1873,13 @@ function buildLocationIndexes(){
 function mapItemsToUI(raw){
   const arr = Array.isArray(raw) ? raw : [];
   return arr.map(it => {
-    const id = pick(it, ["item_id","id","itemId"]);
+    const id = Number(pick(it, ["item_id","id","itemId"]));
     const job = cleanJob(pick(it, ["job_number","job","jobNumber","sku"]) ?? "");
     const mo = cleanJob(pick(it, ["mo","mo_number","moNumber","mo_id","moId"]) ?? "");
     const qty = parseInt(it.qty || "0", 10) || 0;
-    const status = (pick(it, ["status"]) ?? "").toString();
+    const workflow_status = (pick(it, ["workflow_status"]) ?? "QUEUED")
+     .toString().trim().toUpperCase();
+    const status = (pick(it, ["status"]) ?? "").toString().trim().toUpperCase();
     const notes  = (pick(it, ["notes"]) ?? "").toString();
     const updatedBy = (pick(it, ["updated_by","updatedBy"]) ?? "").toString();
     const createdAt = (pick(it, ["created_at","createdAt"]) ?? "").toString();
@@ -1609,12 +1889,30 @@ function mapItemsToUI(raw){
 
     const lane = (loc && loc.type === "lane") ? `Lane ${loc.laneNum}` : "";
     const machine = (loc && loc.type === "machine") ? loc.machineName : "";
+    
+    const started_at = (pick(it, ["started_at","startedAt"]) ?? "").toString();
+    const completed_at = (pick(it, ["completed_at","completedAt"]) ?? "").toString();
+    const held_at = (pick(it, ["held_at","heldAt"]) ?? "").toString();
 
-    return {
-      id, job, mo, qty, status, notes, updatedBy, createdAt, updatedAt,
+      return {
+      id,
+      job,
+      mo,
+      qty,
+      workflow_status,
+      status,
+      notes,
+      updatedBy,
+      createdAt,
+      updatedAt,
       location_id: (location_id !== undefined && location_id !== null) ? Number(location_id) : null,
-      lane, machine
+      lane,
+      machine,
+      started_at,
+      completed_at,
+      held_at
     };
+
   }).filter(x => String(x.job).length > 0 && normalize(x.status) !== "deleted");
 }
 
@@ -1630,9 +1928,6 @@ async function loadInventory(){
   const data = await apiGet("/items");
   rawItems = Array.isArray(data) ? data : (data.items || data.rows || []);
   inventory = mapItemsToUI(rawItems);
-  if (els.itemsPill) els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
-
-  // expose for assistant
   window.inventory = inventory;
 }
 
@@ -1644,8 +1939,8 @@ function setRole(nextRole){
   if(role !== "admin"){
     adminUnlocked = false;
     window.adminUnlocked = adminUnlocked;
-    els.adminLockBtn.style.display = "none";
-    els.adminUnlockBtn.style.display = "inline-block";
+    if (els.adminLockBtn) els.adminLockBtn.style.display = "none";
+    if (els.adminUnlockBtn) els.adminUnlockBtn.style.display = "inline-block";
   }
   updateRoleUI();
   renderLaneList();
@@ -1655,26 +1950,24 @@ function setRole(nextRole){
 }
 
 function updateRoleUI(){
-  const effectiveRole = (role === "admin" && adminUnlocked) ? "ADMIN" : role.toUpperCase();
-   if (els.rolePill) {
-    els.rolePill.textContent = `ROLE: ${effectiveRole}`;
-  }
+  const r = role;
 
-  const canDelete = (role === "admin" && adminUnlocked);
-  els.deleteBtn.disabled = !canDelete || !selectedId;
+  const canDelete = (r === "admin" && adminUnlocked);
+  if (els.deleteBtn) els.deleteBtn.disabled = !canDelete || !selectedId;
 
-  const forklift = role === "forklift";
-  const admin = (role === "admin" && adminUnlocked);
+  const forklift = (r === "forklift");
+  const admin = (r === "admin" && adminUnlocked);
   const canCreate = admin;
   const hasSelection = !!selectedId;
 
-  els.job.disabled = hasSelection || !canCreate;
-  els.qty.disabled = forklift;
-  els.status.disabled = forklift;
-  els.notes.disabled = forklift;
-  els.updatedBy.disabled = forklift;
-  els.saveBtn.disabled = forklift;
-  els.newBtn.disabled = forklift;
+  if (els.job) els.job.disabled = hasSelection || !canCreate;
+  if (els.qty) els.qty.disabled = forklift;
+  if (els.status) els.status.disabled = forklift;
+  if (els.notes) els.notes.disabled = forklift;
+  if (els.updatedBy) els.updatedBy.disabled = forklift;
+
+  if (els.saveBtn) els.saveBtn.disabled = forklift;
+  if (els.newBtn) els.newBtn.disabled = forklift;
 }
 
 // ====== HISTORY (DB-backed) ======
@@ -1732,7 +2025,6 @@ function renderHistory(){
   });
 }
 
-// CLEAR HISTORY (Admin only)
 if (els.clearHistoryBtn) {
   els.clearHistoryBtn.addEventListener("click", async () => {
     if (role !== "admin" || !adminUnlocked) {
@@ -1758,6 +2050,145 @@ if (els.clearHistoryBtn) {
       await uiAlert("Error", "Failed to clear history.");
     }
   });
+}
+
+// ====== WORKFLOW VIEWS ======
+async function renderQueueView() {
+  try {
+    const data = await apiGet('/items?view=queue');
+    const rows = Array.isArray(data) ? data : (data.items || data.rows || []);
+    const queueItems = mapItemsToUI(rows);
+    
+    els.globalResults.innerHTML = '';
+    
+    if (queueItems.length === 0) {
+      els.globalResults.innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center;">Queue is empty</div>';
+      document.getElementById('queueCount').textContent = '0';
+      return;
+    }
+    
+    queueItems.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'resultItem';
+      
+      const statusBadge = getStatusBadge(item.workflow_status);
+      const notes = item.notes ? escapeHtml(item.notes) : '—';
+      
+      div.innerHTML = `
+        <div class="big">Item #${escapeHtml(item.job)} ${statusBadge}</div>
+        ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ''}
+        <div class="qty">Qty: ${item.qty} • Status: ${escapeHtml(item.status)}</div>
+        <div class="meta">Notes: ${notes}</div>
+        ${renderWorkflowButtons(item)}
+      `;
+      
+      div.querySelectorAll('[data-action]').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          await handleWorkflowAction(btn.dataset.action, btn.dataset.id);
+        });
+      });
+      
+      div.addEventListener('click', () => loadToForm(item.id));
+      els.globalResults.appendChild(div);
+    });
+    
+    document.getElementById('queueCount').textContent = queueItems.length;
+  } catch (err) {
+    console.error('Failed to load queue:', err);
+    els.globalResults.innerHTML = '<div style="color:var(--bad)">Failed to load queue</div>';
+  }
+}
+
+async function renderHoldView() {
+  try {
+    const data = await apiGet('/items?view=hold');
+    const rows = Array.isArray(data) ? data : (data.items || data.rows || []);
+    const holdItems = mapItemsToUI(rows);
+    
+    els.globalResults.innerHTML = '';
+    
+    if (holdItems.length === 0) {
+      els.globalResults.innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center;">No items on hold</div>';
+      document.getElementById('holdCount').textContent = '0';
+      return;
+    }
+    
+    holdItems.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'resultItem';
+      
+      const statusBadge = getStatusBadge(item.workflow_status);
+      const notes = item.notes ? escapeHtml(item.notes) : '—';
+      const heldAt = item.held_at ? formatTimestamp(item.held_at) : '—';
+      
+      div.innerHTML = `
+        <div class="big">Item #${escapeHtml(item.job)} ${statusBadge}</div>
+        ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ''}
+        <div class="qty">Qty: ${item.qty}</div>
+        <div class="meta">Held: ${heldAt} • Notes: ${notes}</div>
+        ${renderWorkflowButtons(item)}
+      `;
+      
+      div.querySelectorAll('[data-action]').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          await handleWorkflowAction(btn.dataset.action, btn.dataset.id);
+        });
+      });
+      
+      div.addEventListener('click', () => loadToForm(item.id));
+      els.globalResults.appendChild(div);
+    });
+    
+    document.getElementById('holdCount').textContent = holdItems.length;
+  } catch (err) {
+    console.error('Failed to load hold items:', err);
+    els.globalResults.innerHTML = '<div style="color:var(--bad)">Failed to load hold items</div>';
+  }
+}
+
+async function renderCompletedToday() {
+  const panel = document.getElementById('completedPanel');
+  const results = document.getElementById('completedResults');
+  
+  if (!panel || !results) return;
+  
+  try {
+    const data = await apiGet('/items/completed/today');
+    const completed = Array.isArray(data.completed) ? data.completed : [];
+    
+    results.innerHTML = '';
+    document.getElementById('completedCount').textContent = completed.length;
+    
+    if (completed.length === 0) {
+      results.innerHTML = '<div style="color:var(--muted);padding:10px;">No jobs completed today</div>';
+      return;
+    }
+    
+    const mapped = mapItemsToUI(completed);
+    
+    mapped.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'resultItem';
+      
+      const completedAt = item.completed_at ? formatTimestamp(item.completed_at) : '—';
+      const notes = item.notes ? escapeHtml(item.notes) : '—';
+      
+      div.innerHTML = `
+        <div class="big">Item #${escapeHtml(item.job)} <span class="statusBadge done">DONE</span></div>
+        ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ''}
+        <div class="qty">Qty: ${item.qty}</div>
+        <div class="meta">Completed: ${completedAt} • Notes: ${notes}</div>
+      `;
+      
+      results.appendChild(div);
+    });
+    
+  } catch (err) {
+    console.error('Failed to load completed items:', err);
+    results.innerHTML = '<div style="color:var(--bad)">Failed to load completed items</div>';
+  }
 }
 
 // ====== BUTTON BUILDERS ======
@@ -1822,18 +2253,18 @@ function getSelectedLocationId(){
 // ====== RENDER LISTS ======
 function renderLaneList(){
   const q = normalize(els.laneSearch.value);
-  const laneItemsAll = inventory.filter(x => String(x.lane ?? "") === selectedLane);
+  const laneItemsAll = inventory.filter(x => String(x.lane ?? '') === selectedLane);
 
   let laneItems = laneItemsAll;
   if(q){
     laneItems = laneItemsAll.filter(x =>
       normalize(x.job).includes(q) ||
-      normalize(x.status).includes(q)
+      normalize(x.status).includes(q) || normalize(x.workflow_status).includes(q)
     );
   }
 
   els.laneCount.textContent = `${laneItemsAll.length} items`;
-  els.laneResults.innerHTML = "";
+  els.laneResults.innerHTML = '';
 
   if(laneItemsAll.length === 0){
     els.laneResults.innerHTML = `<div style="color:var(--muted)">Empty lane.</div>`;
@@ -1847,28 +2278,38 @@ function renderLaneList(){
   laneItems.sort((a,b) => (parseInt(a.job,10)||0) - (parseInt(b.job,10)||0));
 
   laneItems.forEach(item => {
-    const div = document.createElement("div");
-    div.className = "resultItem" + (item.id===selectedId ? " active" : "");
+    const div = document.createElement('div');
+    div.className = 'resultItem' + (item.id===selectedId ? ' active' : '');
 
-    const by = item.updatedBy ? ` • By: ${escapeHtml(item.updatedBy)}` : "";
-    const at = item.updatedAt ? ` • Updated ${escapeHtml(formatTimestamp(item.updatedAt))}` : "";
-    const status = item.status ? escapeHtml(item.status) : "—";
-    const notes = item.notes ? escapeHtml(item.notes) : "—";
+    const by = item.updatedBy ? ` • By: ${escapeHtml(item.updatedBy)}` : '';
+    const at = item.updatedAt ? ` • Updated ${escapeHtml(formatTimestamp(item.updatedAt))}` : '';
+    const itemStatus = item.status ? escapeHtml(item.status) : '—';
+    const notes = item.notes ? escapeHtml(item.notes) : '—';
+    const statusBadge = getStatusBadge(item.workflow_status);
 
     div.innerHTML = `
-      <div class="big">Item #${escapeHtml(item.job)}</div>
-       ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b> </div>` : ``}
-      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
+      <div class="big">Item #${escapeHtml(item.job)} ${statusBadge}</div>
+      ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ''}
+      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${itemStatus}</div>
       <div class="meta">${escapeHtml(item.lane)} • Notes: ${notes}${by}${at}</div>
+      ${renderWorkflowButtons(item)}
     `;
-    div.addEventListener("click", ()=> loadToForm(item.id));
+    
+    div.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await handleWorkflowAction(btn.dataset.action, btn.dataset.id);
+      });
+    });
+    
+    div.addEventListener('click', ()=> loadToForm(item.id));
     els.laneResults.appendChild(div);
   });
 }
 
 function renderMachineList(){
   const q = normalize(els.machineSearch.value);
-  const machineItemsAll = inventory.filter(x => String(x.machine ?? "") === selectedMachine);
+  const machineItemsAll = inventory.filter(x => String(x.machine ?? '') === selectedMachine);
 
   let machineItems = machineItemsAll;
   if(q){
@@ -1879,7 +2320,7 @@ function renderMachineList(){
   }
 
   els.machineCount.textContent = `${machineItemsAll.length} jobs`;
-  els.machineResults.innerHTML = "";
+  els.machineResults.innerHTML = '';
 
   if(machineItemsAll.length === 0){
     els.machineResults.innerHTML = `<div style="color:var(--muted)">Empty machine.</div>`;
@@ -1893,28 +2334,38 @@ function renderMachineList(){
   machineItems.sort((a,b) => (parseInt(a.job,10)||0) - (parseInt(b.job,10)||0));
 
   machineItems.forEach(item => {
-    const div = document.createElement("div");
-    div.className = "resultItem" + (item.id===selectedId ? " active" : "");
+    const div = document.createElement('div');
+    div.className = 'resultItem' + (item.id===selectedId ? ' active' : '');
 
-    const by = item.updatedBy ? ` • By: ${escapeHtml(item.updatedBy)}` : "";
-    const at = item.updatedAt ? ` • Updated ${escapeHtml(formatTimestamp(item.updatedAt))}` : "";
-    const status = item.status ? escapeHtml(item.status) : "—";
-    const notes = item.notes ? escapeHtml(item.notes) : "—";
+    const by = item.updatedBy ? ` • By: ${escapeHtml(item.updatedBy)}` : '';
+    const at = item.updatedAt ? ` • Updated ${escapeHtml(formatTimestamp(item.updatedAt))}` : '';
+    const itemStatus = item.status ? escapeHtml(item.status) : '—';
+    const notes = item.notes ? escapeHtml(item.notes) : '—';
+    const statusBadge = getStatusBadge(item.workflow_status);
 
     div.innerHTML = `
-      <div class="big">Item #${escapeHtml(item.job)}</div>
-      ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ``}
-      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
+      <div class="big">Item #${escapeHtml(item.job)} ${statusBadge}</div>
+      ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ''}
+      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${itemStatus}</div>
       <div class="meta">Machine: ${escapeHtml(item.machine)} • Notes: ${notes}${by}${at}</div>
+      ${renderWorkflowButtons(item)}
     `;
-    div.addEventListener("click", ()=> loadToForm(item.id));
+    
+    div.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await handleWorkflowAction(btn.dataset.action, btn.dataset.id);
+      });
+    });
+    
+    div.addEventListener('click', ()=> loadToForm(item.id));
     els.machineResults.appendChild(div);
   });
 }
 
 function renderGlobalSearch(){
   const q = normalize(els.globalSearch.value);
-  els.globalResults.innerHTML = "";
+  els.globalResults.innerHTML = '';
 
   if(!q){
     els.globalResults.innerHTML = `<div style="color:var(--muted)">Type a Item # or MO to search all lanes/machines.</div>`;
@@ -1931,33 +2382,42 @@ function renderGlobalSearch(){
   }
 
   matches.forEach(item => {
-    const div = document.createElement("div");
-    div.className = "resultItem";
+    const div = document.createElement('div');
+    div.className = 'resultItem';
 
-    const status = item.status ? escapeHtml(item.status) : "—";
-    const notes = item.notes ? escapeHtml(item.notes) : "—";
-    const canMove = (role === "forklift") || (role === "admin" && adminUnlocked);
+    const itemStatus = item.status ? escapeHtml(item.status) : '—';
+    const notes = item.notes ? escapeHtml(item.notes) : '—';
+    const canMove = (role === 'forklift') || (role === 'admin' && adminUnlocked);
     const location = item.machine
       ? `Machine: ${escapeHtml(item.machine)}`
-      : (item.lane ? escapeHtml(item.lane) : "—");
+      : (item.lane ? escapeHtml(item.lane) : '—');
+    const statusBadge = getStatusBadge(item.workflow_status);
 
     div.innerHTML = `
-      <div class="big">Item #${escapeHtml(item.job)}</div>
-      ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ``}
-      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
+      <div class="big">Item #${escapeHtml(item.job)} ${statusBadge}</div>
+      ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ''}
+      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${itemStatus}</div>
       <div class="meta">${location} • Notes: ${notes}</div>
-      ${canMove ? `<div class="btnRow" style="margin-top:10px;"><button class="primary" data-move="1">Move</button></div>` : ``}
+      ${renderWorkflowButtons(item)}
+      ${canMove ? `<div class="btnRow" style="margin-top:10px;"><button class="primary" data-move="1">Move Location</button></div>` : ''}
     `;
 
     const moveBtn = div.querySelector('[data-move]');
     if(moveBtn){
-      moveBtn.addEventListener("click", (e) => {
+      moveBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         openMoveOverlay(item.id);
       });
     }
+    
+    div.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await handleWorkflowAction(btn.dataset.action, btn.dataset.id);
+      });
+    });
 
-    div.addEventListener("click", () => {
+    div.addEventListener('click', () => {
       if(item.machine) selectMachine(item.machine);
       else if(item.lane) selectLane(item.lane);
       loadToForm(item.id);
@@ -1970,12 +2430,12 @@ function renderGlobalSearch(){
 // ====== FORM ======
 function clearForm(){
   selectedId = null;
-  els.mo.value = ""; 
-  els.job.value = "";
-  els.qty.value = "";
-  els.status.value = "";
-  els.notes.value = "";
-  els.updatedBy.value = "";
+  els.mo.value = ''; 
+  els.job.value = '';
+  els.qty.value = '';
+  els.status.value = '';
+  els.notes.value = '';
+  els.updatedBy.value = '';
   updateRoleUI();
 }
 
@@ -1984,12 +2444,12 @@ function loadToForm(id){
   if(!item) return;
   selectedId = id;
 
-  els.mo.value = item.mo ?? "";
-  els.job.value = item.job ?? "";
+  els.mo.value = item.mo ?? '';
+  els.job.value = item.job ?? '';
   els.qty.value = String(item.qty ?? 0);
-  els.status.value = item.status ?? "";
-  els.notes.value = item.notes ?? "";
-  els.updatedBy.value = item.updatedBy ?? "";
+  els.status.value = item.status ?? '';
+  els.notes.value = item.notes ?? '';
+  els.updatedBy.value = item.updatedBy ?? '';
 
   updateRoleUI();
   renderLaneList();
@@ -1998,43 +2458,53 @@ function loadToForm(id){
 
 // ====== CRUD ======
 async function upsertItem(){
-  const machineRole = role === "machine";
-  const admin = (role === "admin" && adminUnlocked);
+  const machineRole = role === 'machine';
+  const admin = (role === 'admin' && adminUnlocked);
 
   if(!(machineRole || admin)){
-    await uiAlert("Permission Denied", "Forklift role cannot edit job details.");
+    await uiAlert('Permission Denied', 'Forklift role cannot edit job details.');
     return;
   }
   if(machineRole && !selectedId){
-    await uiAlert("Permission Denied", "Machine role cannot create new jobs. Ask Admin.");
+    await uiAlert('Permission Denied', 'Machine role cannot create new jobs. Ask Admin.');
     return;
   }
 
   const jobRaw = cleanJob(els.job.value).trim();
   const moRaw  = cleanJob(els.mo.value).trim();
+
   if(!jobRaw){
-    await uiAlert("Validation Error", "Job # is required.");
+    await uiAlert('Validation Error', 'Job # is required.');
     els.job.focus();
     return;
   }
 
-  const qty = Math.max(0, parseInt(els.qty.value || "0", 10));
-  const status = (els.status.value || "").trim().slice(0, 40);
-  const notes  = (els.notes.value  || "").trim().slice(0, 120);
-  const updatedBy = (els.updatedBy.value || "").trim().slice(0, 10);
+  const qty = Math.max(0, parseInt(els.qty.value || '0', 10));
+  const itemStatus = (els.status.value || '').trim().slice(0, 40); // machine notes like RUNNING
+  const notes  = (els.notes.value  || '').trim().slice(0, 120);
+  const updatedBy = (els.updatedBy.value || '').trim().slice(0, 10);
 
   const location_id = getSelectedLocationId();
   if(!location_id){
-    await uiAlert("Location Error", `No DB mapping for selected ${selectedLocation.type}: ${selectedLocation.value}. Check /locations seed.`);
+    await uiAlert('Location Error', `No DB mapping for selected ${selectedLocation.type}: ${selectedLocation.value}. Check /locations seed.`);
     return;
   }
 
-  const payload = { job_number: jobRaw, mo: moRaw, qty, status, notes, updated_by: updatedBy, location_id };
+  // IMPORTANT: don't auto-force workflow_status from "status" (see section 2)
+  const payload = {
+    job_number: jobRaw,
+    mo: moRaw,
+    qty,
+    status: itemStatus,
+    notes,
+    updated_by: updatedBy,
+    location_id
+  };
 
   if(!selectedId){
     const exists = inventory.some(x => normalize(x.job) === normalize(jobRaw));
     if(exists){
-      await uiAlert("Duplicate Job", "That Job # already exists. Search it and update it instead.");
+      await uiAlert('Duplicate Job', 'That Job # already exists. Search it and update it instead.');
       return;
     }
   }
@@ -2049,31 +2519,32 @@ async function upsertItem(){
     renderLaneList();
     renderMachineList();
     renderGlobalSearch();
-    clearForm();
+
+    await uiAlert("Saved", "Job updated successfully.");
   }catch(err){
-    console.error("SAVE FAILED", err);
-    await uiAlert("Save Failed", "Save failed. Open DevTools → Network and check the /items request.");
+    console.error('SAVE FAILED', err);
+    await uiAlert('Save Failed', 'Save failed. Open DevTools → Network and check the /items request.');
   }
 }
 
 async function deleteSelected(){
-  const admin = (role === "admin" && adminUnlocked);
+  const admin = (role === 'admin' && adminUnlocked);
   if(!admin){
-    await uiAlert("Permission Denied", "Admin only.");
+    await uiAlert('Permission Denied', 'Admin only.');
     return;
   }
   if(!selectedId){
-    await uiAlert("No Selection", "Select a job first.");
+    await uiAlert('No Selection', 'Select a job first.');
     return;
   }
 
   const item = inventory.find(x => x.id === selectedId);
   if(!item){
-    await uiAlert("Error", "Could not find selected job.");
+    await uiAlert('Error', 'Could not find selected job.');
     return;
   }
 
-  const ok = await uiConfirm("Confirm Delete", `Delete Item #${item.job}?`, "Delete", "Cancel");
+  const ok = await uiConfirm('Confirm Delete', `Delete Item #${item.job}?`, 'Delete', 'Cancel');
   if (!ok) return;
 
   try{
@@ -2087,13 +2558,13 @@ async function deleteSelected(){
     renderMachineList();
     renderGlobalSearch();
 
-    if(els.historyPanel.style.display !== "none"){
+    if(els.historyPanel.style.display !== 'none'){
       await refreshHistoryFromDb();
       renderHistory();
     }
   }catch(err){
-    console.error("DELETE FAILED", err);
-    await uiAlert("Delete Failed", "Delete failed. Check DevTools → Network.");
+    console.error('DELETE FAILED', err);
+    await uiAlert('Delete Failed', 'Delete failed. Check DevTools → Network.');
   }
 }
 
@@ -2102,52 +2573,52 @@ function openMoveOverlay(id){
   const item = inventory.find(x => x.id === id);
   if(!item) return;
 
-  const allowed = (role === "forklift") || (role === "admin" && adminUnlocked);
+  const allowed = (role === 'forklift') || (role === 'admin' && adminUnlocked);
   if(!allowed){
-    uiAlert("Permission Denied", "Only Forklift (or Admin) can move jobs.");
+    uiAlert('Permission Denied', 'Only Forklift (or Admin) can move jobs.');
     return;
   }
 
   moveTargetId = id;
   els.moveTitle.textContent = `Move Item #${item.job}`;
 
-  els.moveLaneGrid.innerHTML = "";
+  els.moveLaneGrid.innerHTML = '';
   for(let i=1;i<=12;i++){
     const lane = `Lane ${i}`;
-    const btn = document.createElement("div");
-    btn.className = "laneBtn";
+    const btn = document.createElement('div');
+    btn.className = 'laneBtn';
     btn.textContent = lane;
-    btn.addEventListener("click", async () => {
+    btn.addEventListener('click', async () => {
       await moveToLane(moveTargetId, lane);
       closeMoveOverlay();
     });
     els.moveLaneGrid.appendChild(btn);
   }
 
-  els.moveMachineGrid.innerHTML = "";
+  els.moveMachineGrid.innerHTML = '';
   MACHINES.forEach(m => {
-    const btn = document.createElement("div");
-    btn.className = "laneBtn";
+    const btn = document.createElement('div');
+    btn.className = 'laneBtn';
     btn.textContent = m;
-    btn.addEventListener("click", async () => {
+    btn.addEventListener('click', async () => {
       await moveToMachine(moveTargetId, m);
       closeMoveOverlay();
     });
     els.moveMachineGrid.appendChild(btn);
   });
 
-  els.moveOverlay.classList.add("show");
+  els.moveOverlay.classList.add('show');
 }
 
 function closeMoveOverlay(){
-  els.moveOverlay.classList.remove("show");
+  els.moveOverlay.classList.remove('show');
   moveTargetId = null;
 }
 
 async function moveToLane(id, lane){
   const location_id = locIdByLane.get(lane) ?? null;
   if(!location_id){
-    await uiAlert("Location Error", `No DB mapping for ${lane}. Check /locations seed.`);
+    await uiAlert('Location Error', `No DB mapping for ${lane}. Check /locations seed.`);
     return;
   }
 
@@ -2162,15 +2633,15 @@ async function moveToLane(id, lane){
     renderGlobalSearch();
     loadToForm(id);
   }catch(err){
-    console.error("MOVE TO LANE FAILED", err);
-    await uiAlert("Move Failed", "Move failed. Check DevTools → Network.");
+    console.error('MOVE TO LANE FAILED', err);
+    await uiAlert('Move Failed', 'Move failed. Check DevTools → Network.');
   }
 }
 
 async function moveToMachine(id, machine){
   const location_id = locIdByMachine.get(machine) ?? null;
   if(!location_id){
-    await uiAlert("Location Error", `No DB mapping for machine ${machine}. Check /locations seed.`);
+    await uiAlert('Location Error', `No DB mapping for machine ${machine}. Check /locations seed.`);
     return;
   }
 
@@ -2185,8 +2656,8 @@ async function moveToMachine(id, machine){
     renderGlobalSearch();
     loadToForm(id);
   }catch(err){
-    console.error("MOVE TO MACHINE FAILED", err);
-    await uiAlert("Move Failed", "Move failed. Check DevTools → Network.");
+    console.error('MOVE TO MACHINE FAILED', err);
+    await uiAlert('Move Failed', 'Move failed. Check DevTools → Network.');
   }
 }
 
@@ -2199,102 +2670,143 @@ function toggleFullscreen(){
   }
 }
 
+// ====== MODE SWITCHING ======
+function setMode(mode){
+  currentMode = mode;
+  
+  const tabQueue = document.getElementById('tabQueue');
+  const tabHold = document.getElementById('tabHold');
+  const tabLanes = document.getElementById('tabLanes');
+  
+  [tabQueue, tabHold, tabLanes].forEach(b => b && b.classList.remove('active'));
+  
+  const completedPanel = document.getElementById('completedPanel');
+  if (completedPanel) completedPanel.classList.remove('show');
+  
+  if (mode === 'queue') {
+    tabQueue?.classList.add('active');
+    renderQueueView();
+  } else if (mode === 'hold') {
+    tabHold?.classList.add('active');
+    renderHoldView();
+  } else {
+    tabLanes?.classList.add('active');
+    renderLaneList();
+    renderMachineList();
+  }
+}
+
 // ====== EVENTS ======
-const logoutBtn = document.getElementById("logoutBtn");
+// ====== EVENTS ======
+const logoutBtn = document.getElementById('logoutBtn');
 if (logoutBtn) {
-  logoutBtn.addEventListener("click", () => {
-    localStorage.removeItem("trace_token");
-    localStorage.removeItem("trace_role");
-    localStorage.removeItem("trace_email");
-    sessionStorage.removeItem("trace_intro_seen"); // optional: replay intro next login
+  logoutBtn.addEventListener('click', () => {
+    localStorage.removeItem('trace_token');
+    localStorage.removeItem('trace_role');
+    localStorage.removeItem('trace_email');
+    sessionStorage.removeItem('trace_intro_seen');
     location.reload();
   });
 }
-els.globalSearch.addEventListener("input", renderGlobalSearch);
-els.laneSearch.addEventListener("input", renderLaneList);
-els.machineSearch.addEventListener("input", renderMachineList);
 
-els.saveBtn.addEventListener("click", upsertItem);
-els.newBtn.addEventListener("click", clearForm);
-els.deleteBtn.addEventListener("click", deleteSelected);
+if (els.roleSelect) {
+  els.roleSelect.addEventListener('change', async (e) => {
+    const v = e.target.value;
 
-els.moveCloseBtn.addEventListener("click", closeMoveOverlay);
-els.moveOverlay.addEventListener("click", (e) => { if(e.target === els.moveOverlay) closeMoveOverlay(); });
+    if (v === 'admin') {
+      if (!adminUnlocked) {
+        e.target.value = 'forklift';
+        setRole('forklift');
+        await uiAlert("Admin Locked", "Tap 'Unlock Admin' and enter the PIN.");
+        return;
+      }
+      setRole('admin');
+      return;
+    }
 
-els.roleSelect.addEventListener("change", (e) => {
-  const v = e.target.value;
-  if(v === "admin") setRole("admin");
-  else setRole(v);
-});
-
-els.adminUnlockBtn.addEventListener("click", async () => {
-  const pin = await uiPrompt("Admin Access", "Enter Admin PIN:", {
-    placeholder: "PIN",
-    hint: "Admin-only actions: create + delete + restore",
-    mask: true
+    setRole(v);
   });
+}
 
-  if (pin === null) return;
+if (els.adminUnlockBtn) {
+  els.adminUnlockBtn.addEventListener('click', async () => {
+    const pin = await uiPrompt('Admin Access', 'Enter Admin PIN:', {
+      placeholder: 'PIN',
+      hint: 'Admin-only actions: create + delete + restore',
+      mask: true
+    });
 
-  const enteredPin = String(pin).trim();
-  if (!enteredPin) {
-    await uiAlert("Admin Access", "PIN is required.");
-    return;
-  }
-  if (enteredPin !== ADMIN_PIN) {
-    await uiAlert("Access Denied", "Wrong PIN.");
-    els.roleSelect.value = "forklift";
-    setRole("forklift");
-    return;
-  }
+    if (pin === null) return;
 
-  adminUnlocked = true;
-  els.adminUnlockBtn.style.display = "none";
-  els.adminLockBtn.style.display = "inline-block";
-  els.roleSelect.value = "admin";
-  setRole("admin");
-});
+    const enteredPin = String(pin).trim();
+    if (!enteredPin) {
+      await uiAlert('Admin Access', 'PIN is required.');
+      return;
+    }
+    if (enteredPin !== ADMIN_PIN) {
+      await uiAlert('Access Denied', 'Wrong PIN.');
+      els.roleSelect.value = 'forklift';
+      setRole('forklift');
+      return;
+    }
 
-els.adminLockBtn.addEventListener("click", () => {
-  adminUnlocked = false;
-  els.adminLockBtn.style.display = "none";
-  els.adminUnlockBtn.style.display = "inline-block";
-  els.roleSelect.value = "forklift";
-  setRole("forklift");
-});
+    adminUnlocked = true;
+    els.adminUnlockBtn.style.display = 'none';
+    els.adminLockBtn.style.display = 'inline-block';
+    els.roleSelect.value = 'admin';
+    setRole('admin');
+  });
+}
 
-els.historyBtn.addEventListener("click", async () => {
-  const open = els.historyPanel.style.display !== "none";
-  els.historyPanel.style.display = open ? "none" : "block";
+if (els.adminLockBtn) {
+  els.adminLockBtn.addEventListener('click', () => {
+    adminUnlocked = false;
+    els.adminLockBtn.style.display = 'none';
+    els.adminUnlockBtn.style.display = 'inline-block';
+    els.roleSelect.value = 'forklift';
+    setRole('forklift');
+  });
+}
 
-  if(!open){
-    await refreshHistoryFromDb();
-    renderHistory();
-  }
-});
+if (els.historyBtn) {
+  els.historyBtn.addEventListener('click', async () => {
+    const open = els.historyPanel.style.display !== 'none';
+    els.historyPanel.style.display = open ? 'none' : 'block';
 
-els.historySearch.addEventListener("input", renderHistory);
+    if(!open){
+      await refreshHistoryFromDb();
+      renderHistory();
+    }
+  });
+}
 
-els.job.addEventListener("input", () => {
-  els.job.value = cleanJob(els.job.value);
-});
+if (els.historySearch) {
+  els.historySearch.addEventListener('input', renderHistory);
+}
 
-els.mo.addEventListener("input", () => {
-  els.mo.value = cleanJob(els.mo.value);
-});
+if (els.job) {
+  els.job.addEventListener('input', () => {
+    els.job.value = cleanJob(els.job.value);
+  });
+}
 
-document.addEventListener("keydown", (e) => {
+if (els.mo) {
+  els.mo.addEventListener('input', () => {
+    els.mo.value = cleanJob(els.mo.value);
+  });
+}
+
+document.addEventListener('keydown', (e) => {
   const tag = document.activeElement?.tagName?.toLowerCase();
   const typing =
-    tag === "input" ||
-    tag === "textarea" ||
+    tag === 'input' ||
+    tag === 'textarea' ||
     document.documentElement?.isContentEditable;
 
-  // don't fire shortcuts while typing
   if (typing) return;
 
-  if (e.key.toLowerCase() === "f") toggleFullscreen();
-  if (e.key === "Escape") closeMoveOverlay();
+  if (e.key.toLowerCase() === 'f') toggleFullscreen();
+  if (e.key === 'Escape') closeMoveOverlay();
 
   if (/^[1-9]$/.test(e.key)) {
     const laneNum = parseInt(e.key, 10);
@@ -2302,17 +2814,40 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+document.getElementById('tabQueue')?.addEventListener('click', () => setMode('queue'));
+document.getElementById('tabHold')?.addEventListener('click', () => setMode('hold'));
+document.getElementById('tabLanes')?.addEventListener('click', () => setMode('lanes'));
+
+const completedToggle = document.getElementById('completedToggleBtn');
+if (completedToggle) {
+  completedToggle.addEventListener('click', async () => {
+    const panel = document.getElementById('completedPanel');
+    if (!panel) return;
+    
+    const isOpen = panel.classList.contains('show');
+    
+    if (isOpen) {
+      panel.classList.remove('show');
+      completedToggle.textContent = 'Show Completed Today';
+    } else {
+      panel.classList.add('show');
+      completedToggle.textContent = 'Hide Completed';
+      await renderCompletedToday();
+    }
+  });
+}
+
 // ====== INIT (CALLED AFTER LOGIN) ======
 window.initApp = async function initApp() {
   try {
     buildLaneButtons();
     buildMachineButtons();
-
+    mountTopBarControls();
     els.laneTitle.textContent = selectedLane;
     els.machineTitle.textContent = `Machine: ${selectedMachine}`;
 
-    selectedLocation = { type: "lane", value: selectedLane };
-    setRole("forklift");
+    selectedLocation = { type: 'lane', value: selectedLane };
+    setRole('forklift');
 
     els.globalResults.innerHTML = `<div style="color:var(--muted)">Loading...</div>`;
 
@@ -2323,9 +2858,9 @@ window.initApp = async function initApp() {
     renderMachineList();
     renderGlobalSearch();
 
-    console.log("✅ INIT COMPLETE");
+    console.log('✅ INIT COMPLETE');
   } catch (err) {
-    console.error("❌ Init failed:", err);
+    console.error('❌ Init failed:', err);
     els.globalResults.innerHTML = `
       <div style="color:var(--bad); font-weight:900;">API / INIT ERROR</div>
       <div style="color:var(--muted); margin-top:6px;">
@@ -2336,45 +2871,52 @@ window.initApp = async function initApp() {
 };
 
 // ====== BOOT ENTRYPOINT ======
-window.addEventListener("DOMContentLoaded", async () => {
+console.log("🚀 Script loaded, attaching DOMContentLoaded...");
+
+window.addEventListener('DOMContentLoaded', async () => {
+  console.log("✅ DOMContentLoaded fired");
+  
   wireLoginUI();
+  console.log("✅ wireLoginUI() called");
+
   if (AUTH.token) {
+    console.log("✅ Token found, hiding login");
     hideLogin();
     await startAfterLogin();
   } else {
+    console.log("✅ No token, showing login");
     showLogin();
   }
 });
 
-// ===== TRACE Assistant — Pro Dock JS (COMMAND MODE + MOVE SUPPORT) =====
+
+// ===== TRACE Assistant =====
 (() => {
   try {
-    const fab = document.getElementById("chatFab");
-    const dock = document.getElementById("chatDock");
-    const close = document.getElementById("chatClose");
+    const fab = document.getElementById('chatFab');
+    const dock = document.getElementById('chatDock');
+    const close = document.getElementById('chatClose');
 
-    const form = document.getElementById("chatComposer");
-    const input = document.getElementById("chatInput");
-    const log = document.getElementById("chatLog");
-    const thinking = document.getElementById("chatThinking");
+    const form = document.getElementById('chatComposer');
+    const input = document.getElementById('chatInput');
+    const log = document.getElementById('chatLog');
+    const thinking = document.getElementById('chatThinking');
 
-    // If assistant UI not present, do nothing (never break the app)
     if (!fab || !dock || !close || !form || !input || !log || !thinking) return;
 
-    const time = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const time = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // Keep UI safe: always escape content we inject into the DOM
     const esc = (s) =>
-      String(s ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+      String(s ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
 
     function add(role, text) {
-      const row = document.createElement("div");
-      row.className = "msg " + (role === "me" ? "me" : "bot");
+      const row = document.createElement('div');
+      row.className = 'msg ' + (role === 'me' ? 'me' : 'bot');
       row.innerHTML = `
         <div class="bub">${esc(text)}</div>
         <div class="time">${time()}</div>
@@ -2383,75 +2925,99 @@ window.addEventListener("DOMContentLoaded", async () => {
       log.scrollTop = log.scrollHeight;
     }
 
-    function open() { dock.classList.add("open"); setTimeout(() => input.focus(), 50); }
-    function shut() { dock.classList.remove("open"); }
+    function open() { dock.classList.add('open'); setTimeout(() => input.focus(), 50); }
+    function shut() { dock.classList.remove('open'); }
 
-    fab.addEventListener("click", open);
-    close.addEventListener("click", shut);
+    fab.addEventListener('click', open);
+    close.addEventListener('click', shut);
 
-    // --------- Chat Helpers (move-focused) ----------
-    function normalizeChat(s){ return String(s||"").trim().toLowerCase(); }
+    function normalizeChat(s){ return String(s||'').trim().toLowerCase(); }
 
     function findItemByAnyKey(keyRaw){
       const inv = Array.isArray(window.inventory) ? window.inventory : (Array.isArray(inventory) ? inventory : []);
-      const key = String(keyRaw || "").trim().toUpperCase();
+      const key = String(keyRaw || '').trim().toUpperCase();
       if (!key) return null;
 
-      // 1) Exact match on job/item #
-      let hit = inv.find(x => String(x.job||"").toUpperCase() === key);
+      let hit = inv.find(x => String(x.job||'').toUpperCase() === key);
       if (hit) return hit;
 
-      // 2) Optional MO support (only if you later add `mo` to mapped items)
-      hit = inv.find(x => String(x.mo||"").toUpperCase() === key);
+      hit = inv.find(x => String(x.mo||'').toUpperCase() === key);
       if (hit) return hit;
 
-      // 3) Partial match fallback
-      hit = inv.find(x => String(x.job||"").toUpperCase().includes(key));
+      hit = inv.find(x => String(x.job||'').toUpperCase().includes(key));
       if (hit) return hit;
 
-      hit = inv.find(x => String(x.mo||"").toUpperCase().includes(key));
+      hit = inv.find(x => String(x.mo||'').toUpperCase().includes(key));
       if (hit) return hit;
 
       return null;
     }
 
     function canMoveFromChat(){
-      const r = (typeof window.role !== "undefined") ? window.role : (typeof role !== "undefined" ? role : "forklift");
-      const au = (typeof window.adminUnlocked !== "undefined") ? window.adminUnlocked : (typeof adminUnlocked !== "undefined" ? adminUnlocked : false);
-      return (r === "forklift") || (r === "admin" && au);
+      const r = (typeof window.role !== 'undefined') ? window.role : (typeof role !== 'undefined' ? role : 'forklift');
+      const au = (typeof window.adminUnlocked !== 'undefined') ? window.adminUnlocked : (typeof adminUnlocked !== 'undefined' ? adminUnlocked : false);
+      return (r === 'forklift') || (r === 'admin' && au);
     }
 
     function formatLocation(item){
       if (item.machine) return `Machine ${item.machine}`;
       if (item.lane) return item.lane;
-      return "Unknown location";
+      return 'Unknown location';
     }
 
     async function handleChatCommand(rawText){
       const t = normalizeChat(rawText);
 
-      // HELP
-      if (t === "help" || t === "?"){
+      if (t === 'help' || t === '?'){
         return [
-          "Commands:",
-          "• move 16900 to lane 2",
-          "• move 16900 to s8",
-          "• where is 16900",
-          "• whats in lane 3",
-          "• whats on s8",
-          "• status"
-        ].join("\n");
+          'Commands:',
+          '• move 16900 to lane 2',
+          '• move 16900 to s8',
+          '• where is 16900',
+          '• whats in lane 3',
+          '• whats on s8',
+          '• show queue',
+          '• show hold',
+          '• completed today',
+          '• status'
+        ].join('\n');
       }
 
-      // STATUS
-      if (t === "status"){
-        const r = (typeof window.role !== "undefined") ? window.role : (typeof role !== "undefined" ? role : "forklift");
-        const au = (typeof window.adminUnlocked !== "undefined") ? window.adminUnlocked : (typeof adminUnlocked !== "undefined" ? adminUnlocked : false);
-        const effectiveRole = (r === "admin" && au) ? "ADMIN" : String(r || "forklift").toUpperCase();
+      if (t === 'status'){
+        const r = (typeof window.role !== 'undefined') ? window.role : (typeof role !== 'undefined' ? role : 'forklift');
+        const au = (typeof window.adminUnlocked !== 'undefined') ? window.adminUnlocked : (typeof adminUnlocked !== 'undefined' ? adminUnlocked : false);
+        const effectiveRole = (r === 'admin' && au) ? 'ADMIN' : String(r || 'forklift').toUpperCase();
         return `SYSTEM ONLINE. Role: ${effectiveRole}.`;
       }
 
-      // WHERE IS
+      if (t === 'show queue' || t === 'whats in queue') {
+        if (typeof setMode === 'function') setMode('queue');
+        return 'Showing Queue view.';
+      }
+      
+      if (t === 'show hold' || t === 'whats on hold') {
+        if (typeof setMode === 'function') setMode('hold');
+        return 'Showing Hold view.';
+      }
+      
+      if (t === 'completed today' || t === 'what was completed today' || t === 'show completed') {
+        try {
+          const data = await apiGet('/items/completed/today');
+          const completed = Array.isArray(data.completed) ? data.completed : [];
+          
+          if (completed.length === 0) return 'No jobs completed today.';
+          
+          const list = completed.slice(0, 10).map(x => 
+            `• ${esc(x.job_number || x.job)} (Qty: ${x.qty || 0})`
+          ).join('\n');
+          
+          const more = completed.length > 10 ? `\n…and ${completed.length - 10} more.` : '';
+          return `Completed today (${completed.length} total):\n${list}${more}`;
+        } catch(e) {
+          return 'Failed to fetch completed items.';
+        }
+      }
+
       let m = t.match(/^(where\s+is|where'?s)\s+(.+)$/i);
       if (m){
         const key = m[2].trim();
@@ -2460,120 +3026,108 @@ window.addEventListener("DOMContentLoaded", async () => {
         return `Item ${item.job} is in ${formatLocation(item)}.`;
       }
 
-      // WHAT'S IN LANE
       m = t.match(/^what'?s?\s+in\s+lane\s+(\d{1,2})$/i) || t.match(/^what\s+is\s+in\s+lane\s+(\d{1,2})$/i);
       if (m){
         const laneNum = Math.max(1, Math.min(12, parseInt(m[1],10)));
         const laneLabel = `Lane ${laneNum}`;
         const inv = Array.isArray(window.inventory) ? window.inventory : (Array.isArray(inventory) ? inventory : []);
-        const list = inv.filter(x => String(x.lane||"") === laneLabel);
+        const list = inv.filter(x => String(x.lane||'') === laneLabel);
 
         if (list.length === 0) return `${laneLabel} is empty.`;
 
         const shown = list
           .slice(0, 25)
-          .map(x => `• ${x.job} (${x.status || "—"})`)
-          .join("\n");
+          .map(x => `• ${x.job} (${x.status || '—'})`)
+          .join('\n');
 
-        const more = list.length > 25 ? `\n…and ${list.length - 25} more.` : "";
+        const more = list.length > 25 ? `\n…and ${list.length - 25} more.` : '';
         return `${laneLabel} has ${list.length} item(s):\n${shown}${more}`;
       }
 
-      // WHAT'S ON MACHINE
       m = t.match(/^what'?s?\s+on\s+(?:machine\s+)?(.+)$/i);
       if (m){
         const machine = m[1].trim().toUpperCase();
         const inv = Array.isArray(window.inventory) ? window.inventory : (Array.isArray(inventory) ? inventory : []);
-        const list = inv.filter(x => String(x.machine||"").toUpperCase() === machine);
+        const list = inv.filter(x => String(x.machine||'').toUpperCase() === machine);
 
         if (list.length === 0) return `${machine} is empty.`;
 
         const shown = list
           .slice(0, 25)
-          .map(x => `• ${x.job} (${x.status || "—"})`)
-          .join("\n");
+          .map(x => `• ${x.job} (${x.status || '—'})`)
+          .join('\n');
 
-        const more = list.length > 25 ? `\n…and ${list.length - 25} more.` : "";
+        const more = list.length > 25 ? `\n…and ${list.length - 25} more.` : '';
         return `${machine} has ${list.length} item(s):\n${shown}${more}`;
       }
 
-      // MOVE COMMANDS
-      // "move 16900 to lane 2"
-      // "move mo-5048 to s8"
-      // "put 16900 in lane 5"
-      // "send 16900 to machine s9"
       m =
         t.match(/^(move|send|put)\s+(.+?)\s+(?:to|in)\s+lane\s+(\d{1,2})$/i) ||
         t.match(/^(move|send|put)\s+(.+?)\s+to\s+(?:machine\s+)?(.+)$/i);
 
       if (m){
         if (!canMoveFromChat()){
-          return "Permission denied. Only Forklift (or Admin) can move items.";
+          return 'Permission denied. Only Forklift (or Admin) can move items.';
         }
 
         const key = m[2].trim();
         const item = findItemByAnyKey(key);
         if (!item) return `I couldn't find ${key}.`;
 
-        // Lane move
-        if (String(m[3]||"").match(/^\d{1,2}$/)){
+        if (String(m[3]||'').match(/^\d{1,2}$/)){
           const laneNum = Math.max(1, Math.min(12, parseInt(m[3],10)));
           const laneLabel = `Lane ${laneNum}`;
 
-          if (typeof window.moveToLane === "function") {
+          if (typeof window.moveToLane === 'function') {
             await window.moveToLane(item.id, laneLabel);
-          } else if (typeof moveToLane === "function") {
+          } else if (typeof moveToLane === 'function') {
             await moveToLane(item.id, laneLabel);
           } else {
-            return "Move function not ready yet (moveToLane missing).";
+            return 'Move function not ready yet (moveToLane missing).';
           }
 
           return `Moved ${item.job} to ${laneLabel}.`;
         }
 
-        // Machine move
-        const machine = String(m[3]||"").trim().toUpperCase();
+        const machine = String(m[3]||'').trim().toUpperCase();
 
-        if (typeof window.moveToMachine === "function") {
+        if (typeof window.moveToMachine === 'function') {
           await window.moveToMachine(item.id, machine);
-        } else if (typeof moveToMachine === "function") {
+        } else if (typeof moveToMachine === 'function') {
           await moveToMachine(item.id, machine);
         } else {
-          return "Move function not ready yet (moveToMachine missing).";
+          return 'Move function not ready yet (moveToMachine missing).';
         }
 
         return `Moved ${item.job} to ${machine}.`;
       }
 
-      return 'I didn’t understand that. Type "help" for commands.';
+      return `I didn't understand that. Type "help" for commands.`;
     }
-
-    // --------- Submit wiring ----------
-    form.addEventListener("submit", async (e) => {
+   
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const text = input.value.trim();
       if (!text) return;
 
-      input.value = "";
-      add("me", text);
+      input.value = '';
+      add('me', text);
 
-      thinking.classList.add("show");
+      thinking.classList.add('show');
       try {
         const reply = await handleChatCommand(text);
-        thinking.classList.remove("show");
-        add("bot", reply);
+        thinking.classList.remove('show');
+        add('bot', reply);
       } catch (err) {
-        console.error("Chat command failed:", err);
-        thinking.classList.remove("show");
-        add("bot", "I hit an error running that command. Check console.");
+        console.error('Chat command failed:', err);
+        thinking.classList.remove('show');
+        add('bot', 'I hit an error running that command. Check console.');
       }
     });
 
-    // Boot message (only once per page load)
-    add("bot", 'SYSTEM ONLINE. Type "help" for commands.');
+    add('bot', 'SYSTEM ONLINE. Type "help" for commands.');
   } catch (err) {
-    // If assistant fails, never break the app
-    console.error("TRACE Assistant failed:", err);
+    console.error('TRACE Assistant failed:', err);
   }
 })();
 
