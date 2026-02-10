@@ -968,7 +968,7 @@
       </div>
   
  <!-- COMPLETED TODAY PANEL -->
-  <div id="completedPanel" class="completedPanel" style="display:none;">
+  <div id="completedPanel" class="completedPanel hidden">
     <div class="completedHeader">
       <div class="completedTitle">✓ Completed Today</div>
       <div class="completedCount" id="completedCount">0</div>
@@ -2335,7 +2335,14 @@ function closeSideMenu(){
 if (openCompletedBtn) {
   openCompletedBtn.addEventListener("click", () => {
     closeSideMenu();
-    if (completedPanel) completedPanel.style.display = "block";
+    if (!completedPanel) return;
+
+    // TOGGLE completed panel
+    if (completedPanel.classList.contains("hidden")) {
+      completedPanel.classList.remove("hidden");
+    } else {
+      completedPanel.classList.add("hidden");
+    }
   });
 }
 
