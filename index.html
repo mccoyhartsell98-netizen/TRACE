@@ -642,6 +642,36 @@
       .laneGrid{ grid-template-columns: repeat(3,1fr); }
     }
 
+.completedPanel{
+  background: var(--panel);
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.completedHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+
+.completedTitle{
+  font-weight: 900;
+  letter-spacing: .06em;
+  color: var(--muted);
+}
+
+.completedCount{
+  padding: 6px 10px;
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  background: rgba(255,255,255,.04);
+  color: var(--text);
+  font-weight: 900;
+}
+
 /* ===== SIDE MENU (hamburger drawer) ===== */
 .hidden { display: none !important; }
 
@@ -983,15 +1013,27 @@
         <div class="sideMenuTop">
           <div class="sideMenuTitle">MENU</div>
           <button id="menuCloseBtn" class="ghost">✕</button>
-        </div>
+       </div>
 
         <div class="sideMenuBody">
+          <button class="ghost" id="openPalletCallsBtn">Pallet Ready Queue</button>
           <button class="ghost" id="openCompletedBtn">Completed Today</button>
           <button class="ghost" id="openHistoryBtn">Deleted History</button>
         </div>
       </aside>
 
-      <div class="grid">
+<!-- PALLET READY QUEUE -->
+<div id="palletCallsPanel" class="completedPanel" style="display:none; margin-top:12px;">
+  <div class="completedHeader">
+    <div class="completedTitle">📦 Pallet Ready Queue</div>
+    <div class="completedCount" id="palletCallsCount">0</div>
+  </div>
+
+  <input id="palletCallsSearch" type="text" placeholder="Filter calls (job, machine, message)">
+  <div id="palletCallsResults" class="results" style="margin-top:10px;"></div>
+</div>
+      
+         <div class="grid">
         <!-- LEFT -->
         <div class="card">
           <h2>Search</h2>
@@ -1458,6 +1500,11 @@ const els = {
   historyPanel: document.getElementById("historyPanel"),
   historySearch: document.getElementById("historySearch"),
   historyResults: document.getElementById("historyResults"),
+  palletCallsPanel: document.getElementById("palletCallsPanel"),
+  palletCallsCount: document.getElementById("palletCallsCount"),
+  palletCallsSearch: document.getElementById("palletCallsSearch"),
+  palletCallsResults: document.getElementById("palletCallsResults"),
+  openPalletCallsBtn: document.getElementById("openPalletCallsBtn"),
 };
 
 // ====== HELPERS ======
@@ -1613,6 +1660,9 @@ async function handleChatCommand(rawText){
 
 // ====== STATE ======
 let rawItems = [];
+let palletPollTimer = null;
+let palletCallsCache = [];
+let lastCallIds = new Set();
 let rawLocations = [];
 let locations = [];
 let locById = new Map();
@@ -2322,30 +2372,26 @@ els.roleSelect.addEventListener("change", (e) => {
   if(v === "admin") setRole("admin");
   else setRole(v);
 });
-
 const openCompletedBtn = document.getElementById("openCompletedBtn");
 const openHistoryBtn = document.getElementById("openHistoryBtn");
 const completedPanel = document.getElementById("completedPanel");
-
+// ===== SIDE MENU BUTTONS =====
 function closeSideMenu(){
   if (sideMenu) sideMenu.classList.add("hidden");
   if (menuOverlay) menuOverlay.classList.add("hidden");
 }
 
+// Completed Today toggle
 if (openCompletedBtn) {
   openCompletedBtn.addEventListener("click", () => {
     closeSideMenu();
     if (!completedPanel) return;
 
-    // TOGGLE completed panel
-    if (completedPanel.classList.contains("hidden")) {
-      completedPanel.classList.remove("hidden");
-    } else {
-      completedPanel.classList.add("hidden");
-    }
+    completedPanel.classList.toggle("hidden");
   });
 }
 
+// Deleted History open
 if (openHistoryBtn) {
   openHistoryBtn.addEventListener("click", async () => {
     closeSideMenu();
@@ -2354,6 +2400,30 @@ if (openHistoryBtn) {
     renderHistory();
   });
 }
+
+// Pallet Ready Queue toggle + load
+if (els.openPalletCallsBtn) {
+  els.openPalletCallsBtn.addEventListener("click", async () => {
+    closeSideMenu();
+
+    const panel = els.palletCallsPanel;
+    if (!panel) return;
+
+    const open = panel.style.display !== "none";
+    panel.style.display = open ? "none" : "block";
+
+    if (!open) {
+      await loadPalletCalls();
+      renderPalletCalls();
+    }
+  });
+}
+
+// Pallet calls filter
+if (els.palletCallsSearch) {
+  els.palletCallsSearch.addEventListener("input", renderPalletCalls);
+}
+
 els.adminUnlockBtn.addEventListener("click", async () => {
   const pin = await uiPrompt("Admin Access", "Enter Admin PIN:", {
     placeholder: "PIN",
@@ -2429,6 +2499,116 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+// ===== PALLET READY POLLING =====
+
+async function loadPalletCalls(){
+  const d = await apiGet("/pallet-calls?status=OPEN");
+  palletCallsCache = Array.isArray(d.calls) ? d.calls : [];
+  return palletCallsCache;
+}
+
+function renderPalletCalls(){
+  const q = normalize(els.palletCallsSearch?.value || "");
+  let list = palletCallsCache;
+
+  if(q){
+    list = list.filter(c =>
+      normalize(c.machine).includes(q) ||
+      normalize(c.job_number).includes(q) ||
+      normalize(c.message).includes(q) ||
+      normalize(c.created_by).includes(q)
+    );
+  }
+
+  els.palletCallsResults.innerHTML = "";
+  els.palletCallsCount.textContent = String(palletCallsCache.length);
+
+  if(list.length === 0){
+    els.palletCallsResults.innerHTML = `<div style="color:var(--muted)">No open pallet calls.</div>`;
+    return;
+  }
+
+  list.slice(0, 150).forEach(c => {
+    const div = document.createElement("div");
+    div.className = "resultItem";
+
+    const job = c.job_number ? `Job: <b>${escapeHtml(c.job_number)}</b> • ` : "";
+    const msg = c.message ? escapeHtml(c.message) : "—";
+    const by  = c.created_by ? ` • By: ${escapeHtml(c.created_by)}` : "";
+    const ts  = c.created_at ? ` • ${escapeHtml(formatTimestamp(c.created_at))}` : "";
+
+    const canClaim = role === "forklift" || (role === "admin" && adminUnlocked);
+
+    div.innerHTML = `
+      <div class="big">Machine ${escapeHtml(c.machine)}</div>
+      <div class="meta">${job}${msg}${by}${ts}</div>
+      ${canClaim ? `
+        <div class="btnRow" style="margin-top:10px;">
+          <button class="primary" data-claim="1">Claim</button>
+          <button class="ghost" data-done="1">Done</button>
+        </div>` : ``}
+    `;
+
+    const claimBtn = div.querySelector("[data-claim]");
+    const doneBtn  = div.querySelector("[data-done]");
+
+    if(claimBtn){
+      claimBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const name = (els.updatedBy?.value || AUTH.email || "Forklift").slice(0, 20);
+        try{
+          await apiPut(`/pallet-calls/${c.call_id}/claim`, { claimed_by: name });
+          await loadPalletCalls();
+          renderPalletCalls();
+        }catch(err){
+          await uiAlert("Claim Failed", err.message || "Could not claim call.");
+        }
+      });
+    }
+
+    if(doneBtn){
+      doneBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        try{
+          await apiPut(`/pallet-calls/${c.call_id}/done`, {});
+          await loadPalletCalls();
+          renderPalletCalls();
+        }catch(err){
+          await uiAlert("Done Failed", err.message || "Could not close call.");
+        }
+      });
+    }
+
+    els.palletCallsResults.appendChild(div);
+  });
+}
+
+async function pollPalletCalls(){
+  try{
+    const canSee = (role === "forklift") || (role === "admin" && adminUnlocked);
+    if(!canSee) return;
+
+    await loadPalletCalls();
+
+    // only re-render if panel is open
+    const panelOpen = els.palletCallsPanel && els.palletCallsPanel.style.display !== "none";
+    if(panelOpen) renderPalletCalls();
+
+    // (optional) detect “new calls” without spamming alerts
+    const currentIds = new Set(palletCallsCache.map(c => c.call_id));
+    for(const id of currentIds){
+      if(!lastCallIds.has(id)){
+        console.log("🔔 NEW PALLET CALL:", id);
+        // later: play sound + badge
+      }
+    }
+    lastCallIds = currentIds;
+
+  }catch(e){
+    console.warn("pollPalletCalls failed:", e.message);
+  }
+}
+
 // ====== INIT (CALLED AFTER LOGIN) ======
 window.initApp = async function initApp() {
   try {
@@ -2450,6 +2630,11 @@ window.initApp = async function initApp() {
     renderMachineList();
     renderGlobalSearch();
 
+// ===== 4B: START PALLET READY LISTENER (FORKLIFT ONLY) =====
+if (role === "forklift") {
+  if (palletPollTimer) clearInterval(palletPollTimer);
+  palletPollTimer = setInterval(pollPalletCalls, 5000);
+}    
     console.log("✅ INIT COMPLETE");
   } catch (err) {
     console.error("❌ Init failed:", err);
