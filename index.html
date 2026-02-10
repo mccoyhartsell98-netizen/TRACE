@@ -642,6 +642,55 @@
       .laneGrid{ grid-template-columns: repeat(3,1fr); }
     }
 
+/* ===== SIDE MENU (hamburger drawer) ===== */
+.hidden { display: none !important; }
+
+.sideMenuOverlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  z-index: 99998;
+}
+
+.sideMenu{
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: min(320px, 86vw);
+  background: rgba(12,14,18,.92);
+  border-left: 1px solid rgba(255,255,255,.10);
+  z-index: 99999;
+  box-shadow: -20px 0 60px rgba(0,0,0,.6);
+  backdrop-filter: blur(14px);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sideMenuTop{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.sideMenuTitle{
+  font-weight: 900;
+  letter-spacing: .18em;
+  font-size: 12px;
+  color: rgba(255,255,255,.70);
+}
+
+.sideMenuBody{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+}
+
     /* ===== TRACE Assistant — Pro Dock (Drift/Intercom vibe) ===== */
     .chatFab{
       position:fixed;
@@ -759,6 +808,7 @@
       font-size:14px;
       border:1px solid rgba(255,255,255,.10);
       background: rgba(255,255,255,.06);
+      white-space: pre-line;
     }
     .msg.me .bub{
       border-color: rgba(58,122,254,.30);
@@ -910,11 +960,36 @@
           <button id="adminLockBtn" class="ghost" style="display:none;">Lock Admin</button>
         </div>
 
-        <div style="display:flex;gap:10px;align-items:center;">
-          <button class="ghost" id="historyBtn">History</button>
-          <button class="ghost" id="logoutBtn">Logout</button>
+      <div style="display:flex;gap:10px;align-items:center;">
+       <button class="ghost" id="menuBtn" title="Menu">☰</button>
+       <button class="ghost" id="historyBtn">History</button>
+       <button class="ghost" id="logoutBtn">Logout</button>
        </div>
       </div>
+  
+ <!-- COMPLETED TODAY PANEL -->
+  <div id="completedPanel" class="completedPanel" style="display:none;">
+    <div class="completedHeader">
+      <div class="completedTitle">✓ Completed Today</div>
+      <div class="completedCount" id="completedCount">0</div>
+    </div>
+    <div id="completedResults" class="results"></div>
+  </div>
+
+ <!-- SIDE MENU OVERLAY + PANEL -->
+      <div id="sideMenuOverlay" class="sideMenuOverlay hidden"></div>
+
+      <aside id="sideMenu" class="sideMenu hidden">
+        <div class="sideMenuTop">
+          <div class="sideMenuTitle">MENU</div>
+          <button id="menuCloseBtn" class="ghost">✕</button>
+        </div>
+
+        <div class="sideMenuBody">
+          <button class="ghost" id="openCompletedBtn">Completed Today</button>
+          <button class="ghost" id="openHistoryBtn">Deleted History</button>
+        </div>
+      </aside>
 
       <div class="grid">
         <!-- LEFT -->
@@ -1080,14 +1155,6 @@
         <button type="submit" class="chatSend">Send</button>
       </form>
     </section>
-  </div>
- <!-- COMPLETED TODAY PANEL -->
-  <div id="completedPanel" class="completedPanel" style="display:none;">
-    <div class="completedHeader">
-      <div class="completedTitle">✓ Completed Today</div>
-      <div class="completedCount" id="completedCount">0</div>
-    </div>
-    <div id="completedResults" class="results"></div>
   </div>
 <script>
 /* ==========================================
@@ -2256,6 +2323,30 @@ els.roleSelect.addEventListener("change", (e) => {
   else setRole(v);
 });
 
+const openCompletedBtn = document.getElementById("openCompletedBtn");
+const openHistoryBtn = document.getElementById("openHistoryBtn");
+const completedPanel = document.getElementById("completedPanel");
+
+function closeSideMenu(){
+  if (sideMenu) sideMenu.classList.add("hidden");
+  if (menuOverlay) menuOverlay.classList.add("hidden");
+}
+
+if (openCompletedBtn) {
+  openCompletedBtn.addEventListener("click", () => {
+    closeSideMenu();
+    if (completedPanel) completedPanel.style.display = "block";
+  });
+}
+
+if (openHistoryBtn) {
+  openHistoryBtn.addEventListener("click", async () => {
+    closeSideMenu();
+    if (els.historyPanel) els.historyPanel.style.display = "block";
+    await refreshHistoryFromDb();
+    renderHistory();
+  });
+}
 els.adminUnlockBtn.addEventListener("click", async () => {
   const pin = await uiPrompt("Admin Access", "Enter Admin PIN:", {
     placeholder: "PIN",
@@ -2401,16 +2492,24 @@ window.addEventListener("DOMContentLoaded", async () => {
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
 
-    function add(role, text) {
-      const row = document.createElement("div");
-      row.className = "msg " + (role === "me" ? "me" : "bot");
-      row.innerHTML = `
-        <div class="bub">${esc(text)}</div>
-        <div class="time">${time()}</div>
-      `;
-      log.appendChild(row);
-      log.scrollTop = log.scrollHeight;
-    }
+   function add(who, text) {
+  const row = document.createElement("div");
+  row.className = "msg " + (who === "me" ? "me" : "bot");
+
+  const bubble = document.createElement("div");
+  bubble.className = "bub";
+  bubble.textContent = String(text ?? ""); // safe + keeps line breaks
+
+  const tm = document.createElement("div");
+  tm.className = "time";
+  tm.textContent = time();
+
+  row.appendChild(bubble);
+  row.appendChild(tm);
+
+  log.appendChild(row);
+  log.scrollTop = log.scrollHeight;
+}
 
     function open() { dock.classList.add("open"); setTimeout(() => input.focus(), 50); }
     function shut() { dock.classList.remove("open"); }
