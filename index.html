@@ -1081,7 +1081,14 @@
       </form>
     </section>
   </div>
-
+ <!-- COMPLETED TODAY PANEL -->
+  <div id="completedPanel" class="completedPanel" style="display:none;">
+    <div class="completedHeader">
+      <div class="completedTitle">✓ Completed Today</div>
+      <div class="completedCount" id="completedCount">0</div>
+    </div>
+    <div id="completedResults" class="results"></div>
+  </div>
 <script>
 /* ==========================================
    TRACE INVENTORY - UNIFIED JAVASCRIPT
@@ -2208,6 +2215,28 @@ if (logoutBtn) {
     localStorage.removeItem("trace_email");
     sessionStorage.removeItem("trace_intro_seen"); // optional: replay intro next login
     location.reload();
+  });
+}
+// ===== SIDE MENU =====
+const menuBtn = document.getElementById("menuBtn");
+const sideMenu = document.getElementById("sideMenu");
+const menuOverlay = document.getElementById("sideMenuOverlay");
+const menuCloseBtn = document.getElementById("menuCloseBtn");
+
+if (menuBtn && sideMenu && menuOverlay && menuCloseBtn) {
+  menuBtn.addEventListener("click", () => {
+    sideMenu.classList.remove("hidden");
+    menuOverlay.classList.remove("hidden");
+  });
+
+  menuCloseBtn.addEventListener("click", () => {
+    sideMenu.classList.add("hidden");
+    menuOverlay.classList.add("hidden");
+  });
+
+  menuOverlay.addEventListener("click", () => {
+    sideMenu.classList.add("hidden");
+    menuOverlay.classList.add("hidden");
   });
 }
 els.globalSearch.addEventListener("input", renderGlobalSearch);
