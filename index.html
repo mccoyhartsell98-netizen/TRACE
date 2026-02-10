@@ -94,7 +94,7 @@
       display:none;
       align-items:center;
       justify-content:center;
-      z-index:99;
+      z-index:100050;
       padding:18px;
     }
     .overlay.show{display:flex;}
@@ -1768,9 +1768,11 @@ function setRole(nextRole){
   if(role !== "admin"){
     adminUnlocked = false;
     window.adminUnlocked = adminUnlocked;
-    els.adminLockBtn.style.display = "none";
-    els.adminUnlockBtn.style.display = "inline-block";
-  }
+    if (els.adminLockBtn) els.adminLockBtn.style.display = "none";
+    if (els.adminUnlockBtn) els.adminUnlockBtn.style.display = "inline-block";
+    localStorage.setItem("trace_role", nextRole);
+    AUTH.role = nextRole;
+   }
   updateRoleUI();
   renderLaneList();
   renderMachineList();
@@ -2498,12 +2500,78 @@ document.addEventListener("keydown", (e) => {
     if (laneNum >= 1 && laneNum <= 12) selectLane(`Lane ${laneNum}`);
   }
 });
+// ===== PALLET READY POLLING (CLEAN) =====
 
-// ===== PALLET READY POLLING =====
+// tiny toast (non-blocking)
+function toast(msg){
+  let el = document.getElementById("traceToast");
+  if(!el){
+    el = document.createElement("div");
+    el.id = "traceToast";
+    el.style.position = "fixed";
+    el.style.left = "50%";
+    el.style.bottom = "26px";
+    el.style.transform = "translateX(-50%)";
+    el.style.zIndex = "999999";
+    el.style.padding = "12px 14px";
+    el.style.borderRadius = "14px";
+    el.style.border = "1px solid rgba(58,122,254,.45)";
+    el.style.background = "rgba(12,14,18,.88)";
+    el.style.backdropFilter = "blur(10px)";
+    el.style.boxShadow = "0 20px 60px rgba(0,0,0,.55)";
+    el.style.color = "#fff";
+    el.style.fontWeight = "900";
+    el.style.letterSpacing = ".02em";
+    el.style.opacity = "0";
+    el.style.pointerEvents = "none";
+    el.style.transition = "opacity 180ms ease, transform 180ms ease";
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = "1";
+  el.style.transform = "translateX(-50%) translateY(-2px)";
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => {
+    el.style.opacity = "0";
+    el.style.transform = "translateX(-50%) translateY(6px)";
+  }, 2200);
+}
+
+// simple beep (works without hosting audio files)
+function beep(){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "sine";
+    o.frequency.value = 880;
+    g.gain.value = 0.07;
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.start();
+    setTimeout(() => { o.stop(); ctx.close(); }, 140);
+  }catch(e){
+    // ignore
+  }
+}
+
+async function createPalletCall(machine){
+  return apiPost("/pallet-calls", { machine });
+}
+async function closePalletCall(id){
+  return apiPatch(`/pallet-calls/${id}/close`);
+}
+
+async function apiPatch(path, body){
+  const opts = { method:"PATCH" };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  return apiFetch(path, opts);
+}
 
 async function loadPalletCalls(){
   const d = await apiGet("/pallet-calls?status=OPEN");
-  palletCallsCache = Array.isArray(d.calls) ? d.calls : [];
+  // backend returns an array
+  palletCallsCache = Array.isArray(d) ? d : (Array.isArray(d.calls) ? d.calls : []);
   return palletCallsCache;
 }
 
@@ -2514,9 +2582,7 @@ function renderPalletCalls(){
   if(q){
     list = list.filter(c =>
       normalize(c.machine).includes(q) ||
-      normalize(c.job_number).includes(q) ||
-      normalize(c.message).includes(q) ||
-      normalize(c.created_by).includes(q)
+      normalize(c.status).includes(q)
     );
   }
 
@@ -2532,45 +2598,25 @@ function renderPalletCalls(){
     const div = document.createElement("div");
     div.className = "resultItem";
 
-    const job = c.job_number ? `Job: <b>${escapeHtml(c.job_number)}</b> • ` : "";
-    const msg = c.message ? escapeHtml(c.message) : "—";
-    const by  = c.created_by ? ` • By: ${escapeHtml(c.created_by)}` : "";
     const ts  = c.created_at ? ` • ${escapeHtml(formatTimestamp(c.created_at))}` : "";
 
-    const canClaim = role === "forklift" || (role === "admin" && adminUnlocked);
+    const canClose = role === "forklift" || (role === "admin" && adminUnlocked);
 
     div.innerHTML = `
       <div class="big">Machine ${escapeHtml(c.machine)}</div>
-      <div class="meta">${job}${msg}${by}${ts}</div>
-      ${canClaim ? `
+      <div class="meta">Status: <b>${escapeHtml(c.status || "OPEN")}</b>${ts}</div>
+      ${canClose ? `
         <div class="btnRow" style="margin-top:10px;">
-          <button class="primary" data-claim="1">Claim</button>
-          <button class="ghost" data-done="1">Done</button>
+          <button class="primary" data-done="1">Done</button>
         </div>` : ``}
     `;
 
-    const claimBtn = div.querySelector("[data-claim]");
     const doneBtn  = div.querySelector("[data-done]");
-
-    if(claimBtn){
-      claimBtn.addEventListener("click", async (e) => {
-        e.stopPropagation();
-        const name = (els.updatedBy?.value || AUTH.email || "Forklift").slice(0, 20);
-        try{
-          await apiPut(`/pallet-calls/${c.call_id}/claim`, { claimed_by: name });
-          await loadPalletCalls();
-          renderPalletCalls();
-        }catch(err){
-          await uiAlert("Claim Failed", err.message || "Could not claim call.");
-        }
-      });
-    }
-
     if(doneBtn){
       doneBtn.addEventListener("click", async (e) => {
         e.stopPropagation();
         try{
-          await apiPut(`/pallet-calls/${c.call_id}/done`, {});
+          await closePalletCall(c.id);
           await loadPalletCalls();
           renderPalletCalls();
         }catch(err){
@@ -2590,19 +2636,22 @@ async function pollPalletCalls(){
 
     await loadPalletCalls();
 
-    // only re-render if panel is open
     const panelOpen = els.palletCallsPanel && els.palletCallsPanel.style.display !== "none";
     if(panelOpen) renderPalletCalls();
 
-    // (optional) detect “new calls” without spamming alerts
-    const currentIds = new Set(palletCallsCache.map(c => c.call_id));
+    // detect new calls -> toast + beep
+    const currentIds = new Set(palletCallsCache.map(c => c.id));
     for(const id of currentIds){
       if(!lastCallIds.has(id)){
-        console.log("🔔 NEW PALLET CALL:", id);
-        // later: play sound + badge
+        const call = palletCallsCache.find(x => x.id === id);
+        if(call){
+          toast(`📦 Pallet Ready: ${call.machine}`);
+          beep();
+        }
       }
     }
-    lastCallIds = currentIds;
+    
+   lastCallIds = currentIds;
 
   }catch(e){
     console.warn("pollPalletCalls failed:", e.message);
@@ -2619,7 +2668,9 @@ window.initApp = async function initApp() {
     els.machineTitle.textContent = `Machine: ${selectedMachine}`;
 
     selectedLocation = { type: "lane", value: selectedLane };
-    setRole("forklift");
+    const initialRole = AUTH.role || "forklift";
+els.roleSelect.value = initialRole;
+setRole(initialRole);
 
     els.globalResults.innerHTML = `<div style="color:var(--muted)">Loading...</div>`;
 
@@ -2630,11 +2681,10 @@ window.initApp = async function initApp() {
     renderMachineList();
     renderGlobalSearch();
 
-// ===== 4B: START PALLET READY LISTENER (FORKLIFT ONLY) =====
-if (role === "forklift") {
-  if (palletPollTimer) clearInterval(palletPollTimer);
-  palletPollTimer = setInterval(pollPalletCalls, 5000);
-}    
+    // start polling once; poll function itself checks role
+    if (palletPollTimer) clearInterval(palletPollTimer);
+    palletPollTimer = setInterval(pollPalletCalls, 5000);
+
     console.log("✅ INIT COMPLETE");
   } catch (err) {
     console.error("❌ Init failed:", err);
@@ -2749,7 +2799,32 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     async function handleChatCommand(rawText){
       const t = normalizeChat(rawText);
+       let pm = t.match(/^pallet\s+ready(?:\s+(.+))?$/i);
+if(pm){
+  // allow: pallet ready S8
+  const typed = (pm[1] || "").trim();
+  const machine = typed ? typed.toUpperCase() : String(window.selectedMachine || selectedMachine || "").toUpperCase();
 
+  if(!machine){
+    return `Missing machine. Try: pallet ready S8`;
+  }
+
+  // machine role (or admin) should be allowed to create calls
+  const r = (typeof window.role !== "undefined") ? window.role : (typeof role !== "undefined" ? role : "forklift");
+  const au = (typeof window.adminUnlocked !== "undefined") ? window.adminUnlocked : (typeof adminUnlocked !== "undefined" ? adminUnlocked : false);
+  const canCreate = (r === "machine") || (r === "admin" && au);
+
+  if(!canCreate){
+    return `Permission denied. Use Machine role to send pallet ready calls.`;
+  }
+
+  try{
+    await apiPost("/pallet-calls", { machine });
+    return `✅ Pallet call sent for ${machine}. Forklift notified.`;
+  }catch(e){
+    return `❌ Failed to send pallet call: ${e.message || "error"}`;
+  }
+}
       // HELP
       if (t === "help" || t === "?"){
         return [
