@@ -2804,7 +2804,10 @@ if(pm){
   // allow: pallet ready S8
   const typed = (pm[1] || "").trim();
   const machine = typed ? typed.toUpperCase() : String(window.selectedMachine || selectedMachine || "").toUpperCase();
-
+  const valid = MACHINES.map(x => String(x).toUpperCase());
+  if (!valid.includes(machine)) {
+    return `❌ Unknown machine: ${machine}\nValid: ${MACHINES.join(", ")}`;
+  }
   if(!machine){
     return `Missing machine. Try: pallet ready S8`;
   }
@@ -2971,6 +2974,47 @@ if(pm){
     console.error("TRACE Assistant failed:", err);
   }
 })();
+
+// ===== Pallet Ready via palletCallsSearch (Option A - FIXED ID) =====
+const palletCallSearch = document.getElementById("palletCallsSearch");
+
+if (palletCallSearch) {
+  palletCallSearch.addEventListener("keydown", async (e) => {
+    if (e.key !== "Enter") return;
+
+    const raw = palletCallSearch.value.trim();
+    if (!raw) return;
+
+    // Only trigger if user types "pallet ready ..."
+    const m = raw.match(/^pallet\s*ready(?:\s*on)?(?:\s+(.+))?$/i);
+    if (!m) return;
+
+    const typed = (m[1] || "").trim();
+    const machine = (typed || String(window.selectedMachine || selectedMachine || "")).toUpperCase();
+    if (!machine) {
+      await uiAlert("Missing Machine", "Try: pallet ready S8");
+      return;
+    }
+
+    try {
+      // IMPORTANT: this block previously never created the call — it only reloaded.
+      // Create the call:
+      await apiPost("/pallet-calls", { machine });
+
+      palletCallSearch.value = "";
+
+      // Refresh the panel (optional)
+      await loadPalletCalls();
+      renderPalletCalls();
+
+      toast(`✅ Pallet call sent: ${machine}`);
+    } catch (err) {
+      console.error(err);
+      await uiAlert("Pallet Call Failed", err.message || "Could not send pallet call.");
+    }
+  });
+}
+// ===== END Pallet Ready =====
 
 </script>
 
