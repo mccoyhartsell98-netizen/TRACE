@@ -3146,12 +3146,30 @@ async function startQRScan(){
         await stopQRScan(true);
 
         const item = findItemByQR(decodedText);
+// OLD (remove this)
+// if(!item){
+//   await uiAlert("Not Found", `Scanned: ${decodedText}\nNo matching MO or Item found in TRACE.`);
+//   return;
+// }
 
-        if(!item){
-          await uiAlert("Not Found", `Scanned: ${decodedText}\nNo matching MO or Item found in TRACE.`);
-          return;
-        }
+// NEW: treat scan as input, not a lookup requirement
+const url = new URL(decodedText);
+const mo  = (url.searchParams.get("mo")  || "").trim();
+const job = (url.searchParams.get("job") || "").trim();
+const qty = (url.searchParams.get("qty") || "").trim();
 
+// Fill your UI fields (change IDs to match your app)
+if (els?.moInput)  els.moInput.value  = mo;
+if (els?.jobInput) els.jobInput.value = job;
+if (els?.qtyInput) els.qtyInput.value = qty;
+
+// optional: focus the next field or open the "add item" panel
+if (els?.jobInput) els.jobInput.focus();
+
+// optional: small confirmation
+await uiAlert("Scan OK", `Loaded from QR:\nMO: ${mo}\nJob: ${job}\nQty: ${qty}`);
+
+   
         // show what we scanned + let them pick lane
         const msg =
           `Scanned ✅\n\n` +
