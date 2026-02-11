@@ -10,6 +10,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>TRACE</title>
   <link rel="icon" type="image/png" href="favicon - Copy.png?v=1">
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
   
   <!-- PWA / App support -->
   <link rel="manifest" href="./manifest.json">
@@ -903,6 +905,33 @@
       .chatDock{ right:12px; left:12px; width:auto; }
       .chatFab{ right:12px; bottom:12px; }
     }
+
+/* ===== QR SCANNER ===== */
+.scanBar{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  margin-bottom:10px;
+}
+
+.qrWrap{
+  margin-top:10px;
+  padding:12px;
+  border:1px solid var(--stroke);
+  border-radius:12px;
+  background: rgba(0,0,0,.18);
+}
+
+.qrReader{
+  width:100%;
+  max-width:420px;
+  margin:0 auto;
+}
+
+.qrWrap video{
+  width:100% !important;
+  border-radius:12px;
+}
   </style>
 </head>
 
@@ -1038,6 +1067,19 @@
         <!-- LEFT -->
         <div class="card">
           <h2>Search</h2>
+         
+<!-- QR SCAN BAR -->
+<div class="scanBar">
+  <button id="scanBtn" class="primary">📷 Scan Pallet</button>
+  <button id="scanStopBtn" class="ghost hidden">Stop</button>
+</div>
+
+<div id="qrWrap" class="qrWrap hidden">
+  <div id="qr-reader" class="qrReader"></div>
+  <div class="tiny" style="margin-top:10px; color:var(--muted);">
+    Tip: QR should contain MO (ex: <b>MO-5048</b>) or Item # (ex: <b>6910153</b>)
+  </div>
+</div>
 
           <div class="scroll">
  <input id="globalSearch" type="text" placeholder="Search Item # or MO (example: 6910153 or MO-5048)">
@@ -1761,6 +1803,34 @@ async function loadInventory(){
   window.inventory = inventory;
 }
 
+function applyScanParams(){
+  const p = new URLSearchParams(location.search);
+  const job = (p.get("job") || "").trim().toUpperCase();
+  const qty = (p.get("qty") || "").trim();
+
+  if(!job) return;
+
+  const hit = inventory.find(x => String(x.job||"").toUpperCase() === job);
+  if(!hit){
+    uiAlert("Not Found", `Scanned job ${job} is not in TRACE yet.`);
+    return;
+  }
+
+  // jump to where it is + load it
+  if(hit.machine) selectMachine(hit.machine);
+  else if(hit.lane) selectLane(hit.lane);
+
+  loadToForm(hit.id);
+
+  // optional: autofill qty if present
+  if(qty && Number.isFinite(parseInt(qty,10))){
+    els.qty.value = String(parseInt(qty,10));
+  }
+
+  // clear URL so refresh doesn't repeat
+  history.replaceState({}, "", location.pathname);
+}
+
 // ====== ROLE MANAGEMENT ======
 function setRole(nextRole){
   role = nextRole;
@@ -2359,6 +2429,13 @@ if (menuBtn && sideMenu && menuOverlay && menuCloseBtn) {
     menuOverlay.classList.add("hidden");
   });
 }
+// ===== QR SCAN BUTTONS =====
+const scanBtn = document.getElementById("scanBtn");
+const scanStopBtn = document.getElementById("scanStopBtn");
+
+if (scanBtn) scanBtn.addEventListener("click", startQRScan);
+if (scanStopBtn) scanStopBtn.addEventListener("click", () => stopQRScan(false));
+
 els.globalSearch.addEventListener("input", renderGlobalSearch);
 els.laneSearch.addEventListener("input", renderLaneList);
 els.machineSearch.addEventListener("input", renderMachineList);
@@ -2677,6 +2754,8 @@ setRole(initialRole);
 
     await loadLocations();
     await loadInventory();
+
+    applyScanParams();
 
     renderLaneList();
     renderMachineList();
@@ -3017,6 +3096,129 @@ if (palletCallSearch) {
 }
 // ===== END Pallet Ready =====
 
+// ===== QR SCANNER (html5-qrcode) =====
+let qrScanner = null;
+
+function stripQrText(txt){
+  return String(txt || "").trim();
+}
+
+// Use your existing inventory mapping (job + mo fields)
+function findItemByQR(code){
+  const raw = stripQrText(code);
+  if(!raw) return null;
+
+  const cleaned = cleanJob(raw); // converts to uppercase & strips weird chars
+
+  // try exact match on MO first
+  let hit = inventory.find(x => String(x.mo||"").toUpperCase() === cleaned);
+  if(hit) return hit;
+
+  // try exact match on Job
+  hit = inventory.find(x => String(x.job||"").toUpperCase() === cleaned);
+  if(hit) return hit;
+
+  // fallback: if QR contains "MO-5048" but your stored mo is "5048" or vice versa
+  const noPrefix = cleaned.replace(/^MO-/, "");
+  hit = inventory.find(x => String(x.mo||"").toUpperCase().replace(/^MO-/, "") === noPrefix);
+  if(hit) return hit;
+
+  hit = inventory.find(x => String(x.job||"").toUpperCase() === noPrefix);
+  if(hit) return hit;
+
+  return null;
+}
+
+async function startQRScan(){
+  const wrap = document.getElementById("qrWrap");
+  const stopBtn = document.getElementById("scanStopBtn");
+  const scanBtn = document.getElementById("scanBtn");
+
+  if(!wrap || !stopBtn || !scanBtn) return;
+
+  wrap.classList.remove("hidden");
+  stopBtn.classList.remove("hidden");
+
+  scanBtn.disabled = true;
+
+  // iOS requires https + user interaction (button click is good)
+  try{
+    qrScanner = new Html5Qrcode("qr-reader");
+
+    await qrScanner.start(
+      { facingMode: "environment" },
+      { fps: 12, qrbox: { width: 250, height: 250 } },
+      async (decodedText) => {
+        // Stop scan immediately so it doesn't spam
+        await stopQRScan(true);
+
+        const item = findItemByQR(decodedText);
+
+        if(!item){
+          await uiAlert("Not Found", `Scanned: ${decodedText}\nNo matching MO or Item found in TRACE.`);
+          return;
+        }
+
+        // show what we scanned + let them pick lane
+        const msg =
+          `Scanned ✅\n\n` +
+          `Item: ${item.job}\n` +
+          (item.mo ? `MO: ${item.mo}\n` : "") +
+          `Current: ${item.machine ? "Machine " + item.machine : (item.lane || "Unknown")}\n\n` +
+          `Enter lane number (1–12) to move it.`;
+
+        const lane = await uiPrompt("Scan Result", msg, {
+          placeholder: "Lane # (1-12)",
+          hint: "Example: 7",
+          mask: false
+        });
+
+        if(lane === null) return;
+
+        const laneNum = parseInt(String(lane).trim(), 10);
+        if(!Number.isFinite(laneNum) || laneNum < 1 || laneNum > 12){
+          await uiAlert("Invalid Lane", "Lane must be a number 1–12.");
+          return;
+        }
+
+        const laneLabel = `Lane ${laneNum}`;
+
+        // move it using your existing move function
+        await moveToLane(item.id, laneLabel);
+
+        toast(`✅ Moved ${item.job} → ${laneLabel}`);
+      },
+      () => { /* ignore scan errors */ }
+    );
+
+  }catch(e){
+    console.error("QR start error:", e);
+    scanBtn.disabled = false;
+    await uiAlert("Camera Error", "Could not start camera. Make sure browser permissions allow camera.");
+  }
+}
+
+async function stopQRScan(silent=false){
+  const wrap = document.getElementById("qrWrap");
+  const stopBtn = document.getElementById("scanStopBtn");
+  const scanBtn = document.getElementById("scanBtn");
+
+  try{
+    if(qrScanner){
+      await qrScanner.stop();
+      await qrScanner.clear();
+      qrScanner = null;
+    }
+  }catch(e){
+    // ignore
+  }
+
+  if(wrap) wrap.classList.add("hidden");
+  if(stopBtn) stopBtn.classList.add("hidden");
+  if(scanBtn) scanBtn.disabled = false;
+
+  if(!silent) toast("Scanner stopped");
+}
 </script>
 
 </body>
