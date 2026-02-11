@@ -3240,7 +3240,7 @@ async function startQRScan(){
   const laneLabel = `Lane ${laneNum}`;
   await moveToLane(item.id, laneLabel);
 
-  toast(`✅ Moved ${item.job} → ${laneLabel}`);
+  toast("Moved " + item.job + " -> " + laneLabel);
 }
 
   }catch(e){
