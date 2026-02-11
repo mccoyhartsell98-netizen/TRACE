@@ -1810,23 +1810,18 @@ async function loadInventory(){
 function applyScanParams(){
   const p = new URLSearchParams(window.location.search);
 
-  const mo  = cleanCode(p.get("mo"));
-  const job = cleanCode(p.get("job"));
-  const qty = p.get("qty");
+  const mo  = (p.get("mo")  || "").trim().toUpperCase();
+  const job = (p.get("job") || "").trim().toUpperCase();
+  const qty = (p.get("qty") || "").trim();
 
   if(!mo && !job && !qty) return;
 
-  // Fill form fields directly
-  if(els.mo && mo) els.mo.value = mo;
-  if(els.job && job) els.job.value = job;
-  if(els.qty && qty) els.qty.value = qty;
+  if(els.mo)  els.mo.value  = mo;
+  if(els.job) els.job.value = job;
+  if(els.qty) els.qty.value = qty;
 
-  // optional: auto-focus lane selection if forklift
-  if(role === "forklift"){
-    toast?.("Scan complete — select lane and Save");
-  }
+  // REMOVE the inventory.find() check entirely
 
-  // remove query string after filling
   history.replaceState({}, "", window.location.pathname);
 }
 
