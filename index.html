@@ -3081,7 +3081,9 @@ if (palletCallSearch) {
       renderPalletCalls();
 
       toast(`✅ Pallet call sent: ${machine}`);
-    } catch (err) {
+    } 
+
+      catch (err) {
       console.error(err);
       await uiAlert("Pallet Call Failed", err.message || "Could not send pallet call.");
     }
