@@ -3142,65 +3142,104 @@ async function startQRScan(){
       { facingMode: "environment" },
       { fps: 12, qrbox: { width: 250, height: 250 } },
       async (decodedText) => {
-        // Stop scan immediately so it doesn't spam
-        await stopQRScan(true);
+  // Stop scan immediately so it doesn't spam
+  await stopQRScan(true);
 
-        const item = findItemByQR(decodedText);
-// OLD (remove this)
-// if(!item){
-//   await uiAlert("Not Found", `Scanned: ${decodedText}\nNo matching MO or Item found in TRACE.`);
-//   return;
-// }
+  const urlStr = String(decodedText || "").trim();
 
-// NEW: treat scan as input, not a lookup requirement
-const url = new URL(decodedText);
-const mo  = (url.searchParams.get("mo")  || "").trim();
-const job = (url.searchParams.get("job") || "").trim();
-const qty = (url.searchParams.get("qty") || "").trim();
+  // Helper: set form values safely
+  const setField = (el, val) => {
+    if (!el) return;
+    el.value = val ?? "";
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  };
 
-// Fill your UI fields (change IDs to match your app)
-if (els?.moInput)  els.moInput.value  = mo;
-if (els?.jobInput) els.jobInput.value = job;
-if (els?.qtyInput) els.qtyInput.value = qty;
+  // 1) If QR contains a FULL URL like:
+  // https://traceinventory.org/?mo=MO-5048&job=6910153&qty=2
+  if (urlStr.startsWith("http")) {
+    try {
+      const u = new URL(urlStr);
+      const mo  = (u.searchParams.get("mo")  || "").trim().toUpperCase();
+      const job = (u.searchParams.get("job") || "").trim().toUpperCase();
+      const qty = (u.searchParams.get("qty") || "").trim();
 
-// optional: focus the next field or open the "add item" panel
-if (els?.jobInput) els.jobInput.focus();
+      setField(els.mo,  mo);
+      setField(els.job, job);
+      setField(els.qty, qty);
 
-// optional: small confirmation
-await uiAlert("Scan OK", `Loaded from QR:\nMO: ${mo}\nJob: ${job}\nQty: ${qty}`);
+      if (els.job) els.job.focus();
 
-   
-        // show what we scanned + let them pick lane
-        const msg =
-          `Scanned ✅\n\n` +
-          `Item: ${item.job}\n` +
-          (item.mo ? `MO: ${item.mo}\n` : "") +
-          `Current: ${item.machine ? "Machine " + item.machine : (item.lane || "Unknown")}\n\n` +
-          `Enter lane number (1–12) to move it.`;
+      await uiAlert("SCAN OK", `Loaded from QR:\nMO: ${mo}\nJob: ${job}\nQty: ${qty}`);
+      return;
+    } catch (e) {
+      // If URL parsing fails, fall through to plain-text handling
+      console.warn("QR URL parse failed, treating as plain code:", e);
+    }
+  }
 
-        const lane = await uiPrompt("Scan Result", msg, {
-          placeholder: "Lane # (1-12)",
-          hint: "Example: 7",
-          mask: false
-        });
+  // 2) Otherwise treat QR as plain text (MO or Job)
+  // Example: "MO-5048" or "6910153"
+  const code = cleanJob(urlStr); // your cleaner: uppercase + strips junk
+  if (!code) {
+    await uiAlert("SCAN FAILED", "QR was empty.");
+    return;
+  }
 
-        if(lane === null) return;
+  // Optional: if it matches an existing item, load that item + offer move
+  const item = findItemByQR(code);
 
-        const laneNum = parseInt(String(lane).trim(), 10);
-        if(!Number.isFinite(laneNum) || laneNum < 1 || laneNum > 12){
-          await uiAlert("Invalid Lane", "Lane must be a number 1–12.");
-          return;
-        }
+  // If you want scan to ONLY fill inputs (no move prompt), do this:
+  // setField(els.mo, code.startsWith("MO-") ? code : "");
+  // setField(els.job, !code.startsWith("MO-") ? code : "");
+  // if (els.job) els.job.focus();
+  // await uiAlert("SCAN OK", `Loaded: ${code}`);
+  // return;
 
-        const laneLabel = `Lane ${laneNum}`;
+  if (!item) {
+    // Not found in inventory → still fill the form so admin/machine can create/update
+    // If it looks like MO, put in MO field; else put in Job field
+    if (code.startsWith("MO-")) {
+      setField(els.mo, code);
+      setField(els.job, "");
+    } else {
+      setField(els.job, code);
+    }
+    if (els.job) els.job.focus();
 
-        // move it using your existing move function
-        await moveToLane(item.id, laneLabel);
+    await uiAlert("SCAN OK", `Loaded code (not found in inventory):\n${code}`);
+    return;
+  }
 
-        toast(`✅ Moved ${item.job} → ${laneLabel}`);
-      },
-      () => { /* ignore scan errors */ }
-    );
+  // Found in inventory: load it + ask lane to move
+  loadToForm(item.id);
+
+  const msg =
+    `Scanned ✅\n\n` +
+    `Item: ${item.job}\n` +
+    (item.mo ? `MO: ${item.mo}\n` : "") +
+    `Current: ${item.machine ? "Machine " + item.machine : (item.lane || "Unknown")}\n\n` +
+    `Enter lane number (1–12) to move it.`;
+
+  const lane = await uiPrompt("Scan Result", msg, {
+    placeholder: "Lane # (1-12)",
+    hint: "Example: 7",
+    mask: false
+  });
+
+  if (lane === null) return;
+
+  const laneNum = parseInt(String(lane).trim(), 10);
+  if (!Number.isFinite(laneNum) || laneNum < 1 || laneNum > 12) {
+    await uiAlert("Invalid Lane", "Lane must be a number 1–12.");
+    return;
+  }
+
+  const laneLabel = `Lane ${laneNum}`;
+  await moveToLane(item.id, laneLabel);
+
+  toast(`✅ Moved ${item.job} → ${laneLabel}`);
+}
 
   }catch(e){
     console.error("QR start error:", e);
