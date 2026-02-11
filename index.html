@@ -1803,32 +1803,31 @@ async function loadInventory(){
   window.inventory = inventory;
 }
 
+ function cleanCode(s){
+  return String(s || "").trim().toUpperCase();
+}
+
 function applyScanParams(){
-  const p = new URLSearchParams(location.search);
-  const job = (p.get("job") || "").trim().toUpperCase();
-  const qty = (p.get("qty") || "").trim();
+  const p = new URLSearchParams(window.location.search);
 
-  if(!job) return;
+  const mo  = cleanCode(p.get("mo"));
+  const job = cleanCode(p.get("job"));
+  const qty = p.get("qty");
 
-  const hit = inventory.find(x => String(x.job||"").toUpperCase() === job);
-  if(!hit){
-    uiAlert("Not Found", `Scanned job ${job} is not in TRACE yet.`);
-    return;
+  if(!mo && !job && !qty) return;
+
+  // Fill form fields directly
+  if(els.mo && mo) els.mo.value = mo;
+  if(els.job && job) els.job.value = job;
+  if(els.qty && qty) els.qty.value = qty;
+
+  // optional: auto-focus lane selection if forklift
+  if(role === "forklift"){
+    toast?.("Scan complete — select lane and Save");
   }
 
-  // jump to where it is + load it
-  if(hit.machine) selectMachine(hit.machine);
-  else if(hit.lane) selectLane(hit.lane);
-
-  loadToForm(hit.id);
-
-  // optional: autofill qty if present
-  if(qty && Number.isFinite(parseInt(qty,10))){
-    els.qty.value = String(parseInt(qty,10));
-  }
-
-  // clear URL so refresh doesn't repeat
-  history.replaceState({}, "", location.pathname);
+  // remove query string after filling
+  history.replaceState({}, "", window.location.pathname);
 }
 
 // ====== ROLE MANAGEMENT ======
@@ -2754,7 +2753,6 @@ setRole(initialRole);
 
     await loadLocations();
     await loadInventory();
-
     applyScanParams();
 
     renderLaneList();
