@@ -1613,6 +1613,23 @@ function formatLocation(item){
   return "Unknown location";
 }
 
+// ===== QR DETAILS (Forklift Scan View) =====
+function buildScanDetails(item){
+  const loc = item.machine ? `Machine ${item.machine}` : (item.lane ? item.lane : "Unknown");
+  const mo  = item.mo ? item.mo : "—";
+  const qty = Number.isFinite(item.qty) ? item.qty : 0;
+  const st  = item.status ? item.status : "—";
+
+  return [
+    `Location: ${loc}`,
+    `MO: ${mo}`,
+    `Item #: ${item.job || "—"}`,
+    `Qty: ${qty}`,
+    `Status: ${st}`,
+    `Notes: ${item.notes || "—"}`
+  ].join("\n");
+}
+
 async function handleChatCommand(rawText){
   const t = normalizeChat(rawText);
 
@@ -2688,7 +2705,7 @@ function renderPalletCalls(){
       doneBtn.addEventListener("click", async (e) => {
         e.stopPropagation();
         try{
-          await closePalletCall(c.id);
+          await closePalletCall(c.id);   
           await loadPalletCalls();
           renderPalletCalls();
         }catch(err){
@@ -2773,6 +2790,13 @@ setRole(initialRole);
 // ====== BOOT ENTRYPOINT ======
 window.addEventListener("DOMContentLoaded", async () => {
   wireLoginUI();
+ // ===== FORCE ROLE FROM QR URL =====
+  const qp = new URLSearchParams(location.search);
+  const forcedRole = (qp.get("role") || "").toLowerCase();
+  if (forcedRole === "forklift" || forcedRole === "machine" || forcedRole === "admin") {
+    localStorage.setItem("trace_role", forcedRole);
+    AUTH.role = forcedRole;
+  }
   if (AUTH.token) {
     hideLogin();
     await startAfterLogin();
@@ -3168,20 +3192,47 @@ async function startQRScan(){
 
             // if params exist, fill fields and stop
             if (mo || job || qty) {
-              const setField = (el, val) => {
-                if (!el) return;
-                el.value = val ?? "";
-                el.dispatchEvent(new Event("input", { bubbles: true }));
-                el.dispatchEvent(new Event("change", { bubbles: true }));
-              };
+            const setField = (el, val) => {
+            if (!el) return;
+            el.value = val ?? "";
+            el.dispatchEvent(new Event("input", { bubbles: true }));
+            el.dispatchEvent(new Event("change", { bubbles: true }));
+           };
 
-              setField(els.mo, mo);
-              setField(els.job, job);
-              setField(els.qty, qty);
+           setField(els.mo, mo);
+           setField(els.job, job);
+           setField(els.qty, qty);
 
-              await uiAlert("SCAN OK", `Loaded from QR:\nMO: ${mo}\nJob: ${job}\nQty: ${qty}`);
-              return;
-            }
+  // Try to find the item in inventory using job first, then mo
+  const key = (job || mo || "").trim().toUpperCase();
+  const item = key ? findItemByQR(key) : null;
+
+  if (item) {
+    loadToForm(item.id);
+
+    const details = buildScanDetails(item);
+
+    const ok = await uiConfirm(
+      "Pallet Scanned ✅",
+      details + "\n\nOpen Move Panel?",
+      "Move",
+      "Cancel"
+    );
+
+    if (ok) {
+      openMoveOverlay(item.id);
+      toast("Ready to move: " + item.job);
+    }
+  } else {
+    await uiAlert(
+      "SCAN OK",
+      `Loaded from QR:\nMO: ${mo}\nJob: ${job}\nQty: ${qty}\n\nNot found in inventory yet.`
+    );
+  }
+
+  return;
+}
+
 
             // URL with no params -> navigate
             window.location.href = fixed;
