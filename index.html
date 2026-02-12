@@ -3133,10 +3133,8 @@ async function startQRScan(){
 
   wrap.classList.remove("hidden");
   stopBtn.classList.remove("hidden");
-
   scanBtn.disabled = true;
 
-  // iOS requires https + user interaction (button click is good)
   try{
     qrScanner = new Html5Qrcode("qr-reader");
 
@@ -3144,110 +3142,113 @@ async function startQRScan(){
       { facingMode: "environment" },
       { fps: 12, qrbox: { width: 250, height: 250 } },
       async (decodedText) => {
-  await stopQRScan(true);
+        await stopQRScan(true);
 
-  const raw = String(decodedText || "").trim();
-  if (!raw) {
-    await uiAlert("SCAN FAILED", "QR was empty.");
-    return;
-  }
+        const raw = String(decodedText || "").trim();
+        if (!raw) {
+          await uiAlert("SCAN FAILED", "QR was empty.");
+          return;
+        }
 
-  // If it's a URL, handle it as a URL
-  const looksLikeUrl = /^https?:\/\//i.test(raw) || raw.includes("traceinventory.org") || raw.includes("qr-codes.io");
+        // If it’s a URL, try to parse params
+        const looksLikeUrl =
+          /^https?:\/\//i.test(raw) ||
+          raw.includes("traceinventory.org") ||
+          raw.includes("qr-codes.io");
 
-  if (looksLikeUrl) {
-    let fixed = raw;
+        if (looksLikeUrl) {
+          let fixed = raw;
+          if (!/^https?:\/\//i.test(fixed)) fixed = "https://" + fixed;
 
-    // Add https:// if missing
-    if (!/^https?:\/\//i.test(fixed)) {
-      fixed = "https://" + fixed;
-    }
+          try {
+            const u = new URL(fixed);
+            const mo  = (u.searchParams.get("mo")  || "").trim().toUpperCase();
+            const job = (u.searchParams.get("job") || "").trim().toUpperCase();
+            const qty = (u.searchParams.get("qty") || "").trim();
 
-    try {
-      const u = new URL(fixed);
+            // if params exist, fill fields and stop
+            if (mo || job || qty) {
+              const setField = (el, val) => {
+                if (!el) return;
+                el.value = val ?? "";
+                el.dispatchEvent(new Event("input", { bubbles: true }));
+                el.dispatchEvent(new Event("change", { bubbles: true }));
+              };
 
-      const mo  = (u.searchParams.get("mo")  || "").trim().toUpperCase();
-      const job = (u.searchParams.get("job") || "").trim().toUpperCase();
-      const qty = (u.searchParams.get("qty") || "").trim();
+              setField(els.mo, mo);
+              setField(els.job, job);
+              setField(els.qty, qty);
 
-      // ✅ If params exist, fill fields and STOP.
-      if (mo || job || qty) {
-        const setField = (el, val) => {
-          if (!el) return;
-          el.value = val ?? "";
-          el.dispatchEvent(new Event("input", { bubbles: true }));
-          el.dispatchEvent(new Event("change", { bubbles: true }));
-        };
+              await uiAlert("SCAN OK", `Loaded from QR:\nMO: ${mo}\nJob: ${job}\nQty: ${qty}`);
+              return;
+            }
 
-        setField(els.mo, mo);
-        setField(els.job, job);
-        setField(els.qty, qty);
+            // URL with no params -> navigate
+            window.location.href = fixed;
+            return;
 
-        await uiAlert("SCAN OK", `Loaded from QR:\nMO: ${mo}\nJob: ${job}\nQty: ${qty}`);
-        return; // ⭐ IMPORTANT
+          } catch (e) {
+            console.error("QR URL parse failed:", e);
+            // fall through
+          }
+        }
+
+        // Treat as plain MO/Job code
+        const code = cleanJob(raw);
+        if (!code) {
+          await uiAlert("SCAN FAILED", "QR was invalid.");
+          return;
+        }
+
+        // If found in inventory, do the move workflow
+        const item = findItemByQR(code);
+        if (item) {
+          loadToForm(item.id);
+
+          const msg =
+            `Scanned ✅\n\n` +
+            `Item: ${item.job}\n` +
+            (item.mo ? `MO: ${item.mo}\n` : "") +
+            `Current: ${item.machine ? "Machine " + item.machine : (item.lane || "Unknown")}\n\n` +
+            `Enter lane number (1–12) to move it.`;
+
+          const lane = await uiPrompt("Scan Result", msg, {
+            placeholder: "Lane # (1-12)",
+            hint: "Example: 7",
+            mask: false
+          });
+
+          if (lane === null) return;
+
+          const laneNum = parseInt(String(lane).trim(), 10);
+          if (!Number.isFinite(laneNum) || laneNum < 1 || laneNum > 12) {
+            await uiAlert("Invalid Lane", "Lane must be a number 1–12.");
+            return;
+          }
+
+          const laneLabel = `Lane ${laneNum}`;
+          await moveToLane(item.id, laneLabel);
+          toast("Moved " + item.job + " -> " + laneLabel);
+          return;
+        }
+
+        // Not found in inventory -> just load fields
+        if (code.startsWith("MO-")) {
+          els.mo.value = code;
+          els.job.value = "";
+        } else {
+          els.job.value = code;
+        }
+
+        await uiAlert("SCAN OK", `Loaded code (not found in inventory):\n${code}`);
       }
+    );
 
-      // ✅ If it's a URL but has no params, it's probably a redirect-shortlink.
-      // Just navigate and let the browser follow redirects.
-      window.location.href = fixed;
-      return;
-
-    } catch (e) {
-      console.error("QR URL parse failed:", e);
-      // fall through to plain code behavior below
-    }
+  } catch (e) {
+    console.error("QR start error:", e);
+    scanBtn.disabled = false;
+    await uiAlert("Camera Error", "Could not start camera. Make sure browser permissions allow camera.");
   }
-
-  // Otherwise treat as plain MO/Job code
-  const code = cleanJob(raw);
-  if (!code) {
-    await uiAlert("SCAN FAILED", "QR was invalid.");
-    return;
-  }
-
-  if (code.startsWith("MO-")) {
-    els.mo.value = code;
-    els.job.value = "";
-  } else {
-    els.job.value = code;
-  }
-
-  await uiAlert("SCAN OK", `Loaded code (not found in inventory):\n${code}`);
-  }
-);
-
-  // Found in inventory: load it + ask lane to move
-  loadToForm(item.id);
-
-  const msg =
-    `Scanned ✅\n\n` +
-    `Item: ${item.job}\n` +
-    (item.mo ? `MO: ${item.mo}\n` : "") +
-    `Current: ${item.machine ? "Machine " + item.machine : (item.lane || "Unknown")}\n\n` +
-    `Enter lane number (1–12) to move it.`;
-
-  const lane = await uiPrompt("Scan Result", msg, {
-    placeholder: "Lane # (1-12)",
-    hint: "Example: 7",
-    mask: false
-  });
-
-  if (lane === null) return;
-
-  const laneNum = parseInt(String(lane).trim(), 10);
-  if (!Number.isFinite(laneNum) || laneNum < 1 || laneNum > 12) {
-    await uiAlert("Invalid Lane", "Lane must be a number 1–12.");
-    return;
-  }
-
-  const laneLabel = `Lane ${laneNum}`;
-  await moveToLane(item.id, laneLabel);
-
-   toast("Moved " + item.job + " -> " + laneLabel);
-} catch (e) {
-  console.error("QR start error:", e);
-  scanBtn.disabled = false;
-  await uiAlert("Camera Error", "Could not start camera. Make sure browser permissions allow camera.");
 }
 
 async function stopQRScan(silent=false){
