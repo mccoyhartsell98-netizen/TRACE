@@ -3213,7 +3213,8 @@ async function startQRScan(){
   }
 
   await uiAlert("SCAN OK", `Loaded code (not found in inventory):\n${code}`);
-}
+  }
+);
 
   // Found in inventory: load it + ask lane to move
   loadToForm(item.id);
