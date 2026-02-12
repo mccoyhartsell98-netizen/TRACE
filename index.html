@@ -3157,28 +3157,31 @@ async function startQRScan(){
     el.dispatchEvent(new Event("change", { bubbles: true }));
   };
 
-  // 1) If QR contains a FULL URL like:
-  // https://traceinventory.org/?mo=MO-5048&job=6910153&qty=2
-  if (urlStr.startsWith("http")) {
-    try {
-      const u = new URL(urlStr);
-      const mo  = (u.searchParams.get("mo")  || "").trim().toUpperCase();
-      const job = (u.searchParams.get("job") || "").trim().toUpperCase();
-      const qty = (u.searchParams.get("qty") || "").trim();
+  let fixed = decodedText.trim();
 
-      setField(els.mo,  mo);
-      setField(els.job, job);
-      setField(els.qty, qty);
+// If it doesn’t start with http, but looks like our domain, add https://
+if (!fixed.startsWith("http") && fixed.includes("traceinventory.org")) {
+  fixed = "https://" + fixed;
+}
 
-      if (els.job) els.job.focus();
+try {
+  const u = new URL(fixed);
 
-      await uiAlert("SCAN OK", `Loaded from QR:\nMO: ${mo}\nJob: ${job}\nQty: ${qty}`);
-      return;
-    } catch (e) {
-      // If URL parsing fails, fall through to plain-text handling
-      console.warn("QR URL parse failed, treating as plain code:", e);
-    }
-  }
+  const mo  = (u.searchParams.get("mo")  || "").trim().toUpperCase();
+  const job = (u.searchParams.get("job") || "").trim().toUpperCase();
+  const qty = (u.searchParams.get("qty") || "").trim();
+
+  console.log("PARSED:", { mo, job, qty });
+
+  setField(els.mo, mo);
+  setField(els.job, job);
+  setField(els.qty, qty);
+
+  await uiAlert("SCAN OK", `Loaded from QR:\nMO: ${mo}\nJob: ${job}\nQty: ${qty}`);
+
+} catch (e) {
+  console.error("QR parse failed:", e);
+}
 
   // 2) Otherwise treat QR as plain text (MO or Job)
   // Example: "MO-5048" or "6910153"
