@@ -3244,14 +3244,10 @@ async function startQRScan(){
   await moveToLane(item.id, laneLabel);
 
    toast("Moved " + item.job + " -> " + laneLabel);
-  }
-);
-
-  }catch(e){
-    console.error("QR start error:", e);
-    scanBtn.disabled = false;
-    await uiAlert("Camera Error", "Could not start camera. Make sure browser permissions allow camera.");
-  }
+} catch (e) {
+  console.error("QR start error:", e);
+  scanBtn.disabled = false;
+  await uiAlert("Camera Error", "Could not start camera. Make sure browser permissions allow camera.");
 }
 
 async function stopQRScan(silent=false){
