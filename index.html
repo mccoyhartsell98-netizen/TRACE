@@ -3409,24 +3409,26 @@ async function stopQRScan(silent=false){
 let qrScannerForklift = null;
 let forkliftScannedItemId = null;
 
-function openForkliftJobModal(item, scannedText = "") {
+ffunction openForkliftJobModal(item, scannedText = "") {
   forkliftScannedItemId = item?.id ?? null;
 
-  // "mode" requirement: your system uses status as the closest match
-  const mode = item.status ? String(item.status) : "—";
+  const mo   = item.mo ? escapeHtml(item.mo) : "—";
+  const job  = item.job ? escapeHtml(item.job) : "—";
   const qty  = Number.isFinite(item.qty) ? item.qty : 0;
-  const loc  = item.machine ? `Machine ${item.machine}` : (item.lane || "Unknown");
+  const loc  = item.machine ? `Machine ${item.machine}` : (item.lane ? item.lane : "Unknown");
+  const status = item.status ? escapeHtml(item.status) : "—";
 
-  // Uses your existing overlay DOM:
-  // #scanOverlay, #scanTitle, #scanBody, #scanMoveBtn
-  els.scanTitle.textContent = "Job Details";
+  els.scanTitle.textContent = `Forklift Scan - Job #${job}`;
 
-  els.scanBody.innerHTML =
-`Job #: <b>${escapeHtml(item.job || "—")}</b>
-Qty: <b>${escapeHtml(qty)}</b>
-Mode: <b>${escapeHtml(mode)}</b>
-Location: <b>${escapeHtml(loc)}</b>` +
-(scannedText ? `\n\nScanned: ${escapeHtml(scannedText)}` : "");
+  els.scanBody.innerHTML = `
+<div style="line-height:1.6;">
+  <div style="margin-bottom:12px;"><b>MO:</b> ${mo}</div>
+  <div style="margin-bottom:12px;"><b>Job #:</b> ${job}</div>
+  <div style="margin-bottom:12px;"><b>Location:</b> ${escapeHtml(loc)}</div>
+  <div style="margin-bottom:12px;"><b>Qty:</b> ${qty}</div>
+  <div style="margin-bottom:12px;"><b>Status:</b> ${status}</div>
+</div>
+  `.trim();
 
   els.scanOverlay.classList.add("show");
 }
