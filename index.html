@@ -906,6 +906,9 @@
       .chatFab{ right:12px; bottom:12px; }
     }
 
+#scanBody b { color:#fff; 
+}
+
 /* ===== QR SCANNER ===== */
 .scanBar{
   display:flex;
@@ -1081,6 +1084,19 @@
   </div>
 </div>
 
+<!-- FORKLIFT QR SCAN BAR (separate from admin/pallet scan) -->
+<div class="scanBar" style="margin-top:10px;">
+  <button id="forkliftScanBtn" class="primary">🚜 Scan Job Details</button>
+  <button id="forkliftScanStopBtn" class="ghost hidden">Stop</button>
+</div>
+
+<div id="forkliftQrWrap" class="qrWrap hidden">
+  <div id="qr-reader-forklift" class="qrReader"></div>
+  <div class="tiny" style="margin-top:10px; color:var(--muted);">
+    Forklift QR should contain MO (ex: <b>MO-5048</b>) or Item # (ex: <b>6910153</b>)
+  </div>
+</div>
+
           <div class="scroll">
  <input id="globalSearch" type="text" placeholder="Search Item # or MO (example: 6910153 or MO-5048)">
 
@@ -1212,7 +1228,23 @@
       </div>
     </div>
 
-    <!-- TRACE Assistant (Pro UI) -->
+<!-- SCAN RESULT OVERLAY -->
+<div class="overlay" id="scanOverlay">
+  <div class="modal" style="max-width:560px;">
+    <div class="modalTop">
+      <div class="modalTitle" id="scanTitle">Scanned Job</div>
+      <button class="ghost" id="scanCloseBtn">Close</button>
+    </div>
+
+    <div id="scanBody" style="white-space:pre-line; color:var(--muted); font-weight:800; line-height:1.45;"></div>
+
+    <div class="btnRow" style="margin-top:14px; justify-content:flex-end;">
+      <button class="primary" id="scanMoveBtn">Move</button>
+    </div>
+  </div>
+</div>
+   
+ <!-- TRACE Assistant (Pro UI) -->
     <button id="chatFab" class="chatFab" aria-label="Open TRACE Assistant" title="TRACE Assistant">
       <span class="chatFab-ico">🤖</span>
     </button>
@@ -1548,6 +1580,11 @@ const els = {
   palletCallsSearch: document.getElementById("palletCallsSearch"),
   palletCallsResults: document.getElementById("palletCallsResults"),
   openPalletCallsBtn: document.getElementById("openPalletCallsBtn"),
+  scanOverlay: document.getElementById("scanOverlay"),
+  scanTitle: document.getElementById("scanTitle"),
+  scanBody: document.getElementById("scanBody"),
+  scanCloseBtn: document.getElementById("scanCloseBtn"),
+  scanMoveBtn: document.getElementById("scanMoveBtn"),
 };
 
 // ====== HELPERS ======
@@ -2164,7 +2201,34 @@ function renderGlobalSearch(){
         openMoveOverlay(item.id);
       });
     }
+let scannedItemId = null;
 
+function openScanPopup(item, scannedText = ""){
+  scannedItemId = item?.id ?? null;
+
+  const loc = item.machine ? `Machine ${item.machine}` : (item.lane || "Unknown");
+  const mo  = item.mo || "—";
+  const qty = Number.isFinite(item.qty) ? item.qty : 0;
+  const st  = item.status || "—";
+  const notes = item.notes || "—";
+
+  els.scanTitle.textContent = `Item #${item.job || "—"}`;
+
+  els.scanBody.innerHTML =
+`Location: <b>${loc}</b>
+MO: <b>${mo}</b>
+Qty: <b>${qty}</b>
+Status: <b>${st}</b>
+Notes: <b>${notes}</b>` +
+(scannedText ? `\n\nScanned: ${scannedText}` : "");
+
+  els.scanOverlay.classList.add("show");
+}
+
+function closeScanPopup(){
+  els.scanOverlay.classList.remove("show");
+  scannedItemId = null;
+}
     div.addEventListener("click", () => {
       if(item.machine) selectMachine(item.machine);
       else if(item.lane) selectLane(item.lane);
@@ -3323,6 +3387,178 @@ async function stopQRScan(silent=false){
 
   if(!silent) toast("Scanner stopped");
 }
+// ===== FORKLIFT QR SCANNER (separate from admin/pallet scan) =====
+let qrScannerForklift = null;
+let forkliftScannedItemId = null;
+
+function openForkliftJobModal(item, scannedText = "") {
+  forkliftScannedItemId = item?.id ?? null;
+
+  // "mode" requirement: your system uses status as the closest match
+  const mode = item.status ? String(item.status) : "—";
+  const qty  = Number.isFinite(item.qty) ? item.qty : 0;
+  const loc  = item.machine ? `Machine ${item.machine}` : (item.lane || "Unknown");
+
+  // Uses your existing overlay DOM:
+  // #scanOverlay, #scanTitle, #scanBody, #scanMoveBtn
+  els.scanTitle.textContent = "Job Details";
+
+  els.scanBody.innerHTML =
+`Job #: <b>${escapeHtml(item.job || "—")}</b>
+Qty: <b>${escapeHtml(qty)}</b>
+Mode: <b>${escapeHtml(mode)}</b>
+Location: <b>${escapeHtml(loc)}</b>` +
+(scannedText ? `\n\nScanned: ${escapeHtml(scannedText)}` : "");
+
+  els.scanOverlay.classList.add("show");
+}
+
+function closeForkliftJobModal() {
+  els.scanOverlay.classList.remove("show");
+  forkliftScannedItemId = null;
+}
+
+// Wire existing modal buttons safely (doesn't affect admin scan flow)
+if (els.scanCloseBtn) {
+  els.scanCloseBtn.addEventListener("click", closeForkliftJobModal);
+}
+if (els.scanOverlay) {
+  els.scanOverlay.addEventListener("click", (e) => {
+    if (e.target === els.scanOverlay) closeForkliftJobModal();
+  });
+}
+if (els.scanMoveBtn) {
+  els.scanMoveBtn.addEventListener("click", () => {
+    if (!forkliftScannedItemId) return;
+    closeForkliftJobModal();
+    openMoveOverlay(forkliftScannedItemId); // integrates with your existing move UI
+  });
+}
+
+// Find item by scanned code using your existing inventory mapping
+function findItemByForkliftQR(code) {
+  // Reuse your existing helper (keeps behavior consistent)
+  return findItemByQR(code);
+}
+
+async function startForkliftQRScan() {
+  const wrap = document.getElementById("forkliftQrWrap");
+  const stopBtn = document.getElementById("forkliftScanStopBtn");
+  const startBtn = document.getElementById("forkliftScanBtn");
+
+  if (!wrap || !stopBtn || !startBtn) return;
+
+  // IMPORTANT: prevent both scanners running at once
+  // If pallet/admin scanner is running, stop it silently
+  if (typeof stopQRScan === "function") {
+    await stopQRScan(true).catch(() => {});
+  }
+
+  wrap.classList.remove("hidden");
+  stopBtn.classList.remove("hidden");
+  startBtn.disabled = true;
+
+  try {
+    qrScannerForklift = new Html5Qrcode("qr-reader-forklift");
+
+    await qrScannerForklift.start(
+      { facingMode: "environment" },
+      { fps: 12, qrbox: { width: 250, height: 250 } },
+      async (decodedText) => {
+        // Stop forklift scanner after a successful read
+        await stopForkliftQRScan(true);
+
+        const raw = String(decodedText || "").trim();
+        if (!raw) {
+          await uiAlert("SCAN FAILED", "QR was empty.");
+          return;
+        }
+
+        // If someone scans a URL QR (from your admin generator), parse it cleanly
+        const looksLikeUrl =
+          /^https?:\/\//i.test(raw) ||
+          raw.includes("traceinventory.org") ||
+          raw.includes("qr-codes.io");
+
+        let key = raw;
+
+        if (looksLikeUrl) {
+          let fixed = raw;
+          if (!/^https?:\/\//i.test(fixed)) fixed = "https://" + fixed;
+
+          try {
+            const u = new URL(fixed);
+            const mo  = (u.searchParams.get("mo")  || "").trim().toUpperCase();
+            const job = (u.searchParams.get("job") || "").trim().toUpperCase();
+
+            // Prefer job, fallback to mo
+            key = (job || mo || "").trim();
+          } catch (e) {
+            // fallback to raw
+            key = raw;
+          }
+        }
+
+        const cleaned = cleanJob(key);
+        if (!cleaned) {
+          await uiAlert("SCAN FAILED", "QR was invalid.");
+          return;
+        }
+
+        const item = findItemByForkliftQR(cleaned);
+
+        if (!item) {
+          await uiAlert(
+            "NOT FOUND",
+            `Scanned: ${cleaned}\n\nNo matching job found in inventory.`
+          );
+          return;
+        }
+
+        // Load it into the form (optional but helpful)
+        loadToForm(item.id);
+
+        // Show the forklift popup with job details + Move
+        openForkliftJobModal(item, raw);
+      }
+    );
+
+  } catch (e) {
+    console.error("Forklift QR start error:", e);
+    startBtn.disabled = false;
+    await uiAlert("Camera Error", "Could not start forklift camera scanner. Check permissions.");
+  }
+}
+
+async function stopForkliftQRScan(silent = false) {
+  const wrap = document.getElementById("forkliftQrWrap");
+  const stopBtn = document.getElementById("forkliftScanStopBtn");
+  const startBtn = document.getElementById("forkliftScanBtn");
+
+  try {
+    if (qrScannerForklift) {
+      await qrScannerForklift.stop();
+      await qrScannerForklift.clear();
+      qrScannerForklift = null;
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  if (wrap) wrap.classList.add("hidden");
+  if (stopBtn) stopBtn.classList.add("hidden");
+  if (startBtn) startBtn.disabled = false;
+
+  if (!silent) toast("Forklift scanner stopped");
+}
+
+// Hook up the forklift scan buttons
+const forkliftScanBtn = document.getElementById("forkliftScanBtn");
+const forkliftScanStopBtn = document.getElementById("forkliftScanStopBtn");
+
+if (forkliftScanBtn) forkliftScanBtn.addEventListener("click", startForkliftQRScan);
+if (forkliftScanStopBtn) forkliftScanStopBtn.addEventListener("click", () => stopForkliftQRScan(false));
+
 </script>
 
 </body>
