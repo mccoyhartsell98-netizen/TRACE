@@ -3458,6 +3458,115 @@ function findItemByForkliftQR(code) {
   // Reuse your existing helper (keeps behavior consistent)
   return findItemByQR(code);
 }
+async function startForkliftQRScan() {
+  const wrap = document.getElementById("forkliftQrWrap");
+  const stopBtn = document.getElementById("forkliftScanStopBtn");
+  const startBtn = document.getElementById("forkliftScanBtn");
+
+  if (!wrap || !stopBtn || !startBtn) return;
+
+  // IMPORTANT: prevent both scanners running at once
+  // If pallet/admin scanner is running, stop it silently
+  if (typeof stopQRScan === "function") {
+    await stopQRScan(true).catch(() => {});
+  }
+
+  wrap.classList.remove("hidden");
+  stopBtn.classList.remove("hidden");
+  startBtn.disabled = true;
+
+  try {
+    qrScannerForklift = new Html5Qrcode("qr-reader-forklift");
+
+    await qrScannerForklift.start(
+      { facingMode: "environment" },
+      { fps: 12, qrbox: { width: 250, height: 250 } },
+      async (decodedText) => {
+        // Stop forklift scanner after a successful read
+        await stopForkliftQRScan(true);
+
+        const raw = String(decodedText || "").trim();
+        if (!raw) {
+          await uiAlert("SCAN FAILED", "QR was empty.");
+          return;
+        }
+
+        // If someone scans a URL QR (from your admin generator), parse it cleanly
+        const looksLikeUrl =
+          /^https?:\/\//i.test(raw) ||
+          raw.includes("traceinventory.org") ||
+          raw.includes("qr-codes.io");
+
+        let key = raw;
+
+        if (looksLikeUrl) {
+          let fixed = raw;
+          if (!/^https?:\/\//i.test(fixed)) fixed = "https://" + fixed;
+
+          try {
+            const u = new URL(fixed);
+            const mo  = (u.searchParams.get("mo")  || "").trim().toUpperCase();
+            const job = (u.searchParams.get("job") || "").trim().toUpperCase();
+
+            // Prefer job, fallback to mo
+            key = (job || mo || "").trim();
+          } catch (e) {
+            // fallback to raw
+            key = raw;
+          }
+        }
+
+        const cleaned = cleanJob(key);
+        if (!cleaned) {
+          await uiAlert("SCAN FAILED", "QR was invalid.");
+          return;
+        }
+
+        const item = findItemByForkliftQR(cleaned);
+
+        if (!item) {
+          await uiAlert(
+            "NOT FOUND",
+            `Scanned: ${cleaned}\n\nNo matching job found in inventory.`
+          );
+          return;
+        }
+
+        // Load it into the form (optional but helpful)
+        loadToForm(item.id);
+
+        // Show the forklift popup with job details + Move
+        openForkliftJobModal(item, raw);
+      }
+    );
+  } catch (e) {
+    console.error("Forklift QR start error:", e);
+    startBtn.disabled = false;
+    await uiAlert("Camera Error", "Could not start forklift camera scanner. Check permissions.");
+  }
+}
+
+async function stopForkliftQRScan(silent = false) {
+  const wrap = document.getElementById("forkliftQrWrap");
+  const stopBtn = document.getElementById("forkliftScanStopBtn");
+  const startBtn = document.getElementById("forkliftScanBtn");
+
+  try {
+    if (qrScannerForklift) {
+      await qrScannerForklift.stop();
+      await qrScannerForklift.clear();
+      qrScannerForklift = null;
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  if (wrap) wrap.classList.add("hidden");
+  if (stopBtn) stopBtn.classList.add("hidden");
+  if (startBtn) startBtn.disabled = false;
+
+  if (!silent) toast("Forklift scanner stopped");
+}
 
 async function startForkliftQRScan() {
   const wrap = document.getElementById("forkliftQrWrap");
@@ -3498,13 +3607,8 @@ async function startForkliftQRScan() {
           raw.includes("traceinventory.org") ||
           raw.includes("qr-codes.io");
 
-     // Stop forklift scanner
-  async function stopForkliftQRScan(silent=false){
-  const wrap = document.getElementById("forkliftQrWrap");
-  const stopBtn = document.getElementById("forkliftScanStopBtn");
-  const startBtn = document.getElementById("forkliftScanBtn");
+        let key = raw;
 
-      try{
         if (looksLikeUrl) {
           let fixed = raw;
           if (!/^https?:\/\//i.test(fixed)) fixed = "https://" + fixed;
@@ -3541,28 +3645,16 @@ async function startForkliftQRScan() {
         // Load it into the form (optional but helpful)
         loadToForm(item.id);
 
-   try {
-  // ... whatever setup you do above ...
-
-  await qrScannerForklift.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: 250 },
-    async (decodedText) => {
-      const raw = decodedText;
-
-      // Load it into the form (optional but helpful)
-      loadToForm(item.id);
-
-      // Show the forklift popup with job details + Move
-      openForkliftJobModal(item, raw); // <-- do NOT comment this unless you also keep valid code here
-    }
-  ); // ✅ closes start(...)
-} catch (e) {
-  console.error("Forklift QR start error:", e);
-  startBtn.disabled = false;
-  await uiAlert("Camera Error", "Could not start forklift camera scanner. Check permissions.");
+        // Show the forklift popup with job details + Move
+        openForkliftJobModal(item, raw);
+      }
+    );
+  } catch (e) {
+    console.error("Forklift QR start error:", e);
+    startBtn.disabled = false;
+    await uiAlert("Camera Error", "Could not start forklift camera scanner. Check permissions.");
+  }
 }
-
 
 async function stopForkliftQRScan(silent = false) {
   const wrap = document.getElementById("forkliftQrWrap");
@@ -3592,7 +3684,7 @@ const forkliftScanStopBtn = document.getElementById("forkliftScanStopBtn");
 
 if (forkliftScanBtn) forkliftScanBtn.addEventListener("click", startForkliftQRScan);
 if (forkliftScanStopBtn) forkliftScanStopBtn.addEventListener("click", () => stopForkliftQRScan(false));
-
+  
 </script>
 
 </body>
