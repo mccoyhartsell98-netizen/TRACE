@@ -3541,14 +3541,21 @@ async function startForkliftQRScan() {
         // Load it into the form (optional but helpful)
         loadToForm(item.id);
 
-        // openForkliftJobModal(item, raw);
-      ); // closes qrScannerForklift.start(...)
-  } catch (e) {
-    console.error("Forklift QR start error:", e);
-    startBtn.disabled = false;
-    await uiAlert("Camera Error", "Could not start forklift camera scanner. Check permissions.");
-  }
+   try {
+  await qrScannerForklift.start(
+    { facingMode: "environment" }, // 
+    { fps: 10, qrbox: 250 },       // 
+    async (raw) => {
+      // ...
+      openForkliftJobModal(item, raw);
+    }
+  ); // ✅ this closes start(
+} catch (e) {
+  console.error("Forklift QR start error:", e);
+  startBtn.disabled = false;
+  await uiAlert("Camera Error", "Could not start forklift camera scanner. Check permissions.");
 }
+
 async function stopForkliftQRScan(silent = false) {
   const wrap = document.getElementById("forkliftQrWrap");
   const stopBtn = document.getElementById("forkliftScanStopBtn");
