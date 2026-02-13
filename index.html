@@ -3679,8 +3679,6 @@ async function stopForkliftQRScan(silent = false) {
 }
 
 // Hook up the forklift scan buttons
-const forkliftScanBtn = document.getElementById("forkliftScanBtn");
-const forkliftScanStopBtn = document.getElementById("forkliftScanStopBtn");
 
 if (forkliftScanBtn) forkliftScanBtn.addEventListener("click", startForkliftQRScan);
 if (forkliftScanStopBtn) forkliftScanStopBtn.addEventListener("click", () => stopForkliftQRScan(false));
