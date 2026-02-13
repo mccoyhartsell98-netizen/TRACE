@@ -3528,12 +3528,11 @@ async function startForkliftQRScan() {
     );
     return;
   }
-
-  // Found it!
-  loadToForm(item.id);
-  openForkliftJobModal(item, raw);
-}
-   } catch (e) {
+        loadToForm(item.id);
+        openForkliftJobModal(item, raw);
+      }
+    );
+  } catch (e) {
     startBtn.disabled = false;
     await uiAlert("Camera Error", "Could not start camera. Check permissions.");
   }
