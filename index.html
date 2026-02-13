@@ -3467,8 +3467,7 @@ async function startForkliftQRScan() {
 
   if (!wrap || !stopBtn || !startBtn) return;
 
-  // IMPORTANT: prevent both scanners running at once
-  // If pallet/admin scanner is running, stop it silently
+  // Stop other scanner if running
   if (typeof stopQRScan === "function") {
     await stopQRScan(true).catch(() => {});
   }
@@ -3481,48 +3480,66 @@ async function startForkliftQRScan() {
     qrScannerForklift = new Html5Qrcode("qr-reader-forklift");
 
     await qrScannerForklift.start(
-  { facingMode: "environment" },
-  { fps: 12, qrbox: { width: 250, height: 250 } },
-  async (decodedText) => {
-    // Stop forklift scanner after a successful read
-    await stopForkliftQRScan(true);
+      { facingMode: "environment" },
+      { fps: 12, qrbox: { width: 250, height: 250 } },
+      async (decodedText) => {
+        await stopForkliftQRScan(true);
 
-    const raw = String(decodedText || "").trim();
-    if (!raw) {
-      await uiAlert("SCAN FAILED", "QR was empty.");
-      return;
-    }
+        const raw = String(decodedText || "").trim();
+        
+        if (!raw) {
+          await uiAlert("SCAN FAILED", "QR was empty.");
+          return;
+        }
 
-    // Extract MO or Job from the QR code
-    const extracted = extractMoOrJob(raw);
-    
-    if (!extracted) {
-      await uiAlert("SCAN FAILED", `Could not find MO or Job number.\n\nScanned: ${raw}`);
-      return;
-    }
+        let jobNumber = "";
 
-    // Find the item using the extracted code
-    const item = findItemByForkliftQR(extracted);
+        // Try to extract job from URL
+        if (raw.includes("?")) {
+          try {
+            let url = raw;
+            if (!url.startsWith("http")) url = "https://" + url;
+            
+            const u = new URL(url);
+            jobNumber = (u.searchParams.get("job") || "").trim();
+          } catch (e) {
+            // ignore
+          }
+        }
 
-    if (!item) {
-      await uiAlert(
-        "NOT FOUND",
-        `Scanned: ${extracted}\n\nNo matching job found in inventory.`
-      );
-      return;
-    }
+        // If no job from URL, use raw text
+        if (!jobNumber) {
+          jobNumber = raw;
+        }
 
-    // Load it into the form
-    loadToForm(item.id);
+        // Clean it
+        jobNumber = jobNumber.trim().toUpperCase();
 
-    // Show the forklift popup with job details + Move
-    openForkliftJobModal(item, raw);
-  }
-);
+        // Search inventory (searches ALL lanes automatically)
+        const item = inventory.find(x => {
+          const xJob = String(x.job || "").trim().toUpperCase();
+          return xJob === jobNumber;
+        });
+
+        if (!item) {
+          await uiAlert(
+            "NOT FOUND",
+            `Job "${jobNumber}" not found in inventory.\n\nMake sure it exists in the system.`
+          );
+          return;
+        }
+
+        // Load it into the form
+        loadToForm(item.id);
+
+        // Show the popup
+        openForkliftJobModal(item, raw);
+      }
+    );
   } catch (e) {
     console.error("Forklift QR start error:", e);
     startBtn.disabled = false;
-    await uiAlert("Camera Error", "Could not start forklift camera scanner. Check permissions.");
+    await uiAlert("Camera Error", "Could not start camera. Check permissions.");
   }
 }
 
