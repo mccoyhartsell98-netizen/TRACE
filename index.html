@@ -3437,7 +3437,6 @@ function closeForkliftJobModal() {
   forkliftScannedItemId = null;
   closeScanPopup();
 }
-
 async function startForkliftQRScan() {
   const wrap = document.getElementById("forkliftQrWrap");
   const stopBtn = document.getElementById("forkliftScanStopBtn");
@@ -3464,11 +3463,8 @@ async function startForkliftQRScan() {
 
         const raw = String(decodedText || "").trim();
         
-        // DEBUG LOGGING
-        console.log("═══════════════════════════════");
-        console.log("RAW SCAN:", raw);
-        console.log("RAW LENGTH:", raw.length);
-        console.log("═══════════════════════════════");
+        // SHOW DEBUG ON SCREEN
+        await uiAlert("DEBUG - Raw Scan", `Scanned text:\n\n${raw}\n\nLength: ${raw.length} characters`);
         
         if (!raw) {
           await uiAlert("SCAN FAILED", "QR was empty.");
@@ -3484,30 +3480,28 @@ async function startForkliftQRScan() {
           const match = raw.match(/job=([^&\s]+)/i);
           if (match) {
             jobNumber = match[1];
-            console.log("EXTRACTED FROM URL:", jobNumber);
           }
         }
         
         // 2. Check if it's just a number
         if (!jobNumber && /^\d+$/.test(raw)) {
           jobNumber = raw;
-          console.log("EXTRACTED AS NUMBER:", jobNumber);
         }
         
         // 3. Try extractMoOrJob helper
         if (!jobNumber) {
           jobNumber = extractMoOrJob(raw);
-          console.log("EXTRACTED VIA HELPER:", jobNumber);
         }
         
         // 4. Last resort - use raw as-is
         if (!jobNumber) {
           jobNumber = raw;
-          console.log("USING RAW:", jobNumber);
         }
 
         jobNumber = jobNumber.trim().toUpperCase();
-        console.log("FINAL JOB NUMBER:", jobNumber);
+
+        // SHOW WHAT WE EXTRACTED
+        await uiAlert("DEBUG - Extracted", `Looking for job:\n\n${jobNumber}`);
 
         // Search inventory
         const item = inventory.find(x => {
@@ -3515,12 +3509,10 @@ async function startForkliftQRScan() {
           return xJob === jobNumber;
         });
 
-        console.log("FOUND ITEM:", item ? "YES" : "NO");
-
         if (!item) {
           await uiAlert(
             "NOT FOUND", 
-            `Job "${jobNumber}" not found in inventory.\n\nScanned raw: ${raw}`
+            `Job "${jobNumber}" not found in inventory.\n\nDouble-check the job exists in TRACE.`
           );
           return;
         }
@@ -3530,7 +3522,6 @@ async function startForkliftQRScan() {
       }
     );
   } catch (e) {
-    console.error("Forklift QR start error:", e);
     startBtn.disabled = false;
     await uiAlert("Camera Error", "Could not start camera. Check permissions.");
   }
