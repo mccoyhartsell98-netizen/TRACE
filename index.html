@@ -3479,66 +3479,44 @@ async function startForkliftQRScan() {
     qrScannerForklift = new Html5Qrcode("qr-reader-forklift");
 
     await qrScannerForklift.start(
-      { facingMode: "environment" },
-      { fps: 12, qrbox: { width: 250, height: 250 } },
-      async (decodedText) => {
-        // Stop forklift scanner after a successful read
-        await stopForkliftQRScan(true);
+  { facingMode: "environment" },
+  { fps: 12, qrbox: { width: 250, height: 250 } },
+  async (decodedText) => {
+    // Stop forklift scanner after a successful read
+    await stopForkliftQRScan(true);
 
-        const raw = String(decodedText || "").trim();
-        if (!raw) {
-          await uiAlert("SCAN FAILED", "QR was empty.");
-          return;
-        }
+    const raw = String(decodedText || "").trim();
+    if (!raw) {
+      await uiAlert("SCAN FAILED", "QR was empty.");
+      return;
+    }
 
-        // If someone scans a URL QR (from your admin generator), parse it cleanly
-        const looksLikeUrl =
-          /^https?:\/\//i.test(raw) ||
-          raw.includes("traceinventory.org") ||
-          raw.includes("qr-codes.io");
+    // Extract MO or Job from the QR code
+    const extracted = extractMoOrJob(raw);
+    
+    if (!extracted) {
+      await uiAlert("SCAN FAILED", `Could not find MO or Job number.\n\nScanned: ${raw}`);
+      return;
+    }
 
-        let key = raw;
+    // Find the item using the extracted code
+    const item = findItemByForkliftQR(extracted);
 
-        if (looksLikeUrl) {
-          let fixed = raw;
-          if (!/^https?:\/\//i.test(fixed)) fixed = "https://" + fixed;
+    if (!item) {
+      await uiAlert(
+        "NOT FOUND",
+        `Scanned: ${extracted}\n\nNo matching job found in inventory.`
+      );
+      return;
+    }
 
-          try {
-            const u = new URL(fixed);
-            const mo  = (u.searchParams.get("mo")  || "").trim().toUpperCase();
-            const job = (u.searchParams.get("job") || "").trim().toUpperCase();
+    // Load it into the form
+    loadToForm(item.id);
 
-            // Prefer job, fallback to mo
-            key = (job || mo || "").trim();
-          } catch (e) {
-            // fallback to raw
-            key = raw;
-          }
-        }
-
-        const cleaned = cleanJob(key);
-        if (!cleaned) {
-          await uiAlert("SCAN FAILED", "QR was invalid.");
-          return;
-        }
-
-        const item = findItemByForkliftQR(cleaned);
-
-        if (!item) {
-          await uiAlert(
-            "NOT FOUND",
-            `Scanned: ${cleaned}\n\nNo matching job found in inventory.`
-          );
-          return;
-        }
-
-        // Load it into the form (optional but helpful)
-        loadToForm(item.id);
-
-        // Show the forklift popup with job details + Move
-        openForkliftJobModal(item, raw);
-      }
-    );
+    // Show the forklift popup with job details + Move
+    openForkliftJobModal(item, raw);
+  }
+);
   } catch (e) {
     console.error("Forklift QR start error:", e);
     startBtn.disabled = false;
