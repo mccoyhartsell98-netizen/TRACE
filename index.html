@@ -1073,7 +1073,7 @@
          
 <!-- QR SCAN BAR -->
 <div class="scanBar">
-  <button id="scanBtn" class="primary">📷 Scan Pallet</button>
+  <button id="scanBtn" class="primary">(Admin) Scan Pallet</button>
   <button id="scanStopBtn" class="ghost hidden">Stop</button>
 </div>
 
@@ -1086,7 +1086,7 @@
 
 <!-- FORKLIFT QR SCAN BAR (separate from admin/pallet scan) -->
 <div class="scanBar" style="margin-top:10px;">
-  <button id="forkliftScanBtn" class="primary">🚜 Scan Job Details</button>
+  <button id="forkliftScanBtn" class="primary">(Forklift) Scan Job Details</button>
   <button id="forkliftScanStopBtn" class="ghost hidden">Stop</button>
 </div>
 
@@ -1603,7 +1603,19 @@ function pick(obj, keys){
   }
   return undefined;
 }
+function extractMoOrJob(raw){
+  const s = String(raw || "").trim().toUpperCase();
 
+  // Try to find MO like MO-5048 or MO 5048
+  let m = s.match(/\bMO[-\s]*([A-Z0-9]{3,})\b/);
+  if (m) return "MO-" + m[1];
+
+  // Try to find long-ish item number (6910153, etc)
+  m = s.match(/\b([A-Z0-9-]{4,})\b/);
+  if (m) return m[1];
+
+  return "";
+}
 function formatTimestamp(ts){
   if(!ts) return "";
   const d = new Date(ts);
@@ -1649,7 +1661,35 @@ function formatLocation(item){
   if (item.lane) return item.lane;
   return "Unknown location";
 }
+// ===== Scan Popup (shared overlay) =====
+let scannedItemId = null;
 
+function openScanPopup(item, scannedText = ""){
+  scannedItemId = item?.id ?? null;
+
+  const loc = item.machine ? `Machine ${item.machine}` : (item.lane || "Unknown");
+  const mo  = item.mo || "—";
+  const qty = Number.isFinite(item.qty) ? item.qty : 0;
+  const st  = item.status || "—";
+  const notes = item.notes || "—";
+
+  els.scanTitle.textContent = `Item #${item.job || "—"}`;
+
+  els.scanBody.innerHTML =
+`Location: <b>${escapeHtml(loc)}</b>
+MO: <b>${escapeHtml(mo)}</b>
+Qty: <b>${escapeHtml(qty)}</b>
+Status: <b>${escapeHtml(st)}</b>
+Notes: <b>${escapeHtml(notes)}</b>` +
+(scannedText ? `\n\nScanned: ${escapeHtml(scannedText)}` : "");
+
+  els.scanOverlay.classList.add("show");
+}
+
+function closeScanPopup(){
+  els.scanOverlay.classList.remove("show");
+  scannedItemId = null;
+}
 // ===== QR DETAILS (Forklift Scan View) =====
 function buildScanDetails(item){
   const loc = item.machine ? `Machine ${item.machine}` : (item.lane ? item.lane : "Unknown");
@@ -2201,35 +2241,7 @@ function renderGlobalSearch(){
         openMoveOverlay(item.id);
       });
     }
-let scannedItemId = null;
-
-function openScanPopup(item, scannedText = ""){
-  scannedItemId = item?.id ?? null;
-
-  const loc = item.machine ? `Machine ${item.machine}` : (item.lane || "Unknown");
-  const mo  = item.mo || "—";
-  const qty = Number.isFinite(item.qty) ? item.qty : 0;
-  const st  = item.status || "—";
-  const notes = item.notes || "—";
-
-  els.scanTitle.textContent = `Item #${item.job || "—"}`;
-
-  els.scanBody.innerHTML =
-`Location: <b>${loc}</b>
-MO: <b>${mo}</b>
-Qty: <b>${qty}</b>
-Status: <b>${st}</b>
-Notes: <b>${notes}</b>` +
-(scannedText ? `\n\nScanned: ${scannedText}` : "");
-
-  els.scanOverlay.classList.add("show");
-}
-
-function closeScanPopup(){
-  els.scanOverlay.classList.remove("show");
-  scannedItemId = null;
-}
-    div.addEventListener("click", () => {
+      div.addEventListener("click", () => {
       if(item.machine) selectMachine(item.machine);
       else if(item.lane) selectLane(item.lane);
       loadToForm(item.id);
@@ -2510,6 +2522,13 @@ const scanStopBtn = document.getElementById("scanStopBtn");
 
 if (scanBtn) scanBtn.addEventListener("click", startQRScan);
 if (scanStopBtn) scanStopBtn.addEventListener("click", () => stopQRScan(false));
+
+// ===== FORKLIFT QR SCAN BUTTONS =====
+const forkliftScanBtn = document.getElementById("forkliftScanBtn");
+const forkliftScanStopBtn = document.getElementById("forkliftScanStopBtn");
+
+if (forkliftScanBtn) forkliftScanBtn.addEventListener("click", startForkliftQRScan);
+if (forkliftScanStopBtn) forkliftScanStopBtn.addEventListener("click", () => stopForkliftQRScan(false));
 
 els.globalSearch.addEventListener("input", renderGlobalSearch);
 els.laneSearch.addEventListener("input", renderLaneList);
@@ -3309,12 +3328,11 @@ async function startQRScan(){
         }
 
         // Treat as plain MO/Job code
-        const code = cleanJob(raw);
-        if (!code) {
-          await uiAlert("SCAN FAILED", "QR was invalid.");
-          return;
-        }
-
+        const code = extractMoOrJob(raw);
+if (!code) {
+  await uiAlert("SCAN FAILED", `QR was invalid.\n\nRaw scan:\n${raw}`);
+  return;
+}
         // If found in inventory, do the move workflow
         const item = findItemByQR(code);
         if (item) {
@@ -3414,8 +3432,8 @@ Location: <b>${escapeHtml(loc)}</b>` +
 }
 
 function closeForkliftJobModal() {
-  els.scanOverlay.classList.remove("show");
   forkliftScannedItemId = null;
+  closeScanPopup();
 }
 
 // Wire existing modal buttons safely (doesn't affect admin scan flow)
@@ -3480,8 +3498,13 @@ async function startForkliftQRScan() {
           raw.includes("traceinventory.org") ||
           raw.includes("qr-codes.io");
 
-        let key = raw;
+     // Stop forklift scanner
+  async function stopForkliftQRScan(silent=false){
+  const wrap = document.getElementById("forkliftQrWrap");
+  const stopBtn = document.getElementById("forkliftScanStopBtn");
+  const startBtn = document.getElementById("forkliftScanBtn");
 
+      try{
         if (looksLikeUrl) {
           let fixed = raw;
           if (!/^https?:\/\//i.test(fixed)) fixed = "https://" + fixed;
