@@ -1021,6 +1021,7 @@
           </select>
           <button id="adminUnlockBtn" class="primary">Unlock Admin</button>
           <button id="adminLockBtn" class="ghost" style="display:none;">Lock Admin</button>
+          <button id="undoBtn" class="ghost" disabled>Undo</button>
         </div>
 
       <div style="display:flex;gap:10px;align-items:center;">
@@ -2335,8 +2336,24 @@ async function upsertItem(){
     renderGlobalSearch();
     clearForm();
   }catch(err){
+    hideLoading();
     console.error("SAVE FAILED", err);
-    await uiAlert("Save Failed", "Save failed. Open DevTools → Network and check the /items request.");
+    
+    let userMessage = "Save failed. ";
+    
+    if (err.message.includes("Failed to fetch") || err.message.includes("NetworkError")) {
+      userMessage += "Network connection lost. Check your internet and try again.";
+    } else if (err.message.includes("401") || err.message.includes("Unauthorized")) {
+      userMessage += "Your session expired. Please log in again.";
+    } else if (err.message.includes("400")) {
+      userMessage += "Invalid data. Check that all required fields are filled correctly.";
+    } else if (err.message.includes("500")) {
+      userMessage += "Server error. Please try again in a moment.";
+    } else {
+      userMessage += err.message || "Unknown error occurred.";
+    }
+    
+    await uiAlert("Save Failed", userMessage);
   }
 }
 
@@ -2376,9 +2393,20 @@ async function deleteSelected(){
       renderHistory();
     }
   }catch(err){
-    console.error("DELETE FAILED", err);
-    await uiAlert("Delete Failed", "Delete failed. Check DevTools → Network.");
+  console.error("DELETE FAILED", err);
+  
+  let userMessage = "Delete failed. ";
+  
+  if (err.message.includes("Failed to fetch")) {
+    userMessage += "Network connection lost. The job was NOT deleted.";
+  } else if (err.message.includes("403") || err.message.includes("Forbidden")) {
+    userMessage += "Permission denied. Admin access required.";
+  } else {
+    userMessage += err.message || "Unknown error occurred.";
   }
+  
+  await uiAlert("Delete Failed", userMessage);
+ }
 }
 
 // ====== MOVE ======
@@ -2435,10 +2463,27 @@ async function moveToLane(id, lane){
     return;
   }
 
+  const item = inventory.find(x => x.id === id);
+  const originalLocationId = item?.location_id;
+  const originalLocation = item?.lane || item?.machine || "Unknown";
+
   try{
+    showLoading(`Moving to ${lane}...`);
+    
     await apiPut(`/items/${id}`, { location_id });
     await loadLocations();
     await loadInventory();
+
+    hideLoading();
+    toast(`✅ Moved to ${lane}`);
+
+    pushUndo({
+      type: "move",
+      itemId: id,
+      originalLocationId: originalLocationId,
+      originalLocation: originalLocation,
+      newLocation: lane
+    });
 
     selectLane(lane);
     renderLaneList();
@@ -2446,8 +2491,20 @@ async function moveToLane(id, lane){
     renderGlobalSearch();
     loadToForm(id);
   }catch(err){
+    hideLoading();
     console.error("MOVE TO LANE FAILED", err);
-    await uiAlert("Move Failed", "Move failed. Check DevTools → Network.");
+    
+    let userMessage = "Move failed. ";
+    
+    if (err.message.includes("Failed to fetch")) {
+      userMessage += "Network connection lost. The job was NOT moved.";
+    } else if (err.message.includes("404")) {
+      userMessage += "Job not found. It may have been deleted.";
+    } else {
+      userMessage += err.message || "Unknown error occurred.";
+    }
+    
+    await uiAlert("Move Failed", userMessage);
   }
 }
 
@@ -2458,10 +2515,27 @@ async function moveToMachine(id, machine){
     return;
   }
 
+  const item = inventory.find(x => x.id === id);
+  const originalLocationId = item?.location_id;
+  const originalLocation = item?.lane || item?.machine || "Unknown";
+
   try{
+    showLoading(`Moving to ${machine}...`);
+    
     await apiPut(`/items/${id}`, { location_id });
     await loadLocations();
     await loadInventory();
+
+    hideLoading();
+    toast(`✅ Moved to ${machine}`);
+
+    pushUndo({
+      type: "move",
+      itemId: id,
+      originalLocationId: originalLocationId,
+      originalLocation: originalLocation,
+      newLocation: machine
+    });
 
     selectMachine(machine);
     renderLaneList();
@@ -2469,8 +2543,70 @@ async function moveToMachine(id, machine){
     renderGlobalSearch();
     loadToForm(id);
   }catch(err){
+    hideLoading();
     console.error("MOVE TO MACHINE FAILED", err);
-    await uiAlert("Move Failed", "Move failed. Check DevTools → Network.");
+    
+    let userMessage = "Move failed. ";
+    
+    if (err.message.includes("Failed to fetch")) {
+      userMessage += "Network connection lost. The job was NOT moved.";
+    } else if (err.message.includes("404")) {
+      userMessage += "Job not found. It may have been deleted.";
+    } else {
+      userMessage += err.message || "Unknown error occurred.";
+    }
+    
+    await uiAlert("Move Failed", userMessage);
+  }
+}
+
+// ===== UNDO SYSTEM =====
+let undoStack = [];
+const MAX_UNDO_HISTORY = 10;
+
+function pushUndo(action) {
+  undoStack.push(action);
+  if (undoStack.length > MAX_UNDO_HISTORY) {
+    undoStack.shift(); // Remove oldest
+  }
+  updateUndoButton();
+}
+
+function updateUndoButton() {
+  const btn = document.getElementById("undoBtn");
+  if (btn) {
+    btn.disabled = undoStack.length === 0;
+    btn.textContent = undoStack.length > 0 ? `Undo (${undoStack.length})` : "Undo";
+  }
+}
+
+async function performUndo() {
+  if (undoStack.length === 0) return;
+  
+  const lastAction = undoStack.pop();
+  updateUndoButton();
+  
+  try {
+    showLoading("Undoing...");
+    
+    if (lastAction.type === "move") {
+      // Move back to original location
+      await apiPut(`/items/${lastAction.itemId}`, { location_id: lastAction.originalLocationId });
+      await loadLocations();
+      await loadInventory();
+      
+      hideLoading();
+      toast(`✅ Undid move to ${lastAction.newLocation}`);
+      
+      renderLaneList();
+      renderMachineList();
+      renderGlobalSearch();
+    }
+    
+  } catch (err) {
+    hideLoading();
+    console.error("UNDO FAILED", err);
+    await uiAlert("Undo Failed", "Could not undo the last action.");
   }
 }
 
@@ -2537,6 +2673,11 @@ els.machineSearch.addEventListener("input", renderMachineList);
 els.saveBtn.addEventListener("click", upsertItem);
 els.newBtn.addEventListener("click", clearForm);
 els.deleteBtn.addEventListener("click", deleteSelected);
+
+const undoBtn = document.getElementById("undoBtn");
+if (undoBtn) {
+  undoBtn.addEventListener("click", performUndo);
+}
 
 els.moveCloseBtn.addEventListener("click", closeMoveOverlay);
 els.moveOverlay.addEventListener("click", (e) => { if(e.target === els.moveOverlay) closeMoveOverlay(); });
@@ -2707,6 +2848,23 @@ function toast(msg){
     el.style.opacity = "0";
     el.style.transform = "translateX(-50%) translateY(6px)";
   }, 2200);
+}
+
+// ===== LOADING HELPERS =====
+function showLoading(message = "Loading...") {
+  const overlay = document.getElementById("loadingOverlay");
+  const text = document.getElementById("loadingText");
+  if (overlay && text) {
+    text.textContent = message;
+    overlay.classList.add("show");
+  }
+}
+
+function hideLoading() {
+  const overlay = document.getElementById("loadingOverlay");
+  if (overlay) {
+    overlay.classList.remove("show");
+  }
 }
 
 // simple beep (works without hosting audio files)
@@ -3611,3 +3769,4 @@ if (forkliftScanStopBtn) forkliftScanStopBtn.addEventListener("click", () => sto
 
 </body>
 </html>
+
