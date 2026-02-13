@@ -3436,6 +3436,53 @@ function openForkliftJobModal(item, scannedText = "") {
 function closeForkliftJobModal() {
   forkliftScannedItemId = null;
   closeScanPopup();
+function closeForkliftJobModal() {
+  forkliftScannedItemId = null;
+  els.scanOverlay.classList.remove("show");
+}
+
+// Wire the scan popup buttons for forklift scanner
+if (els.scanCloseBtn) {
+  // Remove old listener by cloning the button
+  const newCloseBtn = els.scanCloseBtn.cloneNode(true);
+  els.scanCloseBtn.parentNode.replaceChild(newCloseBtn, els.scanCloseBtn);
+  els.scanCloseBtn = newCloseBtn;
+  
+  els.scanCloseBtn.addEventListener("click", () => {
+    console.log("CLOSE BUTTON CLICKED!");
+    closeForkliftJobModal();
+  });
+}
+
+if (els.scanMoveBtn) {
+  // Remove old listener by cloning the button
+  const newMoveBtn = els.scanMoveBtn.cloneNode(true);
+  els.scanMoveBtn.parentNode.replaceChild(newMoveBtn, els.scanMoveBtn);
+  els.scanMoveBtn = newMoveBtn;
+  
+  els.scanMoveBtn.addEventListener("click", () => {
+    console.log("MOVE BUTTON CLICKED! forkliftScannedItemId:", forkliftScannedItemId);
+    
+    if (!forkliftScannedItemId) {
+      alert("No item selected");
+      return;
+    }
+    
+    closeForkliftJobModal();
+    
+    setTimeout(() => {
+      openMoveOverlay(forkliftScannedItemId);
+    }, 150);
+  });
+}
+
+if (els.scanOverlay) {
+  els.scanOverlay.addEventListener("click", (e) => {
+    if (e.target === els.scanOverlay) {
+      console.log("OVERLAY CLICKED!");
+      closeForkliftJobModal();
+    }
+  });
 }
 async function startForkliftQRScan() {
   const wrap = document.getElementById("forkliftQrWrap");
