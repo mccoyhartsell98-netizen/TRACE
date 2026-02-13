@@ -3458,70 +3458,82 @@ async function startForkliftQRScan() {
     await qrScannerForklift.start(
       { facingMode: "environment" },
       { fps: 12, qrbox: { width: 250, height: 250 } },
-      async (decodedText) => {
-        await stopForkliftQRScan(true);
+       async (decodedText) => {
+  await stopForkliftQRScan(true);
 
-        const raw = String(decodedText || "").trim();
-        
-        // SHOW DEBUG ON SCREEN
-        await uiAlert("DEBUG - Raw Scan", `Scanned text:\n\n${raw}\n\nLength: ${raw.length} characters`);
-        
-        if (!raw) {
-          await uiAlert("SCAN FAILED", "QR was empty.");
-          return;
-        }
+  const raw = String(decodedText || "").trim();
+  
+  if (!raw) {
+    await uiAlert("SCAN FAILED", "QR was empty.");
+    return;
+  }
 
-        let jobNumber = "";
+  let jobNumber = "";
 
-        // Try multiple extraction methods
-        
-        // 1. Check if it's a URL with ?job=
-        if (raw.includes("job=")) {
-          const match = raw.match(/job=([^&\s]+)/i);
-          if (match) {
-            jobNumber = match[1];
-          }
-        }
-        
-        // 2. Check if it's just a number
-        if (!jobNumber && /^\d+$/.test(raw)) {
-          jobNumber = raw;
-        }
-        
-        // 3. Try extractMoOrJob helper
-        if (!jobNumber) {
-          jobNumber = extractMoOrJob(raw);
-        }
-        
-        // 4. Last resort - use raw as-is
-        if (!jobNumber) {
-          jobNumber = raw;
-        }
-
-        jobNumber = jobNumber.trim().toUpperCase();
-
-        // SHOW WHAT WE EXTRACTED
-        await uiAlert("DEBUG - Extracted", `Looking for job:\n\n${jobNumber}`);
-
-        // Search inventory
-        const item = inventory.find(x => {
-          const xJob = String(x.job || "").trim().toUpperCase();
-          return xJob === jobNumber;
-        });
-
-        if (!item) {
-          await uiAlert(
-            "NOT FOUND", 
-            `Job "${jobNumber}" not found in inventory.\n\nDouble-check the job exists in TRACE.`
-          );
-          return;
-        }
-
-        loadToForm(item.id);
-        openForkliftJobModal(item, raw);
+  // METHOD 1: Extract from URL parameter ?job=XXXXX
+  if (raw.includes("?") && raw.includes("job=")) {
+    try {
+      // Make sure it has https://
+      let url = raw;
+      if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        url = "https://" + url;
       }
+      
+      const urlObj = new URL(url);
+      jobNumber = urlObj.searchParams.get("job") || "";
+    } catch (e) {
+      // URL parse failed, try regex
+      const match = raw.match(/[?&]job=([^&\s]+)/i);
+      if (match && match[1]) {
+        jobNumber = match[1];
+      }
+    }
+  }
+  
+  // METHOD 2: If it's just a plain number
+  if (!jobNumber && /^\d+$/.test(raw)) {
+    jobNumber = raw;
+  }
+  
+  // METHOD 3: Try the extractMoOrJob helper
+  if (!jobNumber) {
+    const extracted = extractMoOrJob(raw);
+    if (extracted && !extracted.includes("HTTP")) {
+      jobNumber = extracted;
+    }
+  }
+
+  // Clean it up
+  jobNumber = String(jobNumber || "").trim().toUpperCase();
+
+  // Don't accept "HTTPS" or "HTTP" as job numbers
+  if (jobNumber === "HTTPS" || jobNumber === "HTTP" || !jobNumber) {
+    await uiAlert(
+      "EXTRACTION FAILED",
+      `Could not extract job number from QR code.\n\nScanned: ${raw}\n\nExtracted: ${jobNumber || "nothing"}\n\nTry a QR code with just the number: 16900`
     );
-  } catch (e) {
+    return;
+  }
+
+  // Search inventory (searches all lanes automatically)
+  const item = inventory.find(x => {
+    const xJob = String(x.job || "").trim().toUpperCase();
+    return xJob === jobNumber;
+  });
+
+  if (!item) {
+    await uiAlert(
+      "NOT FOUND", 
+      `Job "${jobNumber}" not found in inventory.\n\nSearched for: ${jobNumber}\n\nMake sure this job exists in TRACE.`
+    );
+    return;
+  }
+
+  // Found it!
+  loadToForm(item.id);
+  openForkliftJobModal(item, raw);
+}
+   } catch (e) {
     startBtn.disabled = false;
     await uiAlert("Camera Error", "Could not start camera. Check permissions.");
   }
