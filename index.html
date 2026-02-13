@@ -3542,8 +3542,7 @@ async function startForkliftQRScan() {
         loadToForm(item.id);
 
         // openForkliftJobModal(item, raw);
-      }
-    ); // closes qrScannerForklift.start(...)
+      ); // closes qrScannerForklift.start(...)
   } catch (e) {
     console.error("Forklift QR start error:", e);
     startBtn.disabled = false;
