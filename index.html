@@ -3409,7 +3409,7 @@ async function stopQRScan(silent=false){
 let qrScannerForklift = null;
 let forkliftScannedItemId = null;
 
-ffunction openForkliftJobModal(item, scannedText = "") {
+function openForkliftJobModal(item, scannedText = "") {
   forkliftScannedItemId = item?.id ?? null;
 
   const mo   = item.mo ? escapeHtml(item.mo) : "—";
