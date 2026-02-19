@@ -1051,6 +1051,27 @@
 
   <!-- APP ROOT -->
   <div id="appRoot" class="appRoot isHidden">
+      <!-- FORKLIFT START MODAL -->
+    <div id="forkliftModal" style="display:none; position:fixed; inset:0; z-index:50000; align-items:center; justify-content:center;">
+      <div style="width:min(420px,92vw); background:rgba(22,26,34,.95); border:1px solid rgba(90,110,160,.25); border-radius:18px; padding:28px 20px; box-shadow:0 18px 60px rgba(0,0,0,.55); text-align:center;">
+        <div style="font-size:28px; font-weight:900; letter-spacing:2px; margin-bottom:8px;">FORKLIFT MODE</div>
+        <div style="color:var(--muted); margin-bottom:28px; font-size:14px;">Select how you want to find a job</div>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <button id="forkliftModalScanBtn" class="primary" style="padding:18px; font-size:16px; border-radius:14px;">📷 Scan QR to Begin</button>
+          <button id="forkliftModalSearchBtn" class="ghost" style="padding:18px; font-size:16px; border-radius:14px; border:1px solid var(--stroke);">🔍 Can't Find QR? Search</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FORKLIFT SEARCH VIEW -->
+    <div id="forkliftSearchView" style="display:none; position:fixed; inset:0; z-index:49000; background:var(--bg); flex-direction:column; padding:18px; gap:14px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <button id="forkliftSearchBackBtn" class="ghost">← Back</button>
+        <div style="font-weight:900; letter-spacing:.1em;">SEARCH JOBS</div>
+      </div>
+      <input id="forkliftSearchInput" type="text" placeholder="Search Item # or MO (e.g. 6910153 or MO-5048)" style="font-size:18px;">
+      <div id="forkliftSearchResults" class="results" style="overflow:auto; flex:1;"></div>
+    </div>
     <div class="wrap">
 
       <div class="top">
@@ -1986,8 +2007,24 @@ function setRole(nextRole){
   renderMachineList();
   renderGlobalSearch();
   window.adminUnlocked = adminUnlocked;
+  applyRoleLayout(); 
 }
 
+function applyRoleLayout() {
+  const isForklift = role === "forklift";
+  const wrap = document.querySelector(".wrap");
+  const forkliftModal = document.getElementById("forkliftModal");
+  const fsv = document.getElementById("forkliftSearchView");
+
+  if (isForklift) {
+    if (wrap) wrap.style.display = "none";
+    if (forkliftModal) forkliftModal.style.display = "flex";
+  } else {
+    if (wrap) wrap.style.display = "";
+    if (forkliftModal) forkliftModal.style.display = "none";
+    if (fsv) fsv.style.display = "none";
+  }
+}
 function updateRoleUI(){
   const effectiveRole = (role === "admin" && adminUnlocked) ? "ADMIN" : role.toUpperCase();
    if (els.rolePill) {
@@ -3049,6 +3086,7 @@ window.initApp = async function initApp() {
     const initialRole = AUTH.role || "forklift";
 els.roleSelect.value = initialRole;
 setRole(initialRole);
+applyRoleLayout(); 
 
     els.globalResults.innerHTML = `<div style="color:var(--muted)">Loading...</div>`;
 
@@ -3813,8 +3851,64 @@ async function stopForkliftQRScan(silent = false) {
 // Hook up the forklift scan buttons
 if (forkliftScanBtn) forkliftScanBtn.addEventListener("click", startForkliftQRScan);
 if (forkliftScanStopBtn) forkliftScanStopBtn.addEventListener("click", () => stopForkliftQRScan(false));
-</script>
 
+// ====== FORKLIFT MODAL BUTTONS ======
+document.getElementById("forkliftModalScanBtn")?.addEventListener("click", () => {
+  document.getElementById("forkliftModal").style.display = "none";
+  startForkliftQRScan();
+});
+
+document.getElementById("forkliftModalSearchBtn")?.addEventListener("click", () => {
+  document.getElementById("forkliftModal").style.display = "none";
+  const fsv = document.getElementById("forkliftSearchView");
+  if (fsv) fsv.style.display = "flex";
+  document.getElementById("forkliftSearchInput")?.focus();
+});
+
+document.getElementById("forkliftSearchBackBtn")?.addEventListener("click", () => {
+  document.getElementById("forkliftSearchView").style.display = "none";
+  document.getElementById("forkliftModal").style.display = "flex";
+});
+
+document.getElementById("forkliftSearchInput")?.addEventListener("input", (e) => {
+  const q = normalize(e.target.value);
+  const resultsEl = document.getElementById("forkliftSearchResults");
+  resultsEl.innerHTML = "";
+
+  if (!q) return;
+
+  const matches = inventory
+    .filter(x => normalize(x.job).includes(q) || normalize(x.mo).includes(q))
+    .slice(0, 20);
+
+  if (!matches.length) {
+    resultsEl.innerHTML = `<div style="color:var(--muted)">No results found.</div>`;
+    return;
+  }
+
+  matches.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "resultItem";
+    const loc = item.machine ? `Machine: ${item.machine}` : (item.lane || "—");
+    div.innerHTML = `
+      <div class="big">Item #${escapeHtml(item.job)}</div>
+      ${item.mo ? `<div class="meta">MO: <b>${escapeHtml(item.mo)}</b></div>` : ""}
+      <div class="qty">Qty: ${item.qty ?? 0} • Status: ${escapeHtml(item.status || "—")}</div>
+      <div class="meta">${escapeHtml(loc)}</div>
+      <div class="btnRow" style="margin-top:10px;">
+        <button class="primary" data-moveid="${item.id}">Move</button>
+      </div>
+    `;
+    div.querySelector("[data-moveid]")?.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      document.getElementById("forkliftSearchView").style.display = "none";
+      openMoveOverlay(item.id);
+    });
+    resultsEl.appendChild(div);
+  });
+});
+
+</script>
 </body>
 </html>
 
