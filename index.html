@@ -303,13 +303,18 @@
     return data;
   }
 
-  function enterHub(user) {
-    const label = user.display_name || user.name || (user.role ? user.role.toUpperCase() : "USER");
-    $("hubUser").textContent = label;
-    $("hubAdmin").style.display = (user.role === "admin") ? "block" : "none";
-    setStatus("UNLOCKED");
-    show("viewHub", "viewPin");
-  }
+  function enterHub(user){
+  const name = (user.display_name || "Worker").trim();
+  const role = String(user.role || "worker").toUpperCase();
+
+  $("hubUser").textContent = `Hello, ${name}`;
+  // optional small text somewhere:
+  // $("hubRole").textContent = role;
+
+  $("hubAdmin").style.display = (user.role === "admin") ? "block" : "none";
+  setStatus("UNLOCKED");
+  show("viewHub","viewPin");
+}
 
   function backToPin(msg = "") {
     pinBuf = "";
