@@ -297,13 +297,17 @@ async function checkApi(){
     }
   };
 
-  $("pinGoMain").onclick = ()=>{ goToMain({ intent:"adminLogin" }); };
+  $("pinGoMain").onclick = ()=>{
+  location.href = new URL(ADMIN_URL, location.href).toString();
+};
 
   // Hub buttons
   $("hubLogout").onclick = ()=>{ clearAuth(); backToPin("Logged out."); };
   $("hubMove").onclick = ()=>{ goToMain({ intent:"move" }); };
   $("hubSearch").onclick = ()=>{ goToMain({ intent:"search" }); };
-  $("hubAdmin").onclick = ()=>{ goToMain({ intent:"admin" }); };
+  $("hubAdmin").onclick = ()=>{
+  location.href = new URL(ADMIN_URL, location.href).toString();
+};
   $("hubMakeQr").onclick = ()=>{ $("qrMaker").classList.toggle("hide"); };
 
   $("jumpLane").onclick = ()=>{ goToMain({ view:"lane" }); };
