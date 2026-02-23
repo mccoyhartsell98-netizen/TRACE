@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>TRACE — Kiosk</title>
 
-  <!-- QR generator -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-
   <style>
     :root{
       --bg:#0b0f16;
@@ -46,11 +43,36 @@
       width:100%;background:var(--panel2);color:var(--text);
       border:1px solid var(--border);border-radius:12px;
       padding:12px 12px;font-weight:700;outline:none;
+      box-sizing:border-box;
     }
     .section{margin-top:12px;border:1px solid var(--border);border-radius:14px;padding:12px;background:rgba(15,21,34,.55)}
-    canvas{display:block;margin-top:10px;border-radius:12px;background:#fff}
     .tiny{font-size:12px;color:var(--muted);word-break:break-all;margin-top:8px}
     .hide{display:none!important}
+
+    /* Modal overlay */
+    .modal-overlay{
+      position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);
+      display:flex;align-items:center;justify-content:center;z-index:100;padding:18px;
+    }
+    .modal{
+      background:linear-gradient(180deg, rgba(16,26,42,.98), rgba(10,14,22,.98));
+      border:1px solid var(--border);border-radius:18px;
+      box-shadow:0 20px 60px rgba(0,0,0,.6);
+      width:min(460px,95vw);padding:18px;
+    }
+    .modal-title{font-weight:900;font-size:15px;margin-bottom:14px}
+    .modal-back{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:0;margin-bottom:12px;display:flex;align-items:center;gap:5px}
+    .modal-back:hover{color:var(--text)}
+
+    /* Lane/machine grids */
+    .lane-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:4px}
+    .machine-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
+    .sel-btn{
+      background:var(--btn);color:var(--text);border:1px solid var(--border);
+      border-radius:12px;padding:12px 6px;font-weight:700;font-size:13px;
+      cursor:pointer;transition:.12s background;text-align:center;
+    }
+    .sel-btn:hover{background:var(--btn2)}
   </style>
 </head>
 
@@ -60,7 +82,7 @@
       <div class="top">
         <div>
           <div class="brand">TRACE</div>
-          <div class="sub">Kiosk Access • QR → PIN → Hub</div>
+          <div class="sub">Kiosk Access</div>
         </div>
         <div class="pill" id="pillStatus">LOCKED</div>
       </div>
@@ -107,34 +129,13 @@
             <button class="btn" id="hubMove">MOVE</button>
             <button class="btn" id="hubSearch">SEARCH</button>
             <button class="btn" id="hubAdmin">ADMIN</button>
-            <button class="btn" id="hubMakeQr">GEN JOB QR</button>
           </div>
 
-          <div class="section hide" id="qrMaker">
-            <div style="font-weight:900;">Generate Job QR</div>
-            <div class="sub" style="margin-top:4px">Creates a printable PNG for forklift lookup</div>
-
-            <div style="display:grid;gap:8px;margin-top:10px">
-              <input id="qrJob" placeholder="Job # (required)" />
-              <input id="qrMo" placeholder="MO # (optional)" />
-              <input id="qrQty" placeholder="QTY (optional)" />
-            </div>
-
-            <div class="grid2" style="margin-top:10px">
-              <button class="btn" id="btnGenQR">Generate</button>
-              <button class="btn secondary" id="btnDlQR" disabled>Download PNG</button>
-            </div>
-
-            <canvas id="jobQrCanvas" width="320" height="320"></canvas>
-            <div class="tiny" id="qrUrlText"></div>
-          </div>
-
-          <div class="section">
-            <div style="font-weight:900;">Quick jump</div>
-            <div class="sub" style="margin-top:4px">These buttons send you into the main TRACE app</div>
-            <div class="grid2" style="margin-top:10px">
-              <button class="btn secondary" id="jumpLane">Lane View</button>
-              <button class="btn secondary" id="jumpMachine">Machine View</button>
+          <!-- Scanned Job Card -->
+          <div class="section" id="jobCard" style="margin-top:12px">
+            <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
+              <div style="font-weight:900">Scanned Job</div>
+              <div class="pill" id="jobCardStatus">—</div>
             </div>
           </div>
         </div>
@@ -143,16 +144,43 @@
     </div>
   </div>
 
-<script>
-  // ✅ SET THESE
-  const MAIN_TRACE_URL = "./index.html";           // your current working UI
-  const ADMIN_URL = "./admin.html";
-  const API_BASE = "https://trace-api-sak3.onrender.com"; // your Render API base
+  <!-- MOVE MODAL — Step 1: Lane or Machine -->
+  <div class="modal-overlay hide" id="moveModal">
+    <div class="modal">
+      <div id="moveStep1">
+        <div class="modal-title">Move To — Select Type</div>
+        <div class="grid2" style="margin-top:0">
+          <button class="btn" id="moveLaneBtn">LANE</button>
+          <button class="btn" id="moveMachineBtn">MACHINE</button>
+        </div>
+        <div style="margin-top:14px">
+          <button class="btn secondary" style="width:auto;padding:8px 14px;font-size:13px" id="moveCancel">Cancel</button>
+        </div>
+      </div>
 
-  // State
+      <!-- Step 2a: Lane picker -->
+      <div id="moveStep2Lane" class="hide">
+        <button class="modal-back" id="backFromLane">← Back</button>
+        <div class="modal-title">Select Lane</div>
+        <div class="lane-grid" id="laneGrid"></div>
+      </div>
+
+      <!-- Step 2b: Machine picker -->
+      <div id="moveStep2Machine" class="hide">
+        <button class="modal-back" id="backFromMachine">← Back</button>
+        <div class="modal-title">Select Machine</div>
+        <div class="machine-grid" id="machineGrid"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const MAIN_TRACE_URL = "./index.html";
+  const ADMIN_URL = "./admin.html";
+  const API_BASE = "https://trace-api-sak3.onrender.com";
+
   let pinBuf = "";
 
-  // URL payload (from job QR)
   const qs = new URLSearchParams(location.search);
   const payload = {
     job: qs.get("job") || "",
@@ -160,178 +188,200 @@
     qty: qs.get("qty") || ""
   };
 
-  // UI helpers
-  const $ = (id)=>document.getElementById(id);
-  const show = (a,b)=>{ $(a).classList.remove("hide"); $(b).classList.add("hide"); };
-  const setStatus = (t)=>{ $("pillStatus").textContent = t; };
+  const $ = (id) => document.getElementById(id);
+  const show = (a, b) => { $(a).classList.remove("hide"); $(b).classList.add("hide"); };
+  const setStatus = (t) => { $("pillStatus").textContent = t; };
 
-async function checkApi(){
-  try{
-    const r = await fetch(`${API_BASE}/health`, { cache: "no-store" });
-    if (!r.ok) throw new Error("bad status");
-    $("pillStatus").textContent = "LOCKED • API OK";
-  }catch(e){
-    $("pillStatus").textContent = "LOCKED • API DOWN";
+  // Build lane buttons 1–12
+  const laneGrid = $("laneGrid");
+  for (let i = 1; i <= 12; i++) {
+    const b = document.createElement("button");
+    b.className = "sel-btn";
+    b.textContent = `Lane ${i}`;
+    b.onclick = () => handleMoveSelection("lane", i);
+    laneGrid.appendChild(b);
   }
-}
 
-  function renderPinDots(){
+  // Build machine buttons
+  const machines = ["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane"];
+  const machineGrid = $("machineGrid");
+  machines.forEach(m => {
+    const b = document.createElement("button");
+    b.className = "sel-btn";
+    b.textContent = m;
+    b.onclick = () => handleMoveSelection("machine", m);
+    machineGrid.appendChild(b);
+  });
+
+  function showMoveModal() {
+    $("moveModal").classList.remove("hide");
+    $("moveStep1").classList.remove("hide");
+    $("moveStep2Lane").classList.add("hide");
+    $("moveStep2Machine").classList.add("hide");
+  }
+
+  function hideMoveModal() {
+    $("moveModal").classList.add("hide");
+  }
+
+  function handleMoveSelection(type, value) {
+    hideMoveModal();
+    goToMain({ intent: "move", moveType: type, moveTo: value });
+  }
+
+  $("moveLaneBtn").onclick = () => {
+    $("moveStep1").classList.add("hide");
+    $("moveStep2Lane").classList.remove("hide");
+  };
+
+  $("moveMachineBtn").onclick = () => {
+    $("moveStep1").classList.add("hide");
+    $("moveStep2Machine").classList.remove("hide");
+  };
+
+  $("backFromLane").onclick = () => {
+    $("moveStep2Lane").classList.add("hide");
+    $("moveStep1").classList.remove("hide");
+  };
+
+  $("backFromMachine").onclick = () => {
+    $("moveStep2Machine").classList.add("hide");
+    $("moveStep1").classList.remove("hide");
+  };
+
+  $("moveCancel").onclick = hideMoveModal;
+
+  // Close modal on overlay click
+  $("moveModal").addEventListener("click", (e) => {
+    if (e.target === $("moveModal")) hideMoveModal();
+  });
+
+  async function checkApi() {
+    try {
+      const r = await fetch(`${API_BASE}/health`, { cache: "no-store" });
+      if (!r.ok) throw new Error("bad status");
+      $("pillStatus").textContent = "LOCKED • API OK";
+    } catch(e) {
+      $("pillStatus").textContent = "LOCKED • API DOWN";
+    }
+  }
+
+  function renderPinDots() {
     $("pinDots").textContent = (pinBuf + "____").slice(0,4).split("").map(ch => ch === "_" ? "_" : "•").join("");
   }
 
-  function hintPayload(){
+  function hintPayload() {
     const has = payload.job || payload.mo || payload.qty;
     $("qrPayloadHint").textContent = has
       ? `Loaded from QR → Job: ${payload.job || "-"} • MO: ${payload.mo || "-"} • QTY: ${payload.qty || "-"}`
       : "";
   }
 
-  // Auth storage (token + user)
-  function saveAuth(token, user){
-  localStorage.setItem("trace_pin_token", token);
-  localStorage.setItem("trace_pin_user", JSON.stringify(user));
-}
-function getAuth(){
-  return {
-    token: localStorage.getItem("trace_pin_token"),
-    user: JSON.parse(localStorage.getItem("trace_pin_user") || "null")
-  };
-}
-function clearAuth(){
-  localStorage.removeItem("trace_pin_token");
-  localStorage.removeItem("trace_pin_user");
-}
+  function saveAuth(token, user) {
+    localStorage.setItem("trace_pin_token", token);
+    localStorage.setItem("trace_pin_user", JSON.stringify(user));
+  }
+  function getAuth() {
+    return {
+      token: localStorage.getItem("trace_pin_token"),
+      user: JSON.parse(localStorage.getItem("trace_pin_user") || "null")
+    };
+  }
+  function clearAuth() {
+    localStorage.removeItem("trace_pin_token");
+    localStorage.removeItem("trace_pin_user");
+  }
 
-  async function pinLogin(pin){
-  const r = await fetch(`${API_BASE}/auth/pin-login`, {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ pin })
-  });
+  async function pinLogin(pin) {
+    const r = await fetch(`${API_BASE}/auth/pin-login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin })
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok || data.ok === false) throw data;
+    return data;
+  }
 
-  const data = await r.json().catch(()=> ({}));
-  if (!r.ok || data.ok === false) throw data;
-  return data;
-}
+  function enterHub(user) {
+    const label = user.display_name || user.name || (user.role ? user.role.toUpperCase() : "USER");
+    $("hubUser").textContent = label;
+    $("hubAdmin").style.display = (user.role === "admin") ? "block" : "none";
+    setStatus("UNLOCKED");
+    show("viewHub", "viewPin");
+  }
 
-  function enterHub(user){
-  const label = user.display_name || user.name || user.email || `User #${user.user_id || "?"}`;
-  $("hubUser").textContent = `${label} (${user.role})`;
-
-  $("hubAdmin").style.display = (user.role === "admin") ? "block" : "none";
-  setStatus("UNLOCKED");
-  show("viewHub","viewPin");
-}
-
-  function backToPin(msg=""){
+  function backToPin(msg = "") {
     pinBuf = "";
     renderPinDots();
     $("pinMsg").textContent = msg;
     setStatus("LOCKED");
-    show("viewPin","viewHub");
+    show("viewPin", "viewHub");
   }
 
-  // Jump into main TRACE app (pass token + payload)
-  function goToMain(extra = {}){
+  function goToMain(extra = {}) {
     const url = new URL(MAIN_TRACE_URL, location.href);
-    // Let main app know we came from kiosk
-    url.searchParams.set("from","kiosk");
-    // pass payload
+    url.searchParams.set("from", "kiosk");
     if (payload.job) url.searchParams.set("job", payload.job);
     if (payload.mo)  url.searchParams.set("mo", payload.mo);
     if (payload.qty) url.searchParams.set("qty", payload.qty);
-    // you can pass an intent, too:
-    for (const [k,v] of Object.entries(extra)) url.searchParams.set(k, v);
+    for (const [k, v] of Object.entries(extra)) url.searchParams.set(k, v);
     location.href = url.toString();
   }
 
-  // QR Generator
-  async function genJobQr(){
-    const job = $("qrJob").value.trim();
-    const mo  = $("qrMo").value.trim();
-    const qty = $("qrQty").value.trim();
-    if (!job) { alert("Job # required"); return; }
-
-    const url = new URL(location.href);
-    url.searchParams.set("job", job);
-    if (mo)  url.searchParams.set("mo", mo); else url.searchParams.delete("mo");
-    if (qty) url.searchParams.set("qty", qty); else url.searchParams.delete("qty");
-
-    // keep it kiosk
-    // (kiosk.html already is kiosk, so no mode param needed here)
-    await QRCode.toCanvas($("jobQrCanvas"), url.toString(), { width: 320, margin: 2, errorCorrectionLevel: "M" });
-    $("qrUrlText").textContent = url.toString();
-    $("btnDlQR").disabled = false;
-  }
-
-  function downloadQr(){
-    const job = ($("qrJob").value.trim() || "JOB");
-    const a = document.createElement("a");
-    a.download = `TRACE-${job}-QR.png`;
-    a.href = $("jobQrCanvas").toDataURL("image/png");
-    a.click();
-  }
-
-  // Wire PIN pad
-  $("pinPad").addEventListener("click",(e)=>{
+  // PIN pad
+  $("pinPad").addEventListener("click", (e) => {
     const b = e.target.closest("button");
     if (!b) return;
     const d = b.getAttribute("data-d");
-    if (d !== null){
-      if (pinBuf.length < 6) pinBuf += d;
+    if (d !== null) {
+      if (pinBuf.length < 4) pinBuf += d;
       renderPinDots();
     }
   });
 
-  $("pinBack").onclick = ()=>{ pinBuf = pinBuf.slice(0,-1); renderPinDots(); };
-  $("pinClear").onclick = ()=>{ pinBuf = ""; renderPinDots(); };
+  $("pinBack").onclick = () => { pinBuf = pinBuf.slice(0, -1); renderPinDots(); };
+  $("pinClear").onclick = () => { pinBuf = ""; renderPinDots(); };
 
-  $("pinSubmit").onclick = async ()=>{
+  $("pinSubmit").onclick = async () => {
     $("pinMsg").textContent = "Checking...";
-    try{
-      if (!/^\d{4}$/.test(pinBuf)) { $("pinMsg").textContent = "PIN must be 6 digits"; return; }
+    try {
+      if (!/^\d{4}$/.test(pinBuf)) { $("pinMsg").textContent = "PIN must be 4 digits"; return; }
       const data = await pinLogin(pinBuf);
       saveAuth(data.token, data.user);
       pinBuf = ""; renderPinDots();
       $("pinMsg").textContent = "";
       enterHub(data.user);
-    }catch(err){
+    } catch(err) {
       $("pinMsg").textContent = err?.error || "Invalid PIN";
     }
   };
 
-  $("pinGoMain").onclick = ()=>{
-  location.href = new URL(ADMIN_URL, location.href).toString();
-};
+  $("pinGoMain").onclick = () => {
+    location.href = new URL(ADMIN_URL, location.href).toString();
+  };
 
   // Hub buttons
-  $("hubLogout").onclick = ()=>{ clearAuth(); backToPin("Logged out."); };
-  $("hubMove").onclick = ()=>{ goToMain({ intent:"move" }); };
-  $("hubSearch").onclick = ()=>{ goToMain({ intent:"search" }); };
-  $("hubAdmin").onclick = ()=>{
-  location.href = new URL(ADMIN_URL, location.href).toString();
-};
-  $("hubMakeQr").onclick = ()=>{ $("qrMaker").classList.toggle("hide"); };
-
-  $("jumpLane").onclick = ()=>{ goToMain({ view:"lane" }); };
-  $("jumpMachine").onclick = ()=>{ goToMain({ view:"machine" }); };
-
-  $("btnGenQR").onclick = genJobQr;
-  $("btnDlQR").onclick = downloadQr;
+  $("hubLogout").onclick = () => { clearAuth(); backToPin("Logged out."); };
+  $("hubMove").onclick = showMoveModal;
+  $("hubSearch").onclick = () => { goToMain({ intent: "search" }); };
+  $("hubAdmin").onclick = () => {
+    location.href = new URL(ADMIN_URL, location.href).toString();
+  };
 
   // Boot
-hintPayload();
-renderPinDots();
-checkApi();
+  hintPayload();
+  renderPinDots();
+  checkApi();
 
-(function autoUnlock(){
-  const { token, user } = getAuth();
-  if (token && user) {
-    enterHub(user);
-  } else {
-    backToPin("");
-  }
-})();
+  (function autoUnlock() {
+    const { token, user } = getAuth();
+    if (token && user) {
+      enterHub(user);
+    } else {
+      backToPin("");
+    }
+  })();
 </script>
 </body>
 </html>
