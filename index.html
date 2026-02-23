@@ -188,37 +188,40 @@ async function checkApi(){
 
   // Auth storage (token + user)
   function saveAuth(token, user){
-    localStorage.setItem("trace_pin_token", token);
-    localStorage.setItem("trace_pin_user", JSON.stringify(user));
-  }
-  function getAuth(){
-    return {
-      token: localStorage.getItem("trace_pin_token"),
-      user: JSON.parse(localStorage.getItem("trace_pin_user") || "null")
-    };
-  }
-  function clearAuth(){
-    localStorage.removeItem("trace_pin_token");
-    localStorage.removeItem("trace_pin_user");
-  }
+  localStorage.setItem("trace_pin_token", token);
+  localStorage.setItem("trace_pin_user", JSON.stringify(user));
+}
+function getAuth(){
+  return {
+    token: localStorage.getItem("trace_pin_token"),
+    user: JSON.parse(localStorage.getItem("trace_pin_user") || "null")
+  };
+}
+function clearAuth(){
+  localStorage.removeItem("trace_pin_token");
+  localStorage.removeItem("trace_pin_user");
+}
 
   async function pinLogin(pin){
-    const r = await fetch(`${API_BASE}/pin-login`, {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ pin })
-    });
-    const data = await r.json().catch(()=> ({}));
-    if (!r.ok) throw data;
-    return data; // {token, user, last_state}
-  }
+  const r = await fetch(`${API_BASE}/auth/pin-login`, {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ pin })
+  });
+
+  const data = await r.json().catch(()=> ({}));
+  if (!r.ok || data.ok === false) throw data;
+  return data;
+}
 
   function enterHub(user){
-    $("hubUser").textContent = `${user.name} (${user.role})`;
-    $("hubAdmin").style.display = (user.role === "admin") ? "block" : "none";
-    setStatus("UNLOCKED");
-    show("viewHub","viewPin");
-  }
+  const label = user.display_name || user.name || user.email || `User #${user.user_id || "?"}`;
+  $("hubUser").textContent = `${label} (${user.role})`;
+
+  $("hubAdmin").style.display = (user.role === "admin") ? "block" : "none";
+  setStatus("UNLOCKED");
+  show("viewHub","viewPin");
+}
 
   function backToPin(msg=""){
     pinBuf = "";
@@ -320,7 +323,15 @@ async function checkApi(){
 hintPayload();
 renderPinDots();
 checkApi();
-backToPin("");
+
+(function autoUnlock(){
+  const { token, user } = getAuth();
+  if (token && user) {
+    enterHub(user);
+  } else {
+    backToPin("");
+  }
+})();
 </script>
 </body>
 </html>
