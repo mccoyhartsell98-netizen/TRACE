@@ -304,14 +304,13 @@
   }
 
   function enterHub(user){
-  const name = (user.display_name || "Worker").trim();
-  const role = String(user.role || "worker").toUpperCase();
+  const name =
+    user.display_name?.trim() ||
+    user.name?.trim() ||
+    "Operator";  // <- neutral fallback
 
-  $("hubUser").textContent = `Hello, ${name}`;
-  // optional small text somewhere:
-  // $("hubRole").textContent = role;
+  $("hubGreeting").textContent = `Hello, ${name}`;
 
-  $("hubAdmin").style.display = (user.role === "admin") ? "block" : "none";
   setStatus("UNLOCKED");
   show("viewHub","viewPin");
 }
