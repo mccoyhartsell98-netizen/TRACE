@@ -137,6 +137,7 @@
               <div style="font-weight:900">Scanned Job</div>
               <div class="pill" id="jobCardStatus">—</div>
             </div>
+            <div class="tiny" id="scanLine" style="margin-top:8px">No job loaded</div>
           </div>
         </div>
 
@@ -303,22 +304,13 @@
     return data;
   }
 
-  function enterHub(user){
-  const label =
-    (user.display_name && String(user.display_name).trim()) ||
-    (user.name && String(user.name).trim()) ||
-    "Operator";
-
-  const hubUserEl = $("hubUser");
-  if (!hubUserEl) {
-    console.error("Missing #hubUser element. Check your HTML ids.");
-    return;
+  function enterHub(user) {
+    const label = user.display_name || user.name || (user.role ? user.role.toUpperCase() : "USER");
+    $("hubUser").textContent = label;
+    $("hubAdmin").style.display = (user.role === "admin") ? "block" : "none";
+    setStatus("UNLOCKED");
+    show("viewHub", "viewPin");
   }
-
-  hubUserEl.textContent = `Hello, ${label}`;
-  setStatus("UNLOCKED");
-  show("viewHub","viewPin");
-}
 
   function backToPin(msg = "") {
     pinBuf = "";
@@ -378,10 +370,43 @@
     location.href = new URL(ADMIN_URL, location.href).toString();
   };
 
+  // Scanned job helpers
+  let activeItem = null;
+
+  function formatLoc(it) {
+    if (!it) return "Unknown";
+    if (it.lane) return `Lane ${it.lane}${it.position ? " • " + it.position : ""}`;
+    if (it.machine) return `Machine ${it.machine}${it.position ? " • " + it.position : ""}`;
+    return "Unassigned";
+  }
+
+  async function loadScannedJob() {
+    const qs = new URLSearchParams(location.search);
+    const job = (qs.get("job") || "").trim();
+    if (!job) {
+      $("scanLine").textContent = "No job loaded";
+      activeItem = null;
+      return;
+    }
+    $("scanLine").textContent = `Loading job ${job}...`;
+    try {
+      const r = await fetch(`${API_BASE}/items/lookup?job=${encodeURIComponent(job)}`, { cache: "no-store" });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || !data.ok) throw new Error(data?.error || "Lookup failed");
+      activeItem = data.item;
+      const loc = formatLoc(activeItem);
+      $("scanLine").textContent = `Job ${activeItem.job_number} • MO ${activeItem.mo || "-"} • QTY ${activeItem.qty ?? "-"} • ${loc}`;
+    } catch(e) {
+      activeItem = null;
+      $("scanLine").textContent = `Job ${job} not found in TRACE`;
+    }
+  }
+
   // Boot
   hintPayload();
   renderPinDots();
   checkApi();
+  loadScannedJob();
 
   (function autoUnlock() {
     const { token, user } = getAuth();
