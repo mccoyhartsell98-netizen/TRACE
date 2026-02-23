@@ -1,0 +1,3772 @@
+<!-- 
+  TRACE INVENTORY - STRUCTURE FIX (History + DOM nesting)
+  © 2026 Mccoy Hartsell — All rights reserved.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TRACE</title>
+  <link rel="icon" type="image/png" href="favicon - Copy.png?v=1">
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  
+  <!-- PWA / App support -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#0f1115">
+
+  <!-- iOS install support -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TRACE">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+
+  <style>
+    /* LOGIN OVERLAY STYLES */
+    .loginOverlay{
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(10,12,16,.92);
+      z-index:100000;
+    }
+    .loginCard{
+      width: min(420px, 92vw);
+      background: rgba(22,26,34,.95);
+      border: 1px solid rgba(90,110,160,.25);
+      border-radius: 18px;
+      padding: 22px 20px;
+      box-shadow: 0 18px 60px rgba(0,0,0,.55);
+    }
+    .loginTitle{
+      font-size: 34px;
+      letter-spacing: 2px;
+      font-weight: 800;
+      text-align: center;
+    }
+    .loginSub{
+      text-align: center;
+      margin-top: 6px;
+      margin-bottom: 18px;
+      opacity: .75;
+    }
+    .loginLabel{
+      display: block;
+      font-size: 12px;
+      opacity: .8;
+      margin: 10px 0 6px;
+    }
+    .loginInput{
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid rgba(110,130,190,.25);
+      background: rgba(10,12,16,.55);
+      color: #fff;
+      padding: 12px 12px;
+      outline: none;
+    }
+    .loginInput:focus{ border-color: rgba(140,170,255,.6); }
+    .loginBtn{
+      width: 100%;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border: 0;
+      border-radius: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      background: rgba(80,120,255,.9);
+      color: #fff;
+    }
+    .loginBtn:active{ transform: translateY(1px); }
+    .loginMsg{
+      margin-top: 12px;
+      font-size: 13px;
+      opacity: .85;
+      text-align: center;
+    }
+
+    /* DIALOG OVERLAY */
+    .overlay{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.62);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:100050;
+      padding:18px;
+    }
+    .overlay.show{display:flex;}
+
+    :root{
+      --bg:#0f1115;
+      --panel:rgba(22,26,34,.92);
+      --panel2:rgba(27,32,48,.92);
+      --text:#ffffff;
+      --muted:#b7c0d1;
+      --meta:#cfe0ff;
+      --good:#8aff8a;
+      --bad:#ff6b6b;
+      --warn:#ffd166;
+      --stroke:#2b3143;
+      --focus:#3a7afe;
+    }
+
+    *{box-sizing:border-box;}
+    .location-line{ color:var(--meta); font-weight:500; }
+
+    html, body{ height:100%; margin:0; }
+    body{
+      overflow:hidden;
+      font-family:Arial,Helvetica,sans-serif;
+      color:var(--text);
+      background:
+        linear-gradient(rgba(15,17,21,0.55), rgba(15,17,21,0.55)),
+        url("759c4386-0d9e-4dd1-9589-07ef1c92643b.png");
+      background-size:cover;
+      background-position:center;
+      background-repeat:no-repeat;
+      background-attachment:fixed;
+    }
+
+    /* INTRO -> APP FADE SUPPORT */
+    .appRoot.isHidden{ opacity:0; pointer-events:none; }
+    .appRoot.isVisible{ opacity:1; pointer-events:auto; transition: opacity 700ms ease; }
+
+    /* TRACE INTRO OVERLAY */
+    .traceBoot{
+      position:fixed;
+      inset:0;
+      display:grid;
+      place-items:center;
+      background:#0b0f14;
+      z-index:9999;
+    }
+    .traceBoot::before{
+      content:"";
+      position:absolute;
+      inset:-20%;
+      background:
+        radial-gradient(1000px 700px at 50% 50%, rgba(58,122,254,.08), transparent 55%),
+        radial-gradient(900px 650px at 55% 60%, rgba(58,122,254,.06), transparent 55%),
+        radial-gradient(1200px 900px at 50% 50%, rgba(0,0,0,.0), rgba(0,0,0,.75) 70%);
+      pointer-events:none;
+    }
+    .traceBoot::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background-image:
+        radial-gradient(circle at 20% 30%, rgba(255,255,255,.03), transparent 28%),
+        radial-gradient(circle at 70% 60%, rgba(255,255,255,.02), transparent 30%),
+        radial-gradient(circle at 45% 80%, rgba(255,255,255,.02), transparent 25%);
+      opacity:.35;
+      mix-blend-mode: overlay;
+      animation: traceDrift 8s ease-in-out infinite;
+      pointer-events:none;
+    }
+    @keyframes traceDrift{
+      0%,100%{ transform: translate3d(0,0,0) scale(1); }
+      50%{ transform: translate3d(-1.5%, 1%, 0) scale(1.02); }
+    }
+
+    .traceBoot-inner{
+      position:relative;
+      width:min(900px, 92vw);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      transform: translateY(-8px);
+      text-align:center;
+      gap:18px;
+    }
+
+    .traceLogo-wrap{
+      display:flex;
+      justify-content:center;
+      transform: translateX(-18px);
+      will-change: transform;
+    }
+    .traceLogo{
+      width:750px;
+      max-width:92vw;
+      height:auto;
+      opacity:0;
+      transform: scale(.94);
+      filter:
+        drop-shadow(0 0 14px rgba(58,122,254,.28))
+        drop-shadow(0 0 40px rgba(58,122,254,.12));
+      animation:
+        traceLogoIn 1.4s cubic-bezier(.2,.9,.2,1) forwards,
+        traceGlowPulse 3.6s ease-in-out infinite;
+      animation-delay: .05s, 1.55s;
+      user-select:none;
+      -webkit-user-drag:none;
+    }
+    @keyframes traceLogoIn{ to{ opacity:1; transform: scale(1); } }
+    @keyframes traceGlowPulse{
+      0%,100%{
+        filter:
+          drop-shadow(0 0 12px rgba(58,122,254,.22))
+          drop-shadow(0 0 36px rgba(58,122,254,.10));
+      }
+      50%{
+        filter:
+          drop-shadow(0 0 18px rgba(58,122,254,.36))
+          drop-shadow(0 0 52px rgba(58,122,254,.16));
+      }
+    }
+
+    .traceTagline{
+      margin-top:2px;
+      font-size:12px;
+      letter-spacing:.38em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.70);
+      opacity:0;
+      transform: translateY(6px);
+      animation: traceTextUp .9s ease forwards;
+      animation-delay: 1.05s;
+    }
+    @keyframes traceTextUp{ to{ opacity:1; transform: translateY(0); } }
+
+    .traceHud{
+      width:min(520px, 92vw);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:10px;
+      opacity:0;
+      transform: translateY(8px);
+      animation: traceHudIn .9s ease forwards;
+      animation-delay: 1.35s;
+    }
+    @keyframes traceHudIn{ to{ opacity:1; transform: translateY(0); } }
+
+    .traceHud-pill{
+      position:relative;
+      width:100%;
+      max-width:440px;
+      height:34px;
+      border-radius:999px;
+      border:1px solid rgba(58,122,254,.35);
+      background: rgba(10,14,20,.55);
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.02),
+        0 0 28px rgba(58,122,254,.08);
+      overflow:hidden;
+    }
+    .traceHud-pill::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, transparent, rgba(58,122,254,.22), transparent);
+      transform: translateX(-120%);
+      animation: traceScan 2.2s ease-in-out infinite;
+      opacity:.9;
+    }
+    @keyframes traceScan{
+      0%{ transform: translateX(-120%); }
+      55%{ transform: translateX(120%); }
+      100%{ transform: translateX(120%); }
+    }
+    .traceHud-pill::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        repeating-linear-gradient(
+          135deg,
+          rgba(58,122,254,.06) 0px,
+          rgba(58,122,254,.06) 10px,
+          transparent 10px,
+          transparent 20px
+        );
+      opacity:.28;
+      pointer-events:none;
+    }
+    .traceHud-content{
+      position:relative;
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      padding:0 18px;
+      font-size:11px;
+      letter-spacing:.32em;
+      text-transform: uppercase;
+      color: rgba(180,205,255,.92);
+      text-shadow: 0 0 12px rgba(58,122,254,.18);
+      z-index:1;
+      white-space:nowrap;
+    }
+    .traceHud-left, .traceHud-right{
+      width:10px; height:10px;
+      border-radius:2px;
+      border:1px solid rgba(58,122,254,.5);
+      box-shadow: 0 0 12px rgba(58,122,254,.18);
+      opacity:.8;
+    }
+    .traceHud-left{
+      clip-path: polygon(30% 10%, 70% 10%, 70% 90%, 30% 90%, 10% 50%);
+    }
+    .traceHud-right{
+      clip-path: polygon(30% 10%, 70% 10%, 90% 50%, 70% 90%, 30% 90%);
+    }
+    .traceHud-sub{
+      font-size:10px;
+      letter-spacing:.28em;
+      color: rgba(255,255,255,.55);
+      text-transform: uppercase;
+    }
+    .traceDot{
+      display:inline-block;
+      width:6px;
+      height:6px;
+      border-radius:50%;
+      margin-left:8px;
+      background: rgba(58,122,254,.9);
+      box-shadow: 0 0 12px rgba(58,122,254,.45);
+      animation: traceDotPulse 1.15s ease-in-out infinite;
+      vertical-align: middle;
+    }
+    @keyframes traceDotPulse{
+      0%,100%{ transform: scale(.85); opacity:.55; }
+      50%{ transform: scale(1.15); opacity:1; }
+    }
+    .traceBoot.fade{ animation: traceBootOut .9s ease forwards; }
+    @keyframes traceBootOut{ to{ opacity:0; visibility:hidden; } }
+
+    /* MAIN APP STYLES */
+    .wrap{
+      max-width:1100px;
+      height:100vh;
+      margin:0 auto;
+      padding:18px 18px 16px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .top{
+      display:grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items:center;
+      gap:10px;
+      flex:0 0 auto;
+    }
+    .logo{
+      grid-column:2;
+      justify-self:center;
+      width:680px;
+      max-width:96vw;
+      height:auto;
+      display:block;
+      filter:
+        drop-shadow(0 0 12px rgba(58,122,254,0.35))
+        drop-shadow(0 0 28px rgba(58,122,254,0.15));
+    }
+    .status{
+      grid-column:3;
+      justify-self:end;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      text-align:right;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.2;
+    }
+    .pill{
+      padding:6px 10px;
+      border:1px solid var(--stroke);
+      border-radius:999px;
+      background:rgba(255,255,255,.03);
+      color:var(--muted);
+      white-space:nowrap;
+    }
+    .versionBadge{
+      position:fixed;
+      top:12px;
+      left:12px;
+      z-index:120;
+      padding:6px 10px;
+      border:1px solid var(--stroke);
+      border-radius:999px;
+      background:rgba(0,0,0,.35);
+      color:var(--muted);
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.3px;
+      backdrop-filter: blur(6px);
+    }
+    .rolebar{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      flex:0 0 auto;
+    }
+    .roleLeft{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    select, input[type="text"], input[type="number"], input[type="password"], input[type="email"]{
+      width:100%;
+      padding:14px 14px;
+      font-size:18px;
+      border-radius:10px;
+      border:1px solid var(--stroke);
+      background:var(--panel2);
+      color:var(--text);
+      outline:none;
+    }
+    select{
+      font-size:16px;
+      padding:10px 12px;
+      width:auto;
+      min-width:170px;
+    }
+    input[type="text"]:focus, input[type="number"]:focus, input[type="password"]:focus, input[type="email"]:focus, select:focus{
+      border-color: var(--focus);
+      box-shadow: 0 0 0 3px rgba(58,122,254,.18);
+    }
+    button{
+      border:none;
+      border-radius:10px;
+      padding:10px 12px;
+      font-size:14px;
+      font-weight:900;
+      color:var(--text);
+      background:rgba(255,255,255,.08);
+      cursor:pointer;
+      border:1px solid var(--stroke);
+      white-space:nowrap;
+    }
+    button:hover{background:rgba(255,255,255,.11)}
+    button:disabled{opacity:.4; cursor:not-allowed;}
+    .primary{background:rgba(58,122,254,.24); border-color:rgba(58,122,254,.55)}
+    .primary:hover:not(:disabled){background:rgba(58,122,254,.32)}
+    .danger{background:rgba(255,107,107,.16); border-color:rgba(255,107,107,.45)}
+    .danger:hover:not(:disabled){background:rgba(255,107,107,.22)}
+    .ghost{background:transparent}
+    .ghost:hover{background:rgba(255,255,255,.06)}
+
+    .grid{
+      flex:1 1 auto;
+      min-height:0;
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:14px;
+    }
+    .card{
+      background:var(--panel);
+      border:1px solid var(--stroke);
+      border-radius:12px;
+      padding:14px;
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+    }
+    .card h2{
+      margin:0 0 10px 0;
+      font-size:15px;
+      letter-spacing:.5px;
+      color:var(--muted);
+      font-weight:900;
+      text-transform:uppercase;
+    }
+
+    .scroll{
+      overflow:auto;
+      padding-right:4px;
+      min-height:0;
+      flex:1 1 auto;
+
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,.18) transparent;
+    }
+    .scroll::-webkit-scrollbar{ width:8px; }
+    .scroll::-webkit-scrollbar-track{ background:transparent; }
+    .scroll::-webkit-scrollbar-thumb{
+      background: rgba(255,255,255,.14);
+      border-radius: 999px;
+      border: 2px solid transparent;
+      background-clip: content-box;
+    }
+    .scroll::-webkit-scrollbar-thumb:hover{
+      background: rgba(255,255,255,.22);
+      background-clip: content-box;
+    }
+
+    .laneGrid{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap:10px;
+      margin-top:10px;
+      margin-bottom:10px;
+      flex:0 0 auto;
+    }
+    .laneBtn{
+      background:var(--panel2);
+      border:1px solid var(--stroke);
+      border-radius:12px;
+      padding:12px 10px;
+      text-align:center;
+      font-weight:900;
+      letter-spacing:.4px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .laneBtn:hover{border-color:rgba(58,122,254,.45)}
+    .laneBtn.active{
+      border-color:rgba(58,122,254,.75);
+      box-shadow: 0 0 0 3px rgba(58,122,254,.18);
+    }
+
+    .laneHeader{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin:10px 0 8px 0;
+      flex:0 0 auto;
+    }
+    .laneTitle{font-size:20px;font-weight:900;}
+    .laneCount{color:var(--muted);font-size:13px;font-weight:800;}
+
+    .results{ display:flex; flex-direction:column; gap:10px; }
+    .resultItem{
+      background:var(--panel2);
+      border:1px solid var(--stroke);
+      border-radius:12px;
+      padding:12px 12px;
+      cursor:pointer;
+    }
+    .resultItem:hover{border-color:rgba(58,122,254,.45)}
+    .resultItem.active{
+      border-color:rgba(58,122,254,.75);
+      box-shadow: 0 0 0 3px rgba(58,122,254,.18);
+    }
+
+    .big{font-size:18px;font-weight:900;}
+    .meta{color:var(--muted);margin-top:6px;font-size:13px;line-height:1.35;}
+    .qty{color:var(--good);font-weight:900;margin-top:6px;font-size:14px;}
+    .tiny{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.35;}
+    .btnRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+
+    .hint{
+      margin-top:12px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.35;
+      flex:0 0 auto;
+    }
+    .kbd{
+      display:inline-block;
+      padding:2px 6px;
+      border:1px solid var(--stroke);
+      border-bottom-width:2px;
+      border-radius:6px;
+      background:rgba(255,255,255,.03);
+      font-weight:900;
+      font-size:12px;
+      color:var(--muted);
+      margin:0 2px;
+    }
+
+    .formGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    .formGrid .full{grid-column:1 / -1;}
+
+    .modal{
+      width:min(900px, 96vw);
+      max-height:min(80vh, 720px);
+      overflow:auto;
+      background:var(--panel);
+      border:1px solid var(--stroke);
+      border-radius:14px;
+      padding:14px;
+      box-shadow: 0 10px 40px rgba(0,0,0,.5);
+    }
+    .modalTop{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .modalTitle{
+      font-weight:900;
+      font-size:16px;
+      letter-spacing:.4px;
+      color:var(--muted);
+      text-transform:uppercase;
+    }
+
+    @media (max-width: 980px){
+      body{overflow:auto;}
+      .wrap{height:auto;}
+      .grid{grid-template-columns:1fr;}
+      .top{
+        grid-template-columns:1fr;
+        justify-items:center;
+        gap:10px;
+      }
+      .logo{
+        grid-column:1;
+        justify-self:center;
+        width:520px;
+        max-width:92vw;
+      }
+      .status{
+        display:flex;
+        grid-column:1;
+        justify-self:center;
+        justify-content:center;
+        text-align:center;
+        gap:8px;
+        font-size:12px;
+        flex-wrap:wrap;
+      }
+      .pill{ padding:5px 9px; font-size:12px; }
+      .laneGrid{ grid-template-columns: repeat(3,1fr); }
+    }
+
+.completedPanel{
+  background: var(--panel);
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.completedHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+
+.completedTitle{
+  font-weight: 900;
+  letter-spacing: .06em;
+  color: var(--muted);
+}
+
+.completedCount{
+  padding: 6px 10px;
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  background: rgba(255,255,255,.04);
+  color: var(--text);
+  font-weight: 900;
+}
+
+/* ===== SIDE MENU (hamburger drawer) ===== */
+.hidden { display: none !important; }
+
+.sideMenuOverlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  z-index: 99998;
+}
+
+.sideMenu{
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: min(320px, 86vw);
+  background: rgba(12,14,18,.92);
+  border-left: 1px solid rgba(255,255,255,.10);
+  z-index: 99999;
+  box-shadow: -20px 0 60px rgba(0,0,0,.6);
+  backdrop-filter: blur(14px);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sideMenuTop{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.sideMenuTitle{
+  font-weight: 900;
+  letter-spacing: .18em;
+  font-size: 12px;
+  color: rgba(255,255,255,.70);
+}
+
+.sideMenuBody{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+    /* ===== TRACE Assistant — Pro Dock (Drift/Intercom vibe) ===== */
+    .chatFab{
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      width:58px;
+      height:58px;
+      border-radius:18px;
+      z-index:99999;
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+      border:1px solid rgba(58,122,254,.45);
+      background: linear-gradient(180deg, rgba(58,122,254,.22), rgba(22,26,34,.92));
+      box-shadow: 0 16px 50px rgba(0,0,0,.55);
+      backdrop-filter: blur(8px);
+    }
+    .chatFab:hover{ transform: translateY(-1px); }
+    .chatFab:active{ transform: translateY(0px); }
+    .chatFab-ico{ font-size:22px; filter: drop-shadow(0 6px 18px rgba(0,0,0,.45)); }
+
+    .chatDock{
+      position:fixed;
+      right:18px;
+      bottom:88px;
+      width:min(420px, calc(100vw - 36px));
+      height:min(540px, calc(100vh - 140px));
+      border-radius:18px;
+      z-index:99999;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(12,14,18,.72);
+      box-shadow: 0 28px 80px rgba(0,0,0,.65);
+      backdrop-filter: blur(14px);
+
+      transform: translateY(14px);
+      opacity:0;
+      pointer-events:none;
+      transition: transform 180ms ease, opacity 180ms ease;
+    }
+    .chatDock.open{
+      transform: translateY(0);
+      opacity:1;
+      pointer-events:auto;
+    }
+
+    .chatTop{
+      padding:14px 14px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      background: linear-gradient(180deg, rgba(0,0,0,.28), rgba(0,0,0,0));
+    }
+    .chatBrand{ display:flex; gap:10px; align-items:center; }
+    .chatMark{
+      width:36px; height:36px;
+      border-radius:12px;
+      display:grid; place-items:center;
+      font-weight:900;
+      letter-spacing:.06em;
+      color:#fff;
+      border:1px solid rgba(58,122,254,.45);
+      background: rgba(58,122,254,.18);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+    }
+    .chatTitle{ font-weight:900; letter-spacing:.08em; font-size:12px; text-transform:uppercase; }
+    .chatSub{ font-size:12px; color:rgba(255,255,255,.68); margin-top:2px; display:flex; align-items:center; gap:8px; }
+    .chatDot{
+      width:8px; height:8px; border-radius:50%;
+      background: rgba(138,255,138,.95);
+      box-shadow: 0 0 12px rgba(138,255,138,.45);
+      display:inline-block;
+    }
+    .chatX{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      color:#fff;
+      border-radius:12px;
+      width:40px;
+      height:40px;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .chatX:hover{ background: rgba(255,255,255,.10); }
+
+    .chatLog{
+      flex:1;
+      overflow:auto;
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,.18) transparent;
+    }
+    .chatLog::-webkit-scrollbar{ width:8px; }
+    .chatLog::-webkit-scrollbar-thumb{
+      background: rgba(255,255,255,.14);
+      border-radius: 999px;
+      border: 2px solid transparent;
+      background-clip: content-box;
+    }
+
+    .msg{ display:flex; gap:10px; align-items:flex-end; }
+    .msg.me{ flex-direction:row-reverse; }
+    .bub{
+      max-width: 78%;
+      padding:10px 12px;
+      border-radius:16px;
+      line-height:1.25;
+      font-size:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      white-space: pre-line;
+    }
+    .msg.me .bub{
+      border-color: rgba(58,122,254,.30);
+      background: rgba(58,122,254,.14);
+    }
+    .time{
+      font-size:11px;
+      color: rgba(255,255,255,.45);
+      margin: 0 6px;
+    }
+
+    .chatThinking{
+      display:none;
+      padding:10px 14px;
+      border-top:1px solid rgba(255,255,255,.08);
+      color: rgba(255,255,255,.72);
+      background: rgba(0,0,0,.18);
+      font-weight:700;
+      gap:10px;
+      align-items:center;
+    }
+    .chatThinking.show{ display:flex; }
+    .chatSpin{
+      width:12px; height:12px; border-radius:50%;
+      border:2px solid rgba(255,255,255,.22);
+      border-top-color: rgba(58,122,254,.9);
+      animation: spin 800ms linear infinite;
+    }
+    @keyframes spin{ to{ transform: rotate(360deg); } }
+
+    .chatComposer{
+      display:flex;
+      gap:10px;
+      padding:12px;
+      border-top:1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.18);
+    }
+    .chatComposer input{
+      flex:1;
+      padding:12px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(10,12,16,.65);
+      color:#fff;
+      outline:none;
+    }
+    .chatComposer input:focus{
+      border-color: rgba(58,122,254,.55);
+      box-shadow: 0 0 0 3px rgba(58,122,254,.18);
+    }
+    .chatSend{
+      padding:10px 14px;
+      border-radius:14px;
+      font-weight:900;
+      border:1px solid rgba(58,122,254,.45);
+      background: rgba(58,122,254,.22);
+    }
+    .chatSend:hover{ background: rgba(58,122,254,.30); }
+
+    @media (max-width: 520px){
+      .chatDock{ right:12px; left:12px; width:auto; }
+      .chatFab{ right:12px; bottom:12px; }
+    }
+
+#scanBody b { color:#fff; 
+}
+
+/* ===== QR SCANNER ===== */
+.scanBar{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  margin-bottom:10px;
+}
+
+.qrWrap{
+  margin-top:10px;
+  padding:12px;
+  border:1px solid var(--stroke);
+  border-radius:12px;
+  background: rgba(0,0,0,.18);
+}
+
+.qrReader{
+  width:100%;
+  max-width:420px;
+  margin:0 auto;
+}
+
+.qrWrap video{
+  width:100% !important;
+  border-radius:12px;
+}
+  </style>
+</head>
+
+<body>
+  <!-- LOGIN OVERLAY -->
+  <div id="loginOverlay" class="loginOverlay">
+    <div class="loginCard">
+     <div class="loginSub" style="margin-bottom:16px;">Secure Access</div>
+
+      <label class="loginLabel">Email</label>
+      <input id="loginEmail" class="loginInput" type="email" placeholder="you@trace.app" autocomplete="username"/>
+
+      <label class="loginLabel">Password</label>
+      <input id="loginPass" class="loginInput" type="password" placeholder="••••••••" autocomplete="current-password"/>
+
+      <button id="loginBtn" class="loginBtn" type="button">Login</button>
+      <div id="loginMsg" class="loginMsg"></div>
+    </div>
+  </div>
+
+  <!-- DIALOG OVERLAY -->
+  <div class="overlay" id="dialogOverlay">
+    <div class="modal" style="max-width:520px;">
+      <div class="modalTop">
+        <div class="modalTitle" id="dialogTitle">TRACE</div>
+        <button class="ghost" id="dialogCloseBtn">Close</button>
+      </div>
+
+      <div id="dialogMsg" style="color:var(--muted); font-weight:700; line-height:1.4;"></div>
+
+      <div id="dialogInputWrap" style="margin-top:12px; display:none;">
+        <input id="dialogInput" type="password" placeholder="Enter value..." autocomplete="off">
+        <div class="tiny" id="dialogHint" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="btnRow" style="margin-top:14px; justify-content:flex-end;">
+        <button class="ghost" id="dialogCancelBtn">Cancel</button>
+        <button class="primary" id="dialogOkBtn">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRACE INTRO OVERLAY -->
+  <div class="traceBoot" id="traceBoot" aria-hidden="false">
+    <div class="traceBoot-inner">
+      <div class="traceLogo-wrap">
+        <img class="traceLogo" src="./trace-logo.png.png" alt="TRACE" />
+      </div>
+      <div class="traceTagline">WE TRACK. YOU IMPROVE.</div>
+      <div class="traceHud">
+        <div class="traceHud-pill">
+          <div class="traceHud-content">
+            <span class="traceHud-left"></span>
+            <span id="traceHudText">INITIALIZING SYSTEMS</span>
+            <span class="traceHud-right"></span>
+          </div>
+        </div>
+        <div class="traceHud-sub">
+          CORE LINK ACTIVE <span class="traceDot"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="versionBadge">TRACE v0.9</div>
+
+  <!-- APP ROOT -->
+  <div id="appRoot" class="appRoot isHidden">
+    <div class="wrap">
+
+      <div class="top">
+        <div></div>
+        <img src="./trace-logo.png.png" alt="TRACE" class="logo">
+        <div class="status">
+        </div>
+      </div>
+
+      <div class="rolebar">
+        <div class="roleLeft">
+          <select id="roleSelect">
+            <option value="forklift">Forklift</option>
+            <option value="machine">Machine</option>
+            <option value="admin">Admin (locked)</option>
+          </select>
+          <button id="adminUnlockBtn" class="primary">Unlock Admin</button>
+          <button id="adminLockBtn" class="ghost" style="display:none;">Lock Admin</button>
+          <button id="undoBtn" class="ghost" disabled>Undo</button>
+        </div>
+
+      <div style="display:flex;gap:10px;align-items:center;">
+       <button class="ghost" id="menuBtn" title="Menu">☰</button>
+       <button class="ghost" id="historyBtn">History</button>
+       <button class="ghost" id="logoutBtn">Logout</button>
+       </div>
+      </div>
+  
+ <!-- COMPLETED TODAY PANEL -->
+  <div id="completedPanel" class="completedPanel hidden">
+    <div class="completedHeader">
+      <div class="completedTitle">✓ Completed Today</div>
+      <div class="completedCount" id="completedCount">0</div>
+    </div>
+    <div id="completedResults" class="results"></div>
+  </div>
+
+ <!-- SIDE MENU OVERLAY + PANEL -->
+      <div id="sideMenuOverlay" class="sideMenuOverlay hidden"></div>
+
+      <aside id="sideMenu" class="sideMenu hidden">
+        <div class="sideMenuTop">
+          <div class="sideMenuTitle">MENU</div>
+          <button id="menuCloseBtn" class="ghost">✕</button>
+       </div>
+
+        <div class="sideMenuBody">
+          <button class="ghost" id="openPalletCallsBtn">Pallet Ready Queue</button>
+          <button class="ghost" id="openCompletedBtn">Completed Today</button>
+          <button class="ghost" id="openHistoryBtn">Deleted History</button>
+        </div>
+      </aside>
+
+<!-- PALLET READY QUEUE -->
+<div id="palletCallsPanel" class="completedPanel" style="display:none; margin-top:12px;">
+  <div class="completedHeader">
+    <div class="completedTitle">📦 Pallet Ready Queue</div>
+    <div class="completedCount" id="palletCallsCount">0</div>
+  </div>
+
+  <input id="palletCallsSearch" type="text" placeholder="Filter calls (job, machine, message)">
+  <div id="palletCallsResults" class="results" style="margin-top:10px;"></div>
+</div>
+      
+         <div class="grid">
+        <!-- LEFT -->
+        <div class="card">
+          <h2>Search</h2>
+         
+<!-- QR SCAN BAR -->
+<div class="scanBar">
+  <button id="scanBtn" class="primary">(Admin) Scan Pallet</button>
+  <button id="scanStopBtn" class="ghost hidden">Stop</button>
+</div>
+
+<div id="qrWrap" class="qrWrap hidden">
+  <div id="qr-reader" class="qrReader"></div>
+  <div class="tiny" style="margin-top:10px; color:var(--muted);">
+    Tip: QR should contain MO (ex: <b>MO-5048</b>) or Item # (ex: <b>6910153</b>)
+  </div>
+</div>
+
+<!-- FORKLIFT QR SCAN BAR (separate from admin/pallet scan) -->
+<div class="scanBar" style="margin-top:10px;">
+  <button id="forkliftScanBtn" class="primary">(Forklift) Scan Job Details</button>
+  <button id="forkliftScanStopBtn" class="ghost hidden">Stop</button>
+</div>
+
+<div id="forkliftQrWrap" class="qrWrap hidden">
+  <div id="qr-reader-forklift" class="qrReader"></div>
+  <div class="tiny" style="margin-top:10px; color:var(--muted);">
+    Forklift QR should contain MO (ex: <b>MO-5048</b>) or Item # (ex: <b>6910153</b>)
+  </div>
+</div>
+
+          <div class="scroll">
+ <input id="globalSearch" type="text" placeholder="Search Item # or MO (example: 6910153 or MO-5048)">
+
+            <div class="results" id="globalResults" style="margin-top:10px;"></div>
+
+            <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
+
+            <h2 style="margin-top:0;">Lanes</h2>
+            <div class="laneGrid" id="laneGrid"></div>
+
+            <div class="laneHeader">
+              <div class="laneTitle" id="laneTitle">Lane 1</div>
+              <div class="laneCount" id="laneCount">0 items</div>
+            </div>
+            
+            <input id="laneSearch" type="text" placeholder="Filter within this lane (optional)">
+            <div class="results" id="laneResults" style="margin-top:10px;"></div>
+
+            <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
+
+            <h2 style="margin-top:0;">Machines</h2>
+            <div class="laneGrid" id="machineGrid"></div>
+            
+            <div class="laneHeader">
+              <div class="laneTitle" id="machineTitle">Machine: S8</div>
+              <div class="laneCount" id="machineCount">0 jobs</div>
+            </div>
+
+            <input id="machineSearch" type="text" placeholder="Filter within this machine (optional)">
+            <div class="results" id="machineResults" style="margin-top:10px;"></div>
+
+            <div class="hint">
+              Flow: <b>Search Item or MO</b> → <b>Move</b> → choose <b>Lane</b> or <b>Machine</b>.
+              <br/>
+              Keys: <span class="kbd">1–9</span> quick lanes • <span class="kbd">F</span> fullscreen • <span class="kbd">ESC</span> close move box
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT -->
+        <div class="card">
+          <h2>Job Update</h2>
+
+          <div class="scroll">
+            <div class="formGrid">
+              <div class="full">
+               <input id="mo" type="text" placeholder="MO # (numbers / letters / hyphen allowed)">
+             </div> 
+
+               <div class="full">
+               <input id="job" type="text" placeholder="Item # (numbers / letters / hyphen allowed)"  required>
+              </div>
+
+              <div>
+                <input id="qty" type="number" min="0" step="1" placeholder="Qty">
+              </div>
+
+              <div>
+                <input id="status" type="text" placeholder="Status (example: RUNNING)">
+              </div>
+
+              <div class="full">
+                <input id="notes" type="text" placeholder="Notes (optional)">
+              </div>
+
+              <div class="full">
+                <input id="updatedBy" type="text" placeholder="Updated by (initials)">
+              </div>
+
+              <div class="full btnRow">
+                <button class="primary" id="saveBtn">Save / Update</button>
+                <button id="newBtn">New</button>
+                <button class="danger" id="deleteBtn" disabled>Delete</button>
+              </div>
+            </div>
+
+            <div class="tiny" id="rulesBox">
+              <b>Rules:</b>
+              <ul>
+                <li><b>Item #</b> is the unique key. Once created it is locked.</li>
+                <li><b>Forklift</b>: can search + move jobs (no edit, no delete).</li>
+                <li><b>Machine</b>: can update qty/status/notes (cannot create new jobs, no delete, no move).</li>
+                <li><b>Admin</b>: can create jobs + delete (goes to History) + restore.</li>
+              </ul>
+            </div>
+
+            <!-- HISTORY PANEL (single, clean, no duplicate IDs) -->
+            <div id="historyPanel" style="display:none; margin-top:12px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                <h2 style="margin:0;">Deleted Item History</h2>
+                <button
+                  id="clearHistoryBtn"
+                  type="button"
+                  class="danger"
+                  title="Deletes history older than 7 days"
+                >
+                  Clear (keep 7 days)
+                </button>
+              </div>
+
+              <input id="historySearch" type="text" placeholder="Search deleted jobs...">
+              <div class="results" id="historyResults" style="margin-top:10px;"></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MOVE OVERLAY -->
+    <div class="overlay" id="moveOverlay">
+      <div class="modal">
+        <div class="modalTop">
+          <div class="modalTitle" id="moveTitle">Move Job</div>
+          <button class="ghost" id="moveCloseBtn">Close</button>
+        </div>
+
+        <div style="color:var(--muted); font-weight:900; margin-bottom:8px;">Move to Lane</div>
+        <div class="laneGrid" id="moveLaneGrid"></div>
+
+        <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
+
+        <div style="color:var(--muted); font-weight:900; margin-bottom:8px;">Move to Machine</div>
+        <div class="laneGrid" id="moveMachineGrid"></div>
+
+        <div class="tiny" style="margin-top:12px;">
+          Rule: Moving to a <b>Machine</b> clears the lane. Moving to a <b>Lane</b> clears the machine.
+        </div>
+      </div>
+    </div>
+
+<!-- SCAN RESULT OVERLAY -->
+<div class="overlay" id="scanOverlay">
+  <div class="modal" style="max-width:560px;">
+    <div class="modalTop">
+      <div class="modalTitle" id="scanTitle">Scanned Job</div>
+      <button class="ghost" id="scanCloseBtn">Close</button>
+    </div>
+
+    <div id="scanBody" style="white-space:pre-line; color:var(--muted); font-weight:800; line-height:1.45;"></div>
+
+    <div class="btnRow" style="margin-top:14px; justify-content:flex-end;">
+      <button class="primary" id="scanMoveBtn">Move</button>
+    </div>
+  </div>
+</div>
+   
+ <!-- TRACE Assistant (Pro UI) -->
+    <button id="chatFab" class="chatFab" aria-label="Open TRACE Assistant" title="TRACE Assistant">
+      <span class="chatFab-ico">🤖</span>
+    </button>
+
+    <section id="chatDock" class="chatDock" aria-label="TRACE Assistant">
+      <header class="chatTop">
+        <div class="chatBrand">
+          <div class="chatMark">T</div>
+          <div>
+            <div class="chatTitle">TRACE Assistant</div>
+            <div class="chatSub"><span class="chatDot"></span> Online • Ask lanes, machines, jobs</div>
+          </div>
+        </div>
+        <button id="chatClose" class="chatX" aria-label="Close">✕</button>
+      </header>
+
+      <div id="chatLog" class="chatLog"></div>
+
+      <div id="chatThinking" class="chatThinking">
+        <span class="chatSpin"></span> Thinking…
+      </div>
+
+      <form id="chatComposer" class="chatComposer" autocomplete="off">
+        <input id="chatInput" type="text" placeholder="Ask: “show lane 3”, “find job 400848”, “what’s on S8?”" />
+        <button type="submit" class="chatSend">Send</button>
+      </form>
+    </section>
+  </div>
+<script>
+/* ==========================================
+   TRACE INVENTORY - UNIFIED JAVASCRIPT
+   (unchanged logic, only relies on cleaned DOM)
+========================================== */
+
+// ====== CONSTANTS & CONFIG ======
+const API_BASE = "https://trace-api-sak3.onrender.com";
+const ADMIN_PIN = "4793";
+const MACHINES = ["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane"];
+
+// ====== AUTH STATE ======
+const AUTH = {
+  token: localStorage.getItem("trace_token") || null,
+  role:  localStorage.getItem("trace_role")  || "forklift",
+  email: localStorage.getItem("trace_email") || ""
+};
+
+function setAuth({ token, role, email }) {
+  AUTH.token = token || null;
+  AUTH.role  = role  || "forklift";
+  AUTH.email = email || "";
+
+  if (AUTH.token) localStorage.setItem("trace_token", AUTH.token);
+  else localStorage.removeItem("trace_token");
+
+  localStorage.setItem("trace_role", AUTH.role);
+  localStorage.setItem("trace_email", AUTH.email);
+}
+
+function authHeaders(extra = {}) {
+  return {
+    ...extra,
+    ...(AUTH.token ? { "Authorization": `Bearer ${AUTH.token}` } : {})
+  };
+}
+
+async function apiFetch(path, opts = {}) {
+  const url = API_BASE + path;
+  const headers = authHeaders({
+    "Content-Type": "application/json",
+    ...(opts.headers || {})
+  });
+
+  const res = await fetch(url, { ...opts, headers });
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+async function doLogin(email, password) {
+  return apiFetch("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({
+      email: email,
+      username: email,
+      password: password
+    })
+  });
+}
+
+// ====== LOGIN UI ======
+function showLogin() {
+  const el = document.getElementById("loginOverlay");
+  if (el) el.style.display = "flex";
+}
+function hideLogin() {
+  const el = document.getElementById("loginOverlay");
+  if (el) el.style.display = "none";
+}
+function wireLoginUI() {
+  const btn = document.getElementById("loginBtn");
+  const msg = document.getElementById("loginMsg");
+  const emailEl = document.getElementById("loginEmail");
+  const passEl  = document.getElementById("loginPass");
+  if (!btn || !msg || !emailEl || !passEl) return;
+
+  async function submit() {
+    msg.textContent = "";
+    btn.disabled = true;
+    const old = btn.textContent;
+    btn.textContent = "Logging in...";
+
+    const email = emailEl.value.trim();
+    const pass  = passEl.value;
+
+    try {
+      const r = await doLogin(email, pass);
+      if (!r || r.ok === false) throw new Error(r?.error || "Login failed");
+
+      setAuth({
+        token: r.token,
+        role:  r.user?.role || "forklift",
+        email: r.user?.email || email
+      });
+
+      hideLogin();
+      await startAfterLogin();
+    } catch (e) {
+      console.error("Login error:", e);
+      msg.textContent = e.message || "Login failed - check console for details";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = old || "Login";
+    }
+  }
+
+  btn.addEventListener("click", submit);
+  passEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") submit();
+  });
+}
+
+// ====== INTRO ANIMATION ======
+function playTraceIntro() {
+  return new Promise((resolve) => {
+    const steps = [
+      "INITIALIZING SYSTEMS",
+      "SYNCING LOCATIONS",
+      "VERIFYING INVENTORY",
+      "AUTH READY",
+      "SYSTEM ONLINE"
+    ];
+
+    const hudText = document.getElementById("traceHudText");
+    const boot = document.getElementById("traceBoot");
+    const appRoot = document.getElementById("appRoot");
+
+    if (!boot || !appRoot || !hudText) {
+      if (appRoot) {
+        appRoot.classList.remove("isHidden");
+        appRoot.classList.add("isVisible");
+      }
+      if (boot) boot.remove();
+      return resolve();
+    }
+
+    const seen = sessionStorage.getItem("trace_intro_seen") === "1";
+    if (seen) {
+      boot.remove();
+      appRoot.classList.remove("isHidden");
+      appRoot.classList.add("isVisible");
+      return resolve();
+    }
+
+    let i = 0;
+    const stepMs = 780;
+
+    const timer = setInterval(() => {
+      i++;
+      if (i >= steps.length) {
+        clearInterval(timer);
+        sessionStorage.setItem("trace_intro_seen", "1");
+
+        appRoot.classList.remove("isHidden");
+        appRoot.classList.add("isVisible");
+
+        setTimeout(() => {
+          boot.classList.add("fade");
+          boot.setAttribute("aria-hidden", "true");
+          setTimeout(() => {
+            boot.remove();
+            resolve();
+          }, 1100);
+        }, 650);
+
+        return;
+      }
+      hudText.textContent = steps[i];
+    }, stepMs);
+  });
+}
+
+// ====== AFTER LOGIN ======
+async function startAfterLogin() {
+  await playTraceIntro();
+  if (typeof window.initApp === "function") await window.initApp();
+}
+
+// ====== DIALOG SYSTEM ======
+(function initDialog(){
+  const d = {
+    overlay: document.getElementById("dialogOverlay"),
+    title: document.getElementById("dialogTitle"),
+    msg: document.getElementById("dialogMsg"),
+    inputWrap: document.getElementById("dialogInputWrap"),
+    input: document.getElementById("dialogInput"),
+    hint: document.getElementById("dialogHint"),
+    ok: document.getElementById("dialogOkBtn"),
+    cancel: document.getElementById("dialogCancelBtn"),
+    close: document.getElementById("dialogCloseBtn"),
+  };
+
+  let resolver = null;
+
+  function close(result){
+    const capturedValue = d.input.value;
+    d.overlay.classList.remove("show");
+    d.input.value = "";
+    d.hint.textContent = "";
+    d.inputWrap.style.display = "none";
+
+    if(resolver){
+      resolver({ ...result, value: capturedValue });
+      resolver = null;
+    }
+  }
+
+  d.ok.addEventListener("click", () => close({ ok:true, value:d.input.value }));
+  d.cancel.addEventListener("click", () => close({ ok:false }));
+  d.close.addEventListener("click", () => close({ ok:false }));
+  d.overlay.addEventListener("click", (e) => { if(e.target === d.overlay) close({ ok:false }); });
+
+  window.uiAlert = function(title, message){
+    d.title.textContent = title || "TRACE";
+    d.msg.textContent = message || "";
+    d.cancel.style.display = "none";
+    d.ok.textContent = "OK";
+    d.inputWrap.style.display = "none";
+    d.overlay.classList.add("show");
+    return new Promise(res => { resolver = () => res(true); });
+  };
+
+  window.uiConfirm = function(title, message, okText="OK", cancelText="Cancel"){
+    d.title.textContent = title || "TRACE";
+    d.msg.textContent = message || "";
+    d.cancel.style.display = "inline-block";
+    d.cancel.textContent = cancelText;
+    d.ok.textContent = okText;
+    d.inputWrap.style.display = "none";
+    d.overlay.classList.add("show");
+    return new Promise(res => { resolver = (r) => res(!!r.ok); });
+  };
+
+  window.uiPrompt = function(title, message, { placeholder="Enter value...", hint="", mask=true } = {}){
+    d.title.textContent = title || "TRACE";
+    d.msg.textContent = message || "";
+    d.cancel.style.display = "inline-block";
+    d.cancel.textContent = "Cancel";
+    d.ok.textContent = "OK";
+    d.inputWrap.style.display = "block";
+    d.input.type = mask ? "password" : "text";
+    d.input.placeholder = placeholder;
+    d.hint.textContent = hint || "";
+    d.overlay.classList.add("show");
+    setTimeout(() => d.input.focus(), 50);
+    return new Promise(res => {
+      resolver = (r) => res(r.ok ? (r.value ?? "") : null);
+    });
+  };
+})();
+
+// ====== API HELPERS ======
+async function apiGet(path){ return apiFetch(path, { method:"GET" }); }
+async function apiPost(path, body){ return apiFetch(path, { method:"POST", body: JSON.stringify(body) }); }
+async function apiPut(path, body){ return apiFetch(path, { method:"PUT", body: JSON.stringify(body) }); }
+async function apiDelete(path){ return apiFetch(path, { method:"DELETE" }); }
+
+// Health check
+apiGet("/health")
+  .then(d => console.log("✅ API CONNECTED", d))
+  .catch(e => console.warn("⚠️ API health check failed:", e.message));
+
+// ====== DOM ELEMENTS ======
+const els = {
+  itemsPill: document.getElementById("itemsPill"),
+  rolePill: document.getElementById("rolePill"),
+  roleSelect: document.getElementById("roleSelect"),
+  adminUnlockBtn: document.getElementById("adminUnlockBtn"),
+  adminLockBtn: document.getElementById("adminLockBtn"),
+  globalSearch: document.getElementById("globalSearch"),
+  globalResults: document.getElementById("globalResults"),
+  laneGrid: document.getElementById("laneGrid"),
+  laneTitle: document.getElementById("laneTitle"),
+  laneCount: document.getElementById("laneCount"),
+  laneSearch: document.getElementById("laneSearch"),
+  laneResults: document.getElementById("laneResults"),
+  machineGrid: document.getElementById("machineGrid"),
+  machineTitle: document.getElementById("machineTitle"),
+  machineCount: document.getElementById("machineCount"),
+  machineSearch: document.getElementById("machineSearch"),
+  machineResults: document.getElementById("machineResults"),
+  moveOverlay: document.getElementById("moveOverlay"),
+  moveTitle: document.getElementById("moveTitle"),
+  moveCloseBtn: document.getElementById("moveCloseBtn"),
+  moveLaneGrid: document.getElementById("moveLaneGrid"),
+  moveMachineGrid: document.getElementById("moveMachineGrid"),
+  job: document.getElementById("job"),
+  mo: document.getElementById("mo"),
+  qty: document.getElementById("qty"),
+  status: document.getElementById("status"),
+  notes: document.getElementById("notes"),
+  updatedBy: document.getElementById("updatedBy"),
+  saveBtn: document.getElementById("saveBtn"),
+  newBtn: document.getElementById("newBtn"),
+  deleteBtn: document.getElementById("deleteBtn"),
+  historyBtn: document.getElementById("historyBtn"),
+  clearHistoryBtn: document.getElementById("clearHistoryBtn"),
+  historyPanel: document.getElementById("historyPanel"),
+  historySearch: document.getElementById("historySearch"),
+  historyResults: document.getElementById("historyResults"),
+  palletCallsPanel: document.getElementById("palletCallsPanel"),
+  palletCallsCount: document.getElementById("palletCallsCount"),
+  palletCallsSearch: document.getElementById("palletCallsSearch"),
+  palletCallsResults: document.getElementById("palletCallsResults"),
+  openPalletCallsBtn: document.getElementById("openPalletCallsBtn"),
+  scanOverlay: document.getElementById("scanOverlay"),
+  scanTitle: document.getElementById("scanTitle"),
+  scanBody: document.getElementById("scanBody"),
+  scanCloseBtn: document.getElementById("scanCloseBtn"),
+  scanMoveBtn: document.getElementById("scanMoveBtn"),
+};
+
+// ====== HELPERS ======
+function normalize(s){ return (s ?? "").trim().toLowerCase(); }
+function cleanJob(s){
+  return String(s ?? "").trim().toUpperCase().replace(/[^A-Z0-9-]/g, "");
+}
+function escapeHtml(s){
+  return String(s ?? "")
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+function pick(obj, keys){
+  for(const k of keys){
+    if(obj && obj[k] !== undefined && obj[k] !== null) return obj[k];
+  }
+  return undefined;
+}
+function extractMoOrJob(raw){
+  const s = String(raw || "").trim().toUpperCase();
+
+  // Try to find MO like MO-5048 or MO 5048
+  let m = s.match(/\bMO[-\s]*([A-Z0-9]{3,})\b/);
+  if (m) return "MO-" + m[1];
+
+  // Try to find long-ish item number (6910153, etc)
+  m = s.match(/\b([A-Z0-9-]{4,})\b/);
+  if (m) return m[1];
+
+  return "";
+}
+function formatTimestamp(ts){
+  if(!ts) return "";
+  const d = new Date(ts);
+  if (isNaN(d)) return "";
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  });
+}
+
+function normalizeChat(s){ return String(s||"").trim().toLowerCase(); }
+
+function findItemByAnyKey(keyRaw){
+  const key = String(keyRaw || "").trim().toUpperCase();
+
+  // 1) Match item/job number (your UI currently stores it in item.job)
+  let hit = inventory.find(x => String(x.job||"").toUpperCase() === key);
+  if (hit) return hit;
+
+  // 2) If you added MO support to the front-end later, match it here too:
+  // (only works if your mapped items include `mo` field)
+  hit = inventory.find(x => String(x.mo||"").toUpperCase() === key);
+  if (hit) return hit;
+
+  // 3) Fallback: partial match
+  hit = inventory.find(x => String(x.job||"").toUpperCase().includes(key));
+  if (hit) return hit;
+
+  hit = inventory.find(x => String(x.mo||"").toUpperCase().includes(key));
+  if (hit) return hit;
+
+  return null;
+}
+
+function canMoveFromChat(){
+  return (role === "forklift") || (role === "admin" && adminUnlocked);
+}
+
+function formatLocation(item){
+  if (item.machine) return `Machine ${item.machine}`;
+  if (item.lane) return item.lane;
+  return "Unknown location";
+}
+// ===== Scan Popup (shared overlay) =====
+let scannedItemId = null;
+
+function openScanPopup(item, scannedText = ""){
+  scannedItemId = item?.id ?? null;
+
+  const loc = item.machine ? `Machine ${item.machine}` : (item.lane || "Unknown");
+  const mo  = item.mo || "—";
+  const qty = Number.isFinite(item.qty) ? item.qty : 0;
+  const st  = item.status || "—";
+  const notes = item.notes || "—";
+
+  els.scanTitle.textContent = `Item #${item.job || "—"}`;
+
+  els.scanBody.innerHTML =
+`Location: <b>${escapeHtml(loc)}</b>
+MO: <b>${escapeHtml(mo)}</b>
+Qty: <b>${escapeHtml(qty)}</b>
+Status: <b>${escapeHtml(st)}</b>
+Notes: <b>${escapeHtml(notes)}</b>` +
+(scannedText ? `\n\nScanned: ${escapeHtml(scannedText)}` : "");
+
+  els.scanOverlay.classList.add("show");
+}
+
+function closeScanPopup(){
+  els.scanOverlay.classList.remove("show");
+  scannedItemId = null;
+}
+// ===== QR DETAILS (Forklift Scan View) =====
+function buildScanDetails(item){
+  const loc = item.machine ? `Machine ${item.machine}` : (item.lane ? item.lane : "Unknown");
+  const mo  = item.mo ? item.mo : "—";
+  const qty = Number.isFinite(item.qty) ? item.qty : 0;
+  const st  = item.status ? item.status : "—";
+
+  return [
+    `Location: ${loc}`,
+    `MO: ${mo}`,
+    `Item #: ${item.job || "—"}`,
+    `Qty: ${qty}`,
+    `Status: ${st}`,
+    `Notes: ${item.notes || "—"}`
+  ].join("\n");
+}
+
+async function handleChatCommand(rawText){
+  const t = normalizeChat(rawText);
+
+  // HELP
+  if (t === "help" || t === "?"){
+    return [
+      "Commands:",
+      "• move 16900 to lane 2",
+      "• move 16900 to s8",
+      "• where is 16900",
+      "• whats in lane 3",
+      "• whats on s8"
+    ].join("<br>");
+  }
+
+  // WHERE IS
+  // "where is 16900" / "where's mo-5048"
+  let m = t.match(/^(where\s+is|where'?s)\s+(.+)$/i);
+  if (m){
+    const key = m[2].trim();
+    const item = findItemByAnyKey(key);
+    if (!item) return `I couldn't find ${escapeHtml(key)}.`;
+    return `Item <b>${escapeHtml(item.job)}</b> is in <b>${escapeHtml(formatLocation(item))}</b>.`;
+  }
+
+  // WHAT'S IN LANE
+  // "whats in lane 3" / "what is in lane 12"
+  m = t.match(/^what'?s?\s+in\s+lane\s+(\d{1,2})$/i) || t.match(/^what\s+is\s+in\s+lane\s+(\d{1,2})$/i);
+  if (m){
+    const laneNum = Math.max(1, Math.min(12, parseInt(m[1],10)));
+    const laneLabel = `Lane ${laneNum}`;
+    const list = inventory.filter(x => String(x.lane||"") === laneLabel);
+    if (list.length === 0) return `<b>${laneLabel}</b> is empty.`;
+
+    const shown = list.slice(0, 25).map(x => `• <b>${escapeHtml(x.job)}</b> (${escapeHtml(x.status||"—")})`).join("<br>");
+    const more = list.length > 25 ? `<br>…and ${list.length - 25} more.` : "";
+    return `<b>${laneLabel}</b> has ${list.length} item(s):<br>${shown}${more}`;
+  }
+
+  // WHAT'S ON MACHINE
+  // "whats on s8" / "what's on machine s8"
+  m = t.match(/^what'?s?\s+on\s+(?:machine\s+)?(.+)$/i);
+  if (m){
+    const machine = m[1].trim().toUpperCase();
+    const list = inventory.filter(x => String(x.machine||"").toUpperCase() === machine);
+    if (list.length === 0) return `<b>${escapeHtml(machine)}</b> is empty.`;
+
+    const shown = list.slice(0, 25).map(x => `• <b>${escapeHtml(x.job)}</b> (${escapeHtml(x.status||"—")})`).join("<br>");
+    const more = list.length > 25 ? `<br>…and ${list.length - 25} more.` : "";
+    return `<b>${escapeHtml(machine)}</b> has ${list.length} item(s):<br>${shown}${more}`;
+  }
+
+  // MOVE COMMANDS
+  // "move 16900 to lane 2"
+  // "move mo-5048 to s8"
+  // "put 16900 in lane 5"
+  // "send 16900 to machine s9"
+  m =
+    t.match(/^(move|send|put)\s+(.+?)\s+(?:to|in)\s+lane\s+(\d{1,2})$/i) ||
+    t.match(/^(move|send|put)\s+(.+?)\s+to\s+(?:machine\s+)?(.+)$/i);
+
+  if (m){
+    if (!canMoveFromChat()){
+      return "Permission denied. Only Forklift (or Admin) can move items.";
+    }
+
+    const key = m[2].trim();
+    const item = findItemByAnyKey(key);
+    if (!item) return `I couldn't find ${escapeHtml(key)}.`;
+
+    // Lane move
+    if (String(m[3]||"").match(/^\d{1,2}$/)){
+      const laneNum = Math.max(1, Math.min(12, parseInt(m[3],10)));
+      const laneLabel = `Lane ${laneNum}`;
+      await moveToLane(item.id, laneLabel);
+      return `Moved <b>${escapeHtml(item.job)}</b> to <b>${laneLabel}</b>.`;
+    }
+
+    // Machine move
+    const machine = String(m[3]||"").trim().toUpperCase();
+    await moveToMachine(item.id, machine);
+    return `Moved <b>${escapeHtml(item.job)}</b> to <b>${escapeHtml(machine)}</b>.`;
+  }
+
+  return "I didn't understand that. Type <b>help</b> for commands.";
+}
+
+
+// ====== STATE ======
+let rawItems = [];
+let palletPollTimer = null;
+let palletCallsCache = [];
+let lastCallIds = new Set();
+let rawLocations = [];
+let locations = [];
+let locById = new Map();
+let locIdByLane = new Map();
+let locIdByMachine = new Map();
+let inventory = [];
+let selectedLane = "Lane 1";
+let selectedMachine = MACHINES[0];
+let selectedId = null;
+let selectedLocation = { type:"lane", value:"Lane 1" };
+let role = "forklift";
+let adminUnlocked = false;
+let moveTargetId = null;
+
+// ====== LOCATION MAPPING ======
+function mapLocations(raw){
+  const arr = Array.isArray(raw) ? raw : [];
+  return arr.map(r => {
+    const location_id = Number(pick(r, ["location_id","id","locationId"]));
+    const laneVal = pick(r, ["lane","lane_number","laneNum","lane_no","lane_id"]);
+    const machineVal = pick(r, ["machine","machine_name","machineName","name","label"]);
+
+    const laneNum = (laneVal !== undefined && laneVal !== null && String(laneVal).trim() !== "")
+      ? Number(String(laneVal).replace(/\D/g,""))
+      : null;
+
+    const machineName = (machineVal !== undefined && machineVal !== null && String(machineVal).trim() !== "")
+      ? String(machineVal).trim()
+      : "";
+
+    const type = machineName ? "machine" : (laneNum ? "lane" : "unknown");
+    const label = type === "lane" ? `Lane ${laneNum}` : (type === "machine" ? machineName : "");
+
+    return { location_id, type, laneNum, machineName, label, raw:r };
+  }).filter(x => Number.isFinite(x.location_id));
+}
+
+function buildLocationIndexes(){
+  locById = new Map();
+  locIdByLane = new Map();
+  locIdByMachine = new Map();
+
+  locations.forEach(l => {
+    locById.set(l.location_id, l);
+    if(l.type === "lane" && l.laneNum){
+      locIdByLane.set(`Lane ${l.laneNum}`, l.location_id);
+    }
+    if(l.type === "machine" && l.machineName){
+      locIdByMachine.set(l.machineName, l.location_id);
+    }
+  });
+}
+
+function mapItemsToUI(raw){
+  const arr = Array.isArray(raw) ? raw : [];
+  return arr.map(it => {
+    const id = pick(it, ["item_id","id","itemId"]);
+    const job = cleanJob(pick(it, ["job_number","job","jobNumber","sku"]) ?? "");
+    const mo = cleanJob(pick(it, ["mo","mo_number","moNumber","mo_id","moId"]) ?? "");
+    const qty = parseInt(it.qty || "0", 10) || 0;
+    const status = (pick(it, ["status"]) ?? "").toString();
+    const notes  = (pick(it, ["notes"]) ?? "").toString();
+    const updatedBy = (pick(it, ["updated_by","updatedBy"]) ?? "").toString();
+    const createdAt = (pick(it, ["created_at","createdAt"]) ?? "").toString();
+    const updatedAt = (pick(it, ["updated_at","updatedAt"]) ?? "").toString();
+    const location_id = pick(it, ["location_id","locationId"]);
+    const loc = locById.get(Number(location_id));
+
+    const lane = (loc && loc.type === "lane") ? `Lane ${loc.laneNum}` : "";
+    const machine = (loc && loc.type === "machine") ? loc.machineName : "";
+
+    return {
+      id, job, mo, qty, status, notes, updatedBy, createdAt, updatedAt,
+      location_id: (location_id !== undefined && location_id !== null) ? Number(location_id) : null,
+      lane, machine
+    };
+  }).filter(x => String(x.job).length > 0 && normalize(x.status) !== "deleted");
+}
+
+// ====== LOADERS ======
+async function loadLocations(){
+  const data = await apiGet("/locations");
+  rawLocations = Array.isArray(data) ? data : (data.locations || data.rows || []);
+  locations = mapLocations(rawLocations);
+  buildLocationIndexes();
+}
+
+async function loadInventory(){
+  const data = await apiGet("/items");
+  rawItems = Array.isArray(data) ? data : (data.items || data.rows || []);
+  inventory = mapItemsToUI(rawItems);
+  if (els.itemsPill) els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
+
+  // expose for assistant
+  window.inventory = inventory;
+}
+
+ function cleanCode(s){
+  return String(s || "").trim().toUpperCase();
+}
+
+function applyScanParams(){
+  const p = new URLSearchParams(window.location.search);
+
+  const mo  = (p.get("mo")  || "").trim().toUpperCase();
+  const job = (p.get("job") || "").trim().toUpperCase();
+  const qty = (p.get("qty") || "").trim();
+
+  if(!mo && !job && !qty) return;
+
+  if(els.mo)  els.mo.value  = mo;
+  if(els.job) els.job.value = job;
+  if(els.qty) els.qty.value = qty;
+
+  // REMOVE the inventory.find() check entirely
+
+  history.replaceState({}, "", window.location.pathname);
+}
+
+// ====== ROLE MANAGEMENT ======
+function setRole(nextRole){
+  role = nextRole;
+  window.role = role;
+  window.adminUnlocked = adminUnlocked;
+  if(role !== "admin"){
+    adminUnlocked = false;
+    window.adminUnlocked = adminUnlocked;
+    if (els.adminLockBtn) els.adminLockBtn.style.display = "none";
+    if (els.adminUnlockBtn) els.adminUnlockBtn.style.display = "inline-block";
+    localStorage.setItem("trace_role", nextRole);
+    AUTH.role = nextRole;
+   }
+  updateRoleUI();
+  renderLaneList();
+  renderMachineList();
+  renderGlobalSearch();
+  window.adminUnlocked = adminUnlocked;
+}
+
+function updateRoleUI(){
+  const effectiveRole = (role === "admin" && adminUnlocked) ? "ADMIN" : role.toUpperCase();
+   if (els.rolePill) {
+    els.rolePill.textContent = `ROLE: ${effectiveRole}`;
+  }
+
+  const canDelete = (role === "admin" && adminUnlocked);
+  els.deleteBtn.disabled = !canDelete || !selectedId;
+
+  const forklift = role === "forklift";
+  const admin = (role === "admin" && adminUnlocked);
+  const canCreate = admin;
+  const hasSelection = !!selectedId;
+
+  els.job.disabled = hasSelection || !canCreate;
+  els.qty.disabled = forklift;
+  els.status.disabled = forklift;
+  els.notes.disabled = forklift;
+  els.updatedBy.disabled = forklift;
+  els.saveBtn.disabled = forklift;
+  els.newBtn.disabled = forklift;
+}
+
+// ====== HISTORY (DB-backed) ======
+let deletedDbCache = [];
+
+async function refreshHistoryFromDb(){
+  try{
+    const d = await apiGet("/deleted-items");
+    deletedDbCache = Array.isArray(d.deleted) ? d.deleted : [];
+  }catch(e){
+    console.error("HISTORY LOAD FAILED", e);
+    deletedDbCache = [];
+    await uiAlert("History Failed", "Could not load deleted history from API.");
+  }
+}
+
+function renderHistory(){
+  const q = normalize(els.historySearch?.value || "");
+  let list = deletedDbCache;
+
+  if(q){
+    list = list.filter(x =>
+      normalize(x.job_number).includes(q) ||
+      normalize(x.description).includes(q) ||
+      normalize(x.deleted_by).includes(q) ||
+      normalize(x.delete_reason).includes(q)
+    );
+  }
+
+  els.historyResults.innerHTML = "";
+
+  if(list.length === 0){
+    els.historyResults.innerHTML = `<div style="color:var(--muted)">No deleted jobs yet.</div>`;
+    return;
+  }
+
+  list.slice(0, 120).forEach(item => {
+    const lane = item.lane ? `Lane ${item.lane}` : "";
+    const mach = item.machine ? `Machine ${item.machine}` : "";
+    const from = mach || lane || "—";
+
+    const div = document.createElement("div");
+    div.className = "resultItem";
+    div.innerHTML = `
+      <div class="big">Job #${escapeHtml(item.job_number || "")}</div>
+      <div class="meta">${escapeHtml(item.description || "—")}</div>
+      <div class="meta">
+        Deleted: ${escapeHtml(item.deleted_at || "")}
+        ${item.deleted_by ? ` • By: ${escapeHtml(item.deleted_by)}` : ""}
+        ${item.delete_reason ? ` • Reason: ${escapeHtml(item.delete_reason)}` : ""}
+        • From: ${escapeHtml(from)}
+      </div>
+    `;
+    els.historyResults.appendChild(div);
+  });
+}
+
+// CLEAR HISTORY (Admin only)
+if (els.clearHistoryBtn) {
+  els.clearHistoryBtn.addEventListener("click", async () => {
+    if (role !== "admin" || !adminUnlocked) {
+      await uiAlert("Permission Denied", "Admin only.");
+      return;
+    }
+
+    const ok = await uiConfirm(
+      "Clear History",
+      "This will permanently delete deleted jobs older than 7 days.",
+      "Clear",
+      "Cancel"
+    );
+    if (!ok) return;
+
+    try {
+      await apiDelete("/deleted-items/cleanup?days=7");
+      await refreshHistoryFromDb();
+      renderHistory();
+      await uiAlert("History Cleaned", "Old deleted jobs were removed.");
+    } catch (e) {
+      console.error("Clear history failed:", e);
+      await uiAlert("Error", "Failed to clear history.");
+    }
+  });
+}
+
+// ====== BUTTON BUILDERS ======
+function buildLaneButtons(){
+  els.laneGrid.innerHTML = "";
+  for(let i=1;i<=12;i++){
+    const lane = `Lane ${i}`;
+    const btn = document.createElement("div");
+    btn.className = "laneBtn" + (lane===selectedLane ? " active" : "");
+    btn.textContent = lane;
+    btn.addEventListener("click", () => selectLane(lane));
+    els.laneGrid.appendChild(btn);
+  }
+}
+
+function buildMachineButtons(){
+  els.machineGrid.innerHTML = "";
+  MACHINES.forEach(m => {
+    const btn = document.createElement("div");
+    btn.className = "laneBtn" + (m===selectedMachine ? " active" : "");
+    btn.textContent = m;
+    btn.addEventListener("click", () => selectMachine(m));
+    els.machineGrid.appendChild(btn);
+  });
+}
+
+// ====== SELECTORS ======
+function selectLane(lane){
+  selectedLane = lane;
+  selectedLocation = { type:"lane", value: lane };
+  selectedId = null;
+  buildLaneButtons();
+  els.laneTitle.textContent = lane;
+  els.laneSearch.value = "";
+  clearForm();
+  renderLaneList();
+  renderGlobalSearch();
+}
+
+function selectMachine(m){
+  selectedMachine = m;
+  selectedLocation = { type:"machine", value: m };
+  selectedId = null;
+  buildMachineButtons();
+  els.machineTitle.textContent = `Machine: ${m}`;
+  els.machineSearch.value = "";
+  clearForm();
+  renderMachineList();
+  renderGlobalSearch();
+}
+
+function getSelectedLocationId(){
+  if(selectedLocation.type === "lane"){
+    return locIdByLane.get(selectedLocation.value) ?? null;
+  }
+  if(selectedLocation.type === "machine"){
+    return locIdByMachine.get(selectedLocation.value) ?? null;
+  }
+  return null;
+}
+
+// ====== RENDER LISTS ======
+function renderLaneList(){
+  const q = normalize(els.laneSearch.value);
+  const laneItemsAll = inventory.filter(x => String(x.lane ?? "") === selectedLane);
+
+  let laneItems = laneItemsAll;
+  if(q){
+    laneItems = laneItemsAll.filter(x =>
+      normalize(x.job).includes(q) ||
+      normalize(x.status).includes(q)
+    );
+  }
+
+  els.laneCount.textContent = `${laneItemsAll.length} items`;
+  els.laneResults.innerHTML = "";
+
+  if(laneItemsAll.length === 0){
+    els.laneResults.innerHTML = `<div style="color:var(--muted)">Empty lane.</div>`;
+    return;
+  }
+  if(laneItems.length === 0){
+    els.laneResults.innerHTML = `<div style="color:var(--muted)">No match in this lane.</div>`;
+    return;
+  }
+
+  laneItems.sort((a,b) => (parseInt(a.job,10)||0) - (parseInt(b.job,10)||0));
+
+  laneItems.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "resultItem" + (item.id===selectedId ? " active" : "");
+
+    const by = item.updatedBy ? ` • By: ${escapeHtml(item.updatedBy)}` : "";
+    const at = item.updatedAt ? ` • Updated ${escapeHtml(formatTimestamp(item.updatedAt))}` : "";
+    const status = item.status ? escapeHtml(item.status) : "—";
+    const notes = item.notes ? escapeHtml(item.notes) : "—";
+
+    div.innerHTML = `
+      <div class="big">Item #${escapeHtml(item.job)}</div>
+       ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b> </div>` : ``}
+      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
+      <div class="meta">${escapeHtml(item.lane)} • Notes: ${notes}${by}${at}</div>
+    `;
+    div.addEventListener("click", ()=> loadToForm(item.id));
+    els.laneResults.appendChild(div);
+  });
+}
+
+function renderMachineList(){
+  const q = normalize(els.machineSearch.value);
+  const machineItemsAll = inventory.filter(x => String(x.machine ?? "") === selectedMachine);
+
+  let machineItems = machineItemsAll;
+  if(q){
+    machineItems = machineItemsAll.filter(x =>
+      normalize(x.job).includes(q) ||
+      normalize(x.status).includes(q)
+    );
+  }
+
+  els.machineCount.textContent = `${machineItemsAll.length} jobs`;
+  els.machineResults.innerHTML = "";
+
+  if(machineItemsAll.length === 0){
+    els.machineResults.innerHTML = `<div style="color:var(--muted)">Empty machine.</div>`;
+    return;
+  }
+  if(machineItems.length === 0){
+    els.machineResults.innerHTML = `<div style="color:var(--muted)">No match on this machine.</div>`;
+    return;
+  }
+
+  machineItems.sort((a,b) => (parseInt(a.job,10)||0) - (parseInt(b.job,10)||0));
+
+  machineItems.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "resultItem" + (item.id===selectedId ? " active" : "");
+
+    const by = item.updatedBy ? ` • By: ${escapeHtml(item.updatedBy)}` : "";
+    const at = item.updatedAt ? ` • Updated ${escapeHtml(formatTimestamp(item.updatedAt))}` : "";
+    const status = item.status ? escapeHtml(item.status) : "—";
+    const notes = item.notes ? escapeHtml(item.notes) : "—";
+
+    div.innerHTML = `
+      <div class="big">Item #${escapeHtml(item.job)}</div>
+      ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ``}
+      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
+      <div class="meta">Machine: ${escapeHtml(item.machine)} • Notes: ${notes}${by}${at}</div>
+    `;
+    div.addEventListener("click", ()=> loadToForm(item.id));
+    els.machineResults.appendChild(div);
+  });
+}
+
+function renderGlobalSearch(){
+  const q = normalize(els.globalSearch.value);
+  els.globalResults.innerHTML = "";
+
+  if(!q){
+    els.globalResults.innerHTML = `<div style="color:var(--muted)">Type a Item # or MO to search all lanes/machines.</div>`;
+    return;
+  }
+
+  const matches = inventory
+    .filter(x => normalize(x.job).includes(q) || normalize(x.mo).includes(q))
+    .slice(0, 15);
+
+  if(matches.length === 0){
+    els.globalResults.innerHTML = `<div style="color:var(--muted)">No match found.</div>`;
+    return;
+  }
+
+  matches.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "resultItem";
+
+    const status = item.status ? escapeHtml(item.status) : "—";
+    const notes = item.notes ? escapeHtml(item.notes) : "—";
+    const canMove = (role === "forklift") || (role === "admin" && adminUnlocked);
+    const location = item.machine
+      ? `Machine: ${escapeHtml(item.machine)}`
+      : (item.lane ? escapeHtml(item.lane) : "—");
+
+    div.innerHTML = `
+      <div class="big">Item #${escapeHtml(item.job)}</div>
+      ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ``}
+      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
+      <div class="meta">${location} • Notes: ${notes}</div>
+      ${canMove ? `<div class="btnRow" style="margin-top:10px;"><button class="primary" data-move="1">Move</button></div>` : ``}
+    `;
+
+    const moveBtn = div.querySelector('[data-move]');
+    if(moveBtn){
+      moveBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openMoveOverlay(item.id);
+      });
+    }
+      div.addEventListener("click", () => {
+      if(item.machine) selectMachine(item.machine);
+      else if(item.lane) selectLane(item.lane);
+      loadToForm(item.id);
+    });
+
+    els.globalResults.appendChild(div);
+  });
+}
+
+// ====== FORM ======
+function clearForm(){
+  selectedId = null;
+  els.mo.value = ""; 
+  els.job.value = "";
+  els.qty.value = "";
+  els.status.value = "";
+  els.notes.value = "";
+  els.updatedBy.value = "";
+  updateRoleUI();
+}
+
+function loadToForm(id){
+  const item = inventory.find(x => x.id === id);
+  if(!item) return;
+  selectedId = id;
+
+  els.mo.value = item.mo ?? "";
+  els.job.value = item.job ?? "";
+  els.qty.value = String(item.qty ?? 0);
+  els.status.value = item.status ?? "";
+  els.notes.value = item.notes ?? "";
+  els.updatedBy.value = item.updatedBy ?? "";
+
+  updateRoleUI();
+  renderLaneList();
+  renderMachineList();
+}
+
+// ====== CRUD ======
+async function upsertItem(){
+  const machineRole = role === "machine";
+  const admin = (role === "admin" && adminUnlocked);
+
+  if(!(machineRole || admin)){
+    await uiAlert("Permission Denied", "Forklift role cannot edit job details.");
+    return;
+  }
+  if(machineRole && !selectedId){
+    await uiAlert("Permission Denied", "Machine role cannot create new jobs. Ask Admin.");
+    return;
+  }
+
+  const jobRaw = cleanJob(els.job.value).trim();
+  const moRaw  = cleanJob(els.mo.value).trim();
+  if(!jobRaw){
+    await uiAlert("Validation Error", "Job # is required.");
+    els.job.focus();
+    return;
+  }
+
+  const qty = Math.max(0, parseInt(els.qty.value || "0", 10));
+  const status = (els.status.value || "").trim().slice(0, 40);
+  const notes  = (els.notes.value  || "").trim().slice(0, 120);
+  const updatedBy = (els.updatedBy.value || "").trim().slice(0, 10);
+
+  const location_id = getSelectedLocationId();
+  if(!location_id){
+    await uiAlert("Location Error", `No DB mapping for selected ${selectedLocation.type}: ${selectedLocation.value}. Check /locations seed.`);
+    return;
+  }
+
+  const payload = { job_number: jobRaw, mo: moRaw, qty, status, notes, updated_by: updatedBy, location_id };
+
+  if(!selectedId){
+    const exists = inventory.some(x => normalize(x.job) === normalize(jobRaw));
+    if(exists){
+      await uiAlert("Duplicate Job", "That Job # already exists. Search it and update it instead.");
+      return;
+    }
+  }
+
+  try{
+    if(selectedId) await apiPut(`/items/${selectedId}`, payload);
+    else await apiPost(`/items`, payload);
+
+    await loadLocations();
+    await loadInventory();
+
+    renderLaneList();
+    renderMachineList();
+    renderGlobalSearch();
+    clearForm();
+  }catch(err){
+    hideLoading();
+    console.error("SAVE FAILED", err);
+    
+    let userMessage = "Save failed. ";
+    
+    if (err.message.includes("Failed to fetch") || err.message.includes("NetworkError")) {
+      userMessage += "Network connection lost. Check your internet and try again.";
+    } else if (err.message.includes("401") || err.message.includes("Unauthorized")) {
+      userMessage += "Your session expired. Please log in again.";
+    } else if (err.message.includes("400")) {
+      userMessage += "Invalid data. Check that all required fields are filled correctly.";
+    } else if (err.message.includes("500")) {
+      userMessage += "Server error. Please try again in a moment.";
+    } else {
+      userMessage += err.message || "Unknown error occurred.";
+    }
+    
+    await uiAlert("Save Failed", userMessage);
+  }
+}
+
+async function deleteSelected(){
+  const admin = (role === "admin" && adminUnlocked);
+  if(!admin){
+    await uiAlert("Permission Denied", "Admin only.");
+    return;
+  }
+  if(!selectedId){
+    await uiAlert("No Selection", "Select a job first.");
+    return;
+  }
+
+  const item = inventory.find(x => x.id === selectedId);
+  if(!item){
+    await uiAlert("Error", "Could not find selected job.");
+    return;
+  }
+
+  const ok = await uiConfirm("Confirm Delete", `Delete Item #${item.job}?`, "Delete", "Cancel");
+  if (!ok) return;
+
+  try{
+    await apiDelete(`/items/${selectedId}`);
+
+    await loadLocations();
+    await loadInventory();
+
+    clearForm();
+    renderLaneList();
+    renderMachineList();
+    renderGlobalSearch();
+
+    if(els.historyPanel.style.display !== "none"){
+      await refreshHistoryFromDb();
+      renderHistory();
+    }
+  }catch(err){
+  console.error("DELETE FAILED", err);
+  
+  let userMessage = "Delete failed. ";
+  
+  if (err.message.includes("Failed to fetch")) {
+    userMessage += "Network connection lost. The job was NOT deleted.";
+  } else if (err.message.includes("403") || err.message.includes("Forbidden")) {
+    userMessage += "Permission denied. Admin access required.";
+  } else {
+    userMessage += err.message || "Unknown error occurred.";
+  }
+  
+  await uiAlert("Delete Failed", userMessage);
+ }
+}
+
+// ====== MOVE ======
+function openMoveOverlay(id){
+  const item = inventory.find(x => x.id === id);
+  if(!item) return;
+
+  const allowed = (role === "forklift") || (role === "admin" && adminUnlocked);
+  if(!allowed){
+    uiAlert("Permission Denied", "Only Forklift (or Admin) can move jobs.");
+    return;
+  }
+
+  moveTargetId = id;
+  els.moveTitle.textContent = `Move Item #${item.job}`;
+
+  els.moveLaneGrid.innerHTML = "";
+  for(let i=1;i<=12;i++){
+    const lane = `Lane ${i}`;
+    const btn = document.createElement("div");
+    btn.className = "laneBtn";
+    btn.textContent = lane;
+    btn.addEventListener("click", async () => {
+      await moveToLane(moveTargetId, lane);
+      closeMoveOverlay();
+    });
+    els.moveLaneGrid.appendChild(btn);
+  }
+
+  els.moveMachineGrid.innerHTML = "";
+  MACHINES.forEach(m => {
+    const btn = document.createElement("div");
+    btn.className = "laneBtn";
+    btn.textContent = m;
+    btn.addEventListener("click", async () => {
+      await moveToMachine(moveTargetId, m);
+      closeMoveOverlay();
+    });
+    els.moveMachineGrid.appendChild(btn);
+  });
+
+  els.moveOverlay.classList.add("show");
+}
+
+function closeMoveOverlay(){
+  els.moveOverlay.classList.remove("show");
+  moveTargetId = null;
+}
+
+async function moveToLane(id, lane){
+  const location_id = locIdByLane.get(lane) ?? null;
+  if(!location_id){
+    await uiAlert("Location Error", `No DB mapping for ${lane}. Check /locations seed.`);
+    return;
+  }
+
+  const item = inventory.find(x => x.id === id);
+  const originalLocationId = item?.location_id;
+  const originalLocation = item?.lane || item?.machine || "Unknown";
+
+  try{
+    showLoading(`Moving to ${lane}...`);
+    
+    await apiPut(`/items/${id}`, { location_id });
+    await loadLocations();
+    await loadInventory();
+
+    hideLoading();
+    toast(`✅ Moved to ${lane}`);
+
+    pushUndo({
+      type: "move",
+      itemId: id,
+      originalLocationId: originalLocationId,
+      originalLocation: originalLocation,
+      newLocation: lane
+    });
+
+    selectLane(lane);
+    renderLaneList();
+    renderMachineList();
+    renderGlobalSearch();
+    loadToForm(id);
+  }catch(err){
+    hideLoading();
+    console.error("MOVE TO LANE FAILED", err);
+    
+    let userMessage = "Move failed. ";
+    
+    if (err.message.includes("Failed to fetch")) {
+      userMessage += "Network connection lost. The job was NOT moved.";
+    } else if (err.message.includes("404")) {
+      userMessage += "Job not found. It may have been deleted.";
+    } else {
+      userMessage += err.message || "Unknown error occurred.";
+    }
+    
+    await uiAlert("Move Failed", userMessage);
+  }
+}
+
+async function moveToMachine(id, machine){
+  const location_id = locIdByMachine.get(machine) ?? null;
+  if(!location_id){
+    await uiAlert("Location Error", `No DB mapping for machine ${machine}. Check /locations seed.`);
+    return;
+  }
+
+  const item = inventory.find(x => x.id === id);
+  const originalLocationId = item?.location_id;
+  const originalLocation = item?.lane || item?.machine || "Unknown";
+
+  try{
+    showLoading(`Moving to ${machine}...`);
+    
+    await apiPut(`/items/${id}`, { location_id });
+    await loadLocations();
+    await loadInventory();
+
+    hideLoading();
+    toast(`✅ Moved to ${machine}`);
+
+    pushUndo({
+      type: "move",
+      itemId: id,
+      originalLocationId: originalLocationId,
+      originalLocation: originalLocation,
+      newLocation: machine
+    });
+
+    selectMachine(machine);
+    renderLaneList();
+    renderMachineList();
+    renderGlobalSearch();
+    loadToForm(id);
+  }catch(err){
+    hideLoading();
+    console.error("MOVE TO MACHINE FAILED", err);
+    
+    let userMessage = "Move failed. ";
+    
+    if (err.message.includes("Failed to fetch")) {
+      userMessage += "Network connection lost. The job was NOT moved.";
+    } else if (err.message.includes("404")) {
+      userMessage += "Job not found. It may have been deleted.";
+    } else {
+      userMessage += err.message || "Unknown error occurred.";
+    }
+    
+    await uiAlert("Move Failed", userMessage);
+  }
+}
+
+// ===== UNDO SYSTEM =====
+let undoStack = [];
+const MAX_UNDO_HISTORY = 10;
+
+function pushUndo(action) {
+  undoStack.push(action);
+  if (undoStack.length > MAX_UNDO_HISTORY) {
+    undoStack.shift(); // Remove oldest
+  }
+  updateUndoButton();
+}
+
+function updateUndoButton() {
+  const btn = document.getElementById("undoBtn");
+  if (btn) {
+    btn.disabled = undoStack.length === 0;
+    btn.textContent = undoStack.length > 0 ? `Undo (${undoStack.length})` : "Undo";
+  }
+}
+
+async function performUndo() {
+  if (undoStack.length === 0) return;
+  
+  const lastAction = undoStack.pop();
+  updateUndoButton();
+  
+  try {
+    showLoading("Undoing...");
+    
+    if (lastAction.type === "move") {
+      // Move back to original location
+      await apiPut(`/items/${lastAction.itemId}`, { location_id: lastAction.originalLocationId });
+      await loadLocations();
+      await loadInventory();
+      
+      hideLoading();
+      toast(`✅ Undid move to ${lastAction.newLocation}`);
+      
+      renderLaneList();
+      renderMachineList();
+      renderGlobalSearch();
+    }
+    
+  } catch (err) {
+    hideLoading();
+    console.error("UNDO FAILED", err);
+    await uiAlert("Undo Failed", "Could not undo the last action.");
+  }
+}
+
+// ====== FULLSCREEN ======
+function toggleFullscreen(){
+  if(!document.fullscreenElement){
+    document.documentElement.requestFullscreen().catch(()=>{});
+  }else{
+    document.exitFullscreen().catch(()=>{});
+  }
+}
+
+// ====== EVENTS ======
+const logoutBtn = document.getElementById("logoutBtn");
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", () => {
+    localStorage.removeItem("trace_token");
+    localStorage.removeItem("trace_role");
+    localStorage.removeItem("trace_email");
+    sessionStorage.removeItem("trace_intro_seen"); // optional: replay intro next login
+    location.reload();
+  });
+}
+// ===== SIDE MENU =====
+const menuBtn = document.getElementById("menuBtn");
+const sideMenu = document.getElementById("sideMenu");
+const menuOverlay = document.getElementById("sideMenuOverlay");
+const menuCloseBtn = document.getElementById("menuCloseBtn");
+
+if (menuBtn && sideMenu && menuOverlay && menuCloseBtn) {
+  menuBtn.addEventListener("click", () => {
+    sideMenu.classList.remove("hidden");
+    menuOverlay.classList.remove("hidden");
+  });
+
+  menuCloseBtn.addEventListener("click", () => {
+    sideMenu.classList.add("hidden");
+    menuOverlay.classList.add("hidden");
+  });
+
+  menuOverlay.addEventListener("click", () => {
+    sideMenu.classList.add("hidden");
+    menuOverlay.classList.add("hidden");
+  });
+}
+// ===== QR SCAN BUTTONS =====
+const scanBtn = document.getElementById("scanBtn");
+const scanStopBtn = document.getElementById("scanStopBtn");
+
+if (scanBtn) scanBtn.addEventListener("click", startQRScan);
+if (scanStopBtn) scanStopBtn.addEventListener("click", () => stopQRScan(false));
+
+// ===== FORKLIFT QR SCAN BUTTONS =====
+const forkliftScanBtn = document.getElementById("forkliftScanBtn");
+const forkliftScanStopBtn = document.getElementById("forkliftScanStopBtn");
+
+if (forkliftScanBtn) forkliftScanBtn.addEventListener("click", startForkliftQRScan);
+if (forkliftScanStopBtn) forkliftScanStopBtn.addEventListener("click", () => stopForkliftQRScan(false));
+
+els.globalSearch.addEventListener("input", renderGlobalSearch);
+els.laneSearch.addEventListener("input", renderLaneList);
+els.machineSearch.addEventListener("input", renderMachineList);
+
+els.saveBtn.addEventListener("click", upsertItem);
+els.newBtn.addEventListener("click", clearForm);
+els.deleteBtn.addEventListener("click", deleteSelected);
+
+const undoBtn = document.getElementById("undoBtn");
+if (undoBtn) {
+  undoBtn.addEventListener("click", performUndo);
+}
+
+els.moveCloseBtn.addEventListener("click", closeMoveOverlay);
+els.moveOverlay.addEventListener("click", (e) => { if(e.target === els.moveOverlay) closeMoveOverlay(); });
+
+els.roleSelect.addEventListener("change", (e) => {
+  const v = e.target.value;
+  if(v === "admin") setRole("admin");
+  else setRole(v);
+});
+const openCompletedBtn = document.getElementById("openCompletedBtn");
+const openHistoryBtn = document.getElementById("openHistoryBtn");
+const completedPanel = document.getElementById("completedPanel");
+// ===== SIDE MENU BUTTONS =====
+function closeSideMenu(){
+  if (sideMenu) sideMenu.classList.add("hidden");
+  if (menuOverlay) menuOverlay.classList.add("hidden");
+}
+
+// Completed Today toggle
+if (openCompletedBtn) {
+  openCompletedBtn.addEventListener("click", () => {
+    closeSideMenu();
+    if (!completedPanel) return;
+
+    completedPanel.classList.toggle("hidden");
+  });
+}
+
+// Deleted History open
+if (openHistoryBtn) {
+  openHistoryBtn.addEventListener("click", async () => {
+    closeSideMenu();
+    if (els.historyPanel) els.historyPanel.style.display = "block";
+    await refreshHistoryFromDb();
+    renderHistory();
+  });
+}
+
+// Pallet Ready Queue toggle + load
+if (els.openPalletCallsBtn) {
+  els.openPalletCallsBtn.addEventListener("click", async () => {
+    closeSideMenu();
+
+    const panel = els.palletCallsPanel;
+    if (!panel) return;
+
+    const open = panel.style.display !== "none";
+    panel.style.display = open ? "none" : "block";
+
+    if (!open) {
+      await loadPalletCalls();
+      renderPalletCalls();
+    }
+  });
+}
+
+// Pallet calls filter
+if (els.palletCallsSearch) {
+  els.palletCallsSearch.addEventListener("input", renderPalletCalls);
+}
+
+els.adminUnlockBtn.addEventListener("click", async () => {
+  const pin = await uiPrompt("Admin Access", "Enter Admin PIN:", {
+    placeholder: "PIN",
+    hint: "Admin-only actions: create + delete + restore",
+    mask: true
+  });
+
+  if (pin === null) return;
+
+  const enteredPin = String(pin).trim();
+  if (!enteredPin) {
+    await uiAlert("Admin Access", "PIN is required.");
+    return;
+  }
+  if (enteredPin !== ADMIN_PIN) {
+    await uiAlert("Access Denied", "Wrong PIN.");
+    els.roleSelect.value = "forklift";
+    setRole("forklift");
+    return;
+  }
+
+  adminUnlocked = true;
+  els.adminUnlockBtn.style.display = "none";
+  els.adminLockBtn.style.display = "inline-block";
+  els.roleSelect.value = "admin";
+  setRole("admin");
+});
+
+els.adminLockBtn.addEventListener("click", () => {
+  adminUnlocked = false;
+  els.adminLockBtn.style.display = "none";
+  els.adminUnlockBtn.style.display = "inline-block";
+  els.roleSelect.value = "forklift";
+  setRole("forklift");
+});
+
+els.historyBtn.addEventListener("click", async () => {
+  const open = els.historyPanel.style.display !== "none";
+  els.historyPanel.style.display = open ? "none" : "block";
+
+  if(!open){
+    await refreshHistoryFromDb();
+    renderHistory();
+  }
+});
+
+els.historySearch.addEventListener("input", renderHistory);
+
+els.job.addEventListener("input", () => {
+  els.job.value = cleanJob(els.job.value);
+});
+
+els.mo.addEventListener("input", () => {
+  els.mo.value = cleanJob(els.mo.value);
+});
+
+document.addEventListener("keydown", (e) => {
+  const tag = document.activeElement?.tagName?.toLowerCase();
+  const typing =
+    tag === "input" ||
+    tag === "textarea" ||
+    document.documentElement?.isContentEditable;
+
+  // don't fire shortcuts while typing
+  if (typing) return;
+
+  if (e.key.toLowerCase() === "f") toggleFullscreen();
+  if (e.key === "Escape") closeMoveOverlay();
+
+  if (/^[1-9]$/.test(e.key)) {
+    const laneNum = parseInt(e.key, 10);
+    if (laneNum >= 1 && laneNum <= 12) selectLane(`Lane ${laneNum}`);
+  }
+});
+// ===== PALLET READY POLLING (CLEAN) =====
+
+// tiny toast (non-blocking)
+function toast(msg){
+  let el = document.getElementById("traceToast");
+  if(!el){
+    el = document.createElement("div");
+    el.id = "traceToast";
+    el.style.position = "fixed";
+    el.style.left = "50%";
+    el.style.bottom = "26px";
+    el.style.transform = "translateX(-50%)";
+    el.style.zIndex = "999999";
+    el.style.padding = "12px 14px";
+    el.style.borderRadius = "14px";
+    el.style.border = "1px solid rgba(58,122,254,.45)";
+    el.style.background = "rgba(12,14,18,.88)";
+    el.style.backdropFilter = "blur(10px)";
+    el.style.boxShadow = "0 20px 60px rgba(0,0,0,.55)";
+    el.style.color = "#fff";
+    el.style.fontWeight = "900";
+    el.style.letterSpacing = ".02em";
+    el.style.opacity = "0";
+    el.style.pointerEvents = "none";
+    el.style.transition = "opacity 180ms ease, transform 180ms ease";
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = "1";
+  el.style.transform = "translateX(-50%) translateY(-2px)";
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => {
+    el.style.opacity = "0";
+    el.style.transform = "translateX(-50%) translateY(6px)";
+  }, 2200);
+}
+
+// ===== LOADING HELPERS =====
+function showLoading(message = "Loading...") {
+  const overlay = document.getElementById("loadingOverlay");
+  const text = document.getElementById("loadingText");
+  if (overlay && text) {
+    text.textContent = message;
+    overlay.classList.add("show");
+  }
+}
+
+function hideLoading() {
+  const overlay = document.getElementById("loadingOverlay");
+  if (overlay) {
+    overlay.classList.remove("show");
+  }
+}
+
+// simple beep (works without hosting audio files)
+function beep(){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "sine";
+    o.frequency.value = 880;
+    g.gain.value = 0.07;
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.start();
+    setTimeout(() => { o.stop(); ctx.close(); }, 140);
+  }catch(e){
+    // ignore
+  }
+}
+
+async function createPalletCall(machine){
+  return apiPost("/pallet-calls", { machine });
+}
+async function closePalletCall(id){
+  return apiPatch(`/pallet-calls/${id}/close`);
+}
+
+async function apiPatch(path, body){
+  const opts = { method:"PATCH" };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  return apiFetch(path, opts);
+}
+
+async function loadPalletCalls(){
+  const d = await apiGet("/pallet-calls?status=OPEN");
+  // backend returns an array
+  palletCallsCache = Array.isArray(d) ? d : (Array.isArray(d.calls) ? d.calls : []);
+  return palletCallsCache;
+}
+
+function renderPalletCalls(){
+  const q = normalize(els.palletCallsSearch?.value || "");
+  let list = palletCallsCache;
+
+  if(q){
+    list = list.filter(c =>
+      normalize(c.machine).includes(q) ||
+      normalize(c.status).includes(q)
+    );
+  }
+
+  els.palletCallsResults.innerHTML = "";
+  els.palletCallsCount.textContent = String(palletCallsCache.length);
+
+  if(list.length === 0){
+    els.palletCallsResults.innerHTML = `<div style="color:var(--muted)">No open pallet calls.</div>`;
+    return;
+  }
+
+  list.slice(0, 150).forEach(c => {
+    const div = document.createElement("div");
+    div.className = "resultItem";
+
+    const ts  = c.created_at ? ` • ${escapeHtml(formatTimestamp(c.created_at))}` : "";
+
+    const canClose = role === "forklift" || (role === "admin" && adminUnlocked);
+
+    div.innerHTML = `
+      <div class="big">Machine ${escapeHtml(c.machine)}</div>
+      <div class="meta">Status: <b>${escapeHtml(c.status || "OPEN")}</b>${ts}</div>
+      ${canClose ? `
+        <div class="btnRow" style="margin-top:10px;">
+          <button class="primary" data-done="1">Done</button>
+        </div>` : ``}
+    `;
+
+    const doneBtn  = div.querySelector("[data-done]");
+    if(doneBtn){
+      doneBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        try{
+          await closePalletCall(c.id);   
+          await loadPalletCalls();
+          renderPalletCalls();
+        }catch(err){
+          await uiAlert("Done Failed", err.message || "Could not close call.");
+        }
+      });
+    }
+
+    els.palletCallsResults.appendChild(div);
+  });
+}
+
+async function pollPalletCalls(){
+  try{
+    const canSee = (role === "forklift") || (role === "admin" && adminUnlocked);
+    if(!canSee) return;
+
+    await loadPalletCalls();
+
+    const panelOpen = els.palletCallsPanel && els.palletCallsPanel.style.display !== "none";
+    if(panelOpen) renderPalletCalls();
+
+    // detect new calls -> toast + beep
+    const currentIds = new Set(palletCallsCache.map(c => c.id));
+    for(const id of currentIds){
+      if(!lastCallIds.has(id)){
+        const call = palletCallsCache.find(x => x.id === id);
+        if(call){
+          toast(`📦 Pallet Ready: ${call.machine}`);
+          beep();
+        }
+      }
+    }
+    
+   lastCallIds = currentIds;
+
+  }catch(e){
+    console.warn("pollPalletCalls failed:", e.message);
+  }
+}
+
+// ====== INIT (CALLED AFTER LOGIN) ======
+window.initApp = async function initApp() {
+  try {
+    buildLaneButtons();
+    buildMachineButtons();
+
+    els.laneTitle.textContent = selectedLane;
+    els.machineTitle.textContent = `Machine: ${selectedMachine}`;
+
+    selectedLocation = { type: "lane", value: selectedLane };
+    const initialRole = AUTH.role || "forklift";
+els.roleSelect.value = initialRole;
+setRole(initialRole);
+
+    els.globalResults.innerHTML = `<div style="color:var(--muted)">Loading...</div>`;
+
+    await loadLocations();
+    await loadInventory();
+    applyScanParams();
+
+    renderLaneList();
+    renderMachineList();
+    renderGlobalSearch();
+
+    // start polling once; poll function itself checks role
+    if (palletPollTimer) clearInterval(palletPollTimer);
+    palletPollTimer = setInterval(pollPalletCalls, 5000);
+
+    console.log("✅ INIT COMPLETE");
+  } catch (err) {
+    console.error("❌ Init failed:", err);
+    els.globalResults.innerHTML = `
+      <div style="color:var(--bad); font-weight:900;">API / INIT ERROR</div>
+      <div style="color:var(--muted); margin-top:6px;">
+        Check DevTools → Console + Network for /locations and /items.
+      </div>
+    `;
+  }
+};
+
+// ====== BOOT ENTRYPOINT ======
+window.addEventListener("DOMContentLoaded", async () => {
+  wireLoginUI();
+ // ===== FORCE ROLE FROM QR URL =====
+  const qp = new URLSearchParams(location.search);
+  const forcedRole = (qp.get("role") || "").toLowerCase();
+  if (forcedRole === "forklift" || forcedRole === "machine" || forcedRole === "admin") {
+    localStorage.setItem("trace_role", forcedRole);
+    AUTH.role = forcedRole;
+  }
+  if (AUTH.token) {
+    hideLogin();
+    await startAfterLogin();
+  } else {
+    showLogin();
+  }
+});
+
+// ===== TRACE Assistant — Pro Dock JS (COMMAND MODE + MOVE SUPPORT) =====
+(() => {
+  try {
+    const fab = document.getElementById("chatFab");
+    const dock = document.getElementById("chatDock");
+    const close = document.getElementById("chatClose");
+
+    const form = document.getElementById("chatComposer");
+    const input = document.getElementById("chatInput");
+    const log = document.getElementById("chatLog");
+    const thinking = document.getElementById("chatThinking");
+
+    // If assistant UI not present, do nothing (never break the app)
+    if (!fab || !dock || !close || !form || !input || !log || !thinking) return;
+
+    const time = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+    // Keep UI safe: always escape content we inject into the DOM
+    const esc = (s) =>
+      String(s ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+   function add(who, text) {
+  const row = document.createElement("div");
+  row.className = "msg " + (who === "me" ? "me" : "bot");
+
+  const bubble = document.createElement("div");
+  bubble.className = "bub";
+  bubble.textContent = String(text ?? ""); // safe + keeps line breaks
+
+  const tm = document.createElement("div");
+  tm.className = "time";
+  tm.textContent = time();
+
+  row.appendChild(bubble);
+  row.appendChild(tm);
+
+  log.appendChild(row);
+  log.scrollTop = log.scrollHeight;
+}
+
+    function open() { dock.classList.add("open"); setTimeout(() => input.focus(), 50); }
+    function shut() { dock.classList.remove("open"); }
+
+    fab.addEventListener("click", open);
+    close.addEventListener("click", shut);
+
+    // --------- Chat Helpers (move-focused) ----------
+    function normalizeChat(s){ return String(s||"").trim().toLowerCase(); }
+
+    function findItemByAnyKey(keyRaw){
+      const inv = Array.isArray(window.inventory) ? window.inventory : (Array.isArray(inventory) ? inventory : []);
+      const key = String(keyRaw || "").trim().toUpperCase();
+      if (!key) return null;
+
+      // 1) Exact match on job/item #
+      let hit = inv.find(x => String(x.job||"").toUpperCase() === key);
+      if (hit) return hit;
+
+      // 2) Optional MO support (only if you later add `mo` to mapped items)
+      hit = inv.find(x => String(x.mo||"").toUpperCase() === key);
+      if (hit) return hit;
+
+      // 3) Partial match fallback
+      hit = inv.find(x => String(x.job||"").toUpperCase().includes(key));
+      if (hit) return hit;
+
+      hit = inv.find(x => String(x.mo||"").toUpperCase().includes(key));
+      if (hit) return hit;
+
+      return null;
+    }
+
+    function canMoveFromChat(){
+      const r = (typeof window.role !== "undefined") ? window.role : (typeof role !== "undefined" ? role : "forklift");
+      const au = (typeof window.adminUnlocked !== "undefined") ? window.adminUnlocked : (typeof adminUnlocked !== "undefined" ? adminUnlocked : false);
+      return (r === "forklift") || (r === "admin" && au);
+    }
+
+    function formatLocation(item){
+      if (item.machine) return `Machine ${item.machine}`;
+      if (item.lane) return item.lane;
+      return "Unknown location";
+    }
+
+    async function handleChatCommand(rawText){
+      const t = normalizeChat(rawText);
+       let pm = t.match(/^pallet\s+ready(?:\s+(.+))?$/i);
+if(pm){
+  // allow: pallet ready S8
+  const typed = (pm[1] || "").trim();
+  const machine = typed ? typed.toUpperCase() : String(window.selectedMachine || selectedMachine || "").toUpperCase();
+  const valid = MACHINES.map(x => String(x).toUpperCase());
+  if (!valid.includes(machine)) {
+    return `❌ Unknown machine: ${machine}\nValid: ${MACHINES.join(", ")}`;
+  }
+  if(!machine){
+    return `Missing machine. Try: pallet ready S8`;
+  }
+
+  // machine role (or admin) should be allowed to create calls
+  const r = (typeof window.role !== "undefined") ? window.role : (typeof role !== "undefined" ? role : "forklift");
+  const au = (typeof window.adminUnlocked !== "undefined") ? window.adminUnlocked : (typeof adminUnlocked !== "undefined" ? adminUnlocked : false);
+  const canCreate = (r === "machine") || (r === "admin" && au);
+
+  if(!canCreate){
+    return `Permission denied. Use Machine role to send pallet ready calls.`;
+  }
+
+  try{
+    await apiPost("/pallet-calls", { machine });
+    return `✅ Pallet call sent for ${machine}. Forklift notified.`;
+  }catch(e){
+    return `❌ Failed to send pallet call: ${e.message || "error"}`;
+  }
+}
+      // HELP
+      if (t === "help" || t === "?"){
+        return [
+          "Commands:",
+          "• move 16900 to lane 2",
+          "• move 16900 to s8",
+          "• where is 16900",
+          "• whats in lane 3",
+          "• whats on s8",
+          "• status"
+        ].join("\n");
+      }
+
+      // STATUS
+      if (t === "status"){
+        const r = (typeof window.role !== "undefined") ? window.role : (typeof role !== "undefined" ? role : "forklift");
+        const au = (typeof window.adminUnlocked !== "undefined") ? window.adminUnlocked : (typeof adminUnlocked !== "undefined" ? adminUnlocked : false);
+        const effectiveRole = (r === "admin" && au) ? "ADMIN" : String(r || "forklift").toUpperCase();
+        return `SYSTEM ONLINE. Role: ${effectiveRole}.`;
+      }
+
+      // WHERE IS
+      let m = t.match(/^(where\s+is|where'?s)\s+(.+)$/i);
+      if (m){
+        const key = m[2].trim();
+        const item = findItemByAnyKey(key);
+        if (!item) return `I couldn't find ${key}.`;
+        return `Item ${item.job} is in ${formatLocation(item)}.`;
+      }
+
+      // WHAT'S IN LANE
+      m = t.match(/^what'?s?\s+in\s+lane\s+(\d{1,2})$/i) || t.match(/^what\s+is\s+in\s+lane\s+(\d{1,2})$/i);
+      if (m){
+        const laneNum = Math.max(1, Math.min(12, parseInt(m[1],10)));
+        const laneLabel = `Lane ${laneNum}`;
+        const inv = Array.isArray(window.inventory) ? window.inventory : (Array.isArray(inventory) ? inventory : []);
+        const list = inv.filter(x => String(x.lane||"") === laneLabel);
+
+        if (list.length === 0) return `${laneLabel} is empty.`;
+
+        const shown = list
+          .slice(0, 25)
+          .map(x => `• ${x.job} (${x.status || "—"})`)
+          .join("\n");
+
+        const more = list.length > 25 ? `\n…and ${list.length - 25} more.` : "";
+        return `${laneLabel} has ${list.length} item(s):\n${shown}${more}`;
+      }
+
+      // WHAT'S ON MACHINE
+      m = t.match(/^what'?s?\s+on\s+(?:machine\s+)?(.+)$/i);
+      if (m){
+        const machine = m[1].trim().toUpperCase();
+        const inv = Array.isArray(window.inventory) ? window.inventory : (Array.isArray(inventory) ? inventory : []);
+        const list = inv.filter(x => String(x.machine||"").toUpperCase() === machine);
+
+        if (list.length === 0) return `${machine} is empty.`;
+
+        const shown = list
+          .slice(0, 25)
+          .map(x => `• ${x.job} (${x.status || "—"})`)
+          .join("\n");
+
+        const more = list.length > 25 ? `\n…and ${list.length - 25} more.` : "";
+        return `${machine} has ${list.length} item(s):\n${shown}${more}`;
+      }
+
+      // MOVE COMMANDS
+      // "move 16900 to lane 2"
+      // "move mo-5048 to s8"
+      // "put 16900 in lane 5"
+      // "send 16900 to machine s9"
+      m =
+        t.match(/^(move|send|put)\s+(.+?)\s+(?:to|in)\s+lane\s+(\d{1,2})$/i) ||
+        t.match(/^(move|send|put)\s+(.+?)\s+to\s+(?:machine\s+)?(.+)$/i);
+
+      if (m){
+        if (!canMoveFromChat()){
+          return "Permission denied. Only Forklift (or Admin) can move items.";
+        }
+
+        const key = m[2].trim();
+        const item = findItemByAnyKey(key);
+        if (!item) return `I couldn't find ${key}.`;
+
+        // Lane move
+        if (String(m[3]||"").match(/^\d{1,2}$/)){
+          const laneNum = Math.max(1, Math.min(12, parseInt(m[3],10)));
+          const laneLabel = `Lane ${laneNum}`;
+
+          if (typeof window.moveToLane === "function") {
+            await window.moveToLane(item.id, laneLabel);
+          } else if (typeof moveToLane === "function") {
+            await moveToLane(item.id, laneLabel);
+          } else {
+            return "Move function not ready yet (moveToLane missing).";
+          }
+
+          return `Moved ${item.job} to ${laneLabel}.`;
+        }
+
+        // Machine move
+        const machine = String(m[3]||"").trim().toUpperCase();
+
+        if (typeof window.moveToMachine === "function") {
+          await window.moveToMachine(item.id, machine);
+        } else if (typeof moveToMachine === "function") {
+          await moveToMachine(item.id, machine);
+        } else {
+          return "Move function not ready yet (moveToMachine missing).";
+        }
+
+        return `Moved ${item.job} to ${machine}.`;
+      }
+
+      return 'I didn’t understand that. Type "help" for commands.';
+    }
+
+    // --------- Submit wiring ----------
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+
+      input.value = "";
+      add("me", text);
+
+      thinking.classList.add("show");
+      try {
+        const reply = await handleChatCommand(text);
+        thinking.classList.remove("show");
+        add("bot", reply);
+      } catch (err) {
+        console.error("Chat command failed:", err);
+        thinking.classList.remove("show");
+        add("bot", "I hit an error running that command. Check console.");
+      }
+    });
+
+    // Boot message (only once per page load)
+    add("bot", 'SYSTEM ONLINE. Type "help" for commands.');
+  } catch (err) {
+    // If assistant fails, never break the app
+    console.error("TRACE Assistant failed:", err);
+  }
+})();
+
+// ===== Pallet Ready via palletCallsSearch =====
+const palletCallSearch = document.getElementById("palletCallsSearch");
+
+if (palletCallSearch) {
+  palletCallSearch.addEventListener("keydown", async (e) => {
+    if (e.key !== "Enter") return;
+
+    const raw = palletCallSearch.value.trim();
+    if (!raw) return;
+
+    // Only trigger if user types "pallet ready ..."
+    const m = raw.match(/^pallet\s*ready(?:\s*on)?(?:\s+(.+))?$/i);
+    if (!m) return;
+
+    const typed = (m[1] || "").trim();
+    const machine = (typed || String(window.selectedMachine || selectedMachine || "")).toUpperCase();
+    if (!machine) {
+      await uiAlert("Missing Machine", "Try: pallet ready S8");
+      return;
+    }
+
+    try {
+      // IMPORTANT: this block previously never created the call — it only reloaded.
+      // Create the call:
+      await apiPost("/pallet-calls", { machine });
+
+      palletCallSearch.value = "";
+
+      // Refresh the panel (optional)
+      await loadPalletCalls();
+      renderPalletCalls();
+
+      toast(`✅ Pallet call sent: ${machine}`);
+    } 
+
+      catch (err) {
+      console.error(err);
+      await uiAlert("Pallet Call Failed", err.message || "Could not send pallet call.");
+    }
+  });
+}
+// ===== END Pallet Ready =====
+
+// ===== QR SCANNER (html5-qrcode) =====
+let qrScanner = null;
+
+function stripQrText(txt){
+  return String(txt || "").trim();
+}
+
+// Use your existing inventory mapping (job + mo fields)
+function findItemByQR(code){
+  const raw = stripQrText(code);
+  if(!raw) return null;
+
+  const cleaned = cleanJob(raw); // converts to uppercase & strips weird chars
+
+  // try exact match on MO first
+  let hit = inventory.find(x => String(x.mo||"").toUpperCase() === cleaned);
+  if(hit) return hit;
+
+  // try exact match on Job
+  hit = inventory.find(x => String(x.job||"").toUpperCase() === cleaned);
+  if(hit) return hit;
+
+  // fallback: if QR contains "MO-5048" but your stored mo is "5048" or vice versa
+  const noPrefix = cleaned.replace(/^MO-/, "");
+  hit = inventory.find(x => String(x.mo||"").toUpperCase().replace(/^MO-/, "") === noPrefix);
+  if(hit) return hit;
+
+  hit = inventory.find(x => String(x.job||"").toUpperCase() === noPrefix);
+  if(hit) return hit;
+
+  return null;
+}
+
+async function startQRScan(){
+  const wrap = document.getElementById("qrWrap");
+  const stopBtn = document.getElementById("scanStopBtn");
+  const scanBtn = document.getElementById("scanBtn");
+
+  if(!wrap || !stopBtn || !scanBtn) return;
+
+  wrap.classList.remove("hidden");
+  stopBtn.classList.remove("hidden");
+  scanBtn.disabled = true;
+
+  try{
+    qrScanner = new Html5Qrcode("qr-reader");
+
+    await qrScanner.start(
+      { facingMode: "environment" },
+      { fps: 12, qrbox: { width: 250, height: 250 } },
+      async (decodedText) => {
+        await stopQRScan(true);
+
+        const raw = String(decodedText || "").trim();
+        if (!raw) {
+          await uiAlert("SCAN FAILED", "QR was empty.");
+          return;
+        }
+
+        // If it’s a URL, try to parse params
+        const looksLikeUrl =
+          /^https?:\/\//i.test(raw) ||
+          raw.includes("traceinventory.org") ||
+          raw.includes("qr-codes.io");
+
+        if (looksLikeUrl) {
+          let fixed = raw;
+          if (!/^https?:\/\//i.test(fixed)) fixed = "https://" + fixed;
+
+          try {
+            const u = new URL(fixed);
+            const mo  = (u.searchParams.get("mo")  || "").trim().toUpperCase();
+            const job = (u.searchParams.get("job") || "").trim().toUpperCase();
+            const qty = (u.searchParams.get("qty") || "").trim();
+
+            // if params exist, fill fields and stop
+            if (mo || job || qty) {
+            const setField = (el, val) => {
+            if (!el) return;
+            el.value = val ?? "";
+            el.dispatchEvent(new Event("input", { bubbles: true }));
+            el.dispatchEvent(new Event("change", { bubbles: true }));
+           };
+
+           setField(els.mo, mo);
+           setField(els.job, job);
+           setField(els.qty, qty);
+
+  // Try to find the item in inventory using job first, then mo
+  const key = (job || mo || "").trim().toUpperCase();
+  const item = key ? findItemByQR(key) : null;
+
+  if (item) {
+    loadToForm(item.id);
+
+    const details = buildScanDetails(item);
+
+    const ok = await uiConfirm(
+      "Pallet Scanned ✅",
+      details + "\n\nOpen Move Panel?",
+      "Move",
+      "Cancel"
+    );
+
+    if (ok) {
+      openMoveOverlay(item.id);
+      toast("Ready to move: " + item.job);
+    }
+  } else {
+    await uiAlert(
+      "SCAN OK",
+      `Loaded from QR:\nMO: ${mo}\nJob: ${job}\nQty: ${qty}\n\nNot found in inventory yet.`
+    );
+  }
+
+  return;
+}
+
+
+            // URL with no params -> navigate
+            window.location.href = fixed;
+            return;
+
+          } catch (e) {
+            console.error("QR URL parse failed:", e);
+            // fall through
+          }
+        }
+
+        // Treat as plain MO/Job code
+        const code = extractMoOrJob(raw);
+if (!code) {
+  await uiAlert("SCAN FAILED", `QR was invalid.\n\nRaw scan:\n${raw}`);
+  return;
+}
+        // If found in inventory, do the move workflow
+        const item = findItemByQR(code);
+        if (item) {
+          loadToForm(item.id);
+
+          const msg =
+            `Scanned ✅\n\n` +
+            `Item: ${item.job}\n` +
+            (item.mo ? `MO: ${item.mo}\n` : "") +
+            `Current: ${item.machine ? "Machine " + item.machine : (item.lane || "Unknown")}\n\n` +
+            `Enter lane number (1–12) to move it.`;
+
+          const lane = await uiPrompt("Scan Result", msg, {
+            placeholder: "Lane # (1-12)",
+            hint: "Example: 7",
+            mask: false
+          });
+
+          if (lane === null) return;
+
+          const laneNum = parseInt(String(lane).trim(), 10);
+          if (!Number.isFinite(laneNum) || laneNum < 1 || laneNum > 12) {
+            await uiAlert("Invalid Lane", "Lane must be a number 1–12.");
+            return;
+          }
+
+          const laneLabel = `Lane ${laneNum}`;
+          await moveToLane(item.id, laneLabel);
+          toast("Moved " + item.job + " -> " + laneLabel);
+          return;
+        }
+
+        // Not found in inventory -> just load fields
+        if (code.startsWith("MO-")) {
+          els.mo.value = code;
+          els.job.value = "";
+        } else {
+          els.job.value = code;
+        }
+
+        await uiAlert("SCAN OK", `Loaded code (not found in inventory):\n${code}`);
+      }
+    );
+
+  } catch (e) {
+    console.error("QR start error:", e);
+    scanBtn.disabled = false;
+    await uiAlert("Camera Error", "Could not start camera. Make sure browser permissions allow camera.");
+  }
+}
+
+async function stopQRScan(silent=false){
+  const wrap = document.getElementById("qrWrap");
+  const stopBtn = document.getElementById("scanStopBtn");
+  const scanBtn = document.getElementById("scanBtn");
+
+  try{
+    if(qrScanner){
+      await qrScanner.stop();
+      await qrScanner.clear();
+      qrScanner = null;
+    }
+  }catch(e){
+    // ignore
+  }
+
+  if(wrap) wrap.classList.add("hidden");
+  if(stopBtn) stopBtn.classList.add("hidden");
+  if(scanBtn) scanBtn.disabled = false;
+
+  if(!silent) toast("Scanner stopped");
+}
+  // ===== FORKLIFT QR SCANNER (separate from admin/pallet scan) =====
+let qrScannerForklift = null;
+let forkliftScannedItemId = null;
+
+function openForkliftJobModal(item, scannedText = "") {
+  forkliftScannedItemId = item?.id ?? null;
+
+  const mo   = item.mo ? escapeHtml(item.mo) : "—";
+  const job  = item.job ? escapeHtml(item.job) : "—";
+  const qty  = Number.isFinite(item.qty) ? item.qty : 0;
+  const loc  = item.machine ? `Machine ${item.machine}` : (item.lane ? item.lane : "Unknown");
+  const status = item.status ? escapeHtml(item.status) : "—";
+
+  els.scanTitle.textContent = `Forklift Scan - Job #${job}`;
+
+  els.scanBody.innerHTML = `
+<div style="line-height:1.6;">
+  <div style="margin-bottom:12px;"><b>MO:</b> ${mo}</div>
+  <div style="margin-bottom:12px;"><b>Job #:</b> ${job}</div>
+  <div style="margin-bottom:12px;"><b>Location:</b> ${escapeHtml(loc)}</div>
+  <div style="margin-bottom:12px;"><b>Qty:</b> ${qty}</div>
+  <div style="margin-bottom:12px;"><b>Status:</b> ${status}</div>
+</div>
+  `.trim();
+
+  els.scanOverlay.classList.add("show");
+}
+
+function closeForkliftJobModal() {
+  forkliftScannedItemId = null;
+  els.scanOverlay.classList.remove("show");
+}
+
+// Wire the scan popup buttons for forklift scanner
+if (els.scanCloseBtn) {
+  // Remove old listener by cloning the button
+  const newCloseBtn = els.scanCloseBtn.cloneNode(true);
+  els.scanCloseBtn.parentNode.replaceChild(newCloseBtn, els.scanCloseBtn);
+  els.scanCloseBtn = newCloseBtn;
+  
+  els.scanCloseBtn.addEventListener("click", () => {
+    console.log("CLOSE BUTTON CLICKED!");
+    closeForkliftJobModal();
+  });
+}
+
+if (els.scanMoveBtn) {
+  // Remove old listener by cloning the button
+  const newMoveBtn = els.scanMoveBtn.cloneNode(true);
+  els.scanMoveBtn.parentNode.replaceChild(newMoveBtn, els.scanMoveBtn);
+  els.scanMoveBtn = newMoveBtn;
+  
+  els.scanMoveBtn.addEventListener("click", () => {
+    console.log("MOVE BUTTON CLICKED! forkliftScannedItemId:", forkliftScannedItemId);
+    
+    if (!forkliftScannedItemId) {
+      alert("No item selected");
+      return;
+    }
+    
+    closeForkliftJobModal();
+    
+    setTimeout(() => {
+      openMoveOverlay(forkliftScannedItemId);
+    }, 150);
+  });
+}
+
+if (els.scanOverlay) {
+  els.scanOverlay.addEventListener("click", (e) => {
+    if (e.target === els.scanOverlay) {
+      console.log("OVERLAY CLICKED!");
+      closeForkliftJobModal();
+    }
+  });
+}
+async function startForkliftQRScan() {
+  const wrap = document.getElementById("forkliftQrWrap");
+  const stopBtn = document.getElementById("forkliftScanStopBtn");
+  const startBtn = document.getElementById("forkliftScanBtn");
+
+  if (!wrap || !stopBtn || !startBtn) return;
+
+  if (typeof stopQRScan === "function") {
+    await stopQRScan(true).catch(() => {});
+  }
+
+  wrap.classList.remove("hidden");
+  stopBtn.classList.remove("hidden");
+  startBtn.disabled = true;
+
+  try {
+    qrScannerForklift = new Html5Qrcode("qr-reader-forklift");
+
+    await qrScannerForklift.start(
+      { facingMode: "environment" },
+      { fps: 12, qrbox: { width: 250, height: 250 } },
+       async (decodedText) => {
+  await stopForkliftQRScan(true);
+
+  const raw = String(decodedText || "").trim();
+  
+  if (!raw) {
+    await uiAlert("SCAN FAILED", "QR was empty.");
+    return;
+  }
+
+  let jobNumber = "";
+
+  // METHOD 1: Extract from URL parameter ?job=XXXXX
+  if (raw.includes("?") && raw.includes("job=")) {
+    try {
+      // Make sure it has https://
+      let url = raw;
+      if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        url = "https://" + url;
+      }
+      
+      const urlObj = new URL(url);
+      jobNumber = urlObj.searchParams.get("job") || "";
+    } catch (e) {
+      // URL parse failed, try regex
+      const match = raw.match(/[?&]job=([^&\s]+)/i);
+      if (match && match[1]) {
+        jobNumber = match[1];
+      }
+    }
+  }
+  
+  // METHOD 2: If it's just a plain number
+  if (!jobNumber && /^\d+$/.test(raw)) {
+    jobNumber = raw;
+  }
+  
+  // METHOD 3: Try the extractMoOrJob helper
+  if (!jobNumber) {
+    const extracted = extractMoOrJob(raw);
+    if (extracted && !extracted.includes("HTTP")) {
+      jobNumber = extracted;
+    }
+  }
+
+  // Clean it up
+  jobNumber = String(jobNumber || "").trim().toUpperCase();
+
+  // Don't accept "HTTPS" or "HTTP" as job numbers
+  if (jobNumber === "HTTPS" || jobNumber === "HTTP" || !jobNumber) {
+    await uiAlert(
+      "EXTRACTION FAILED",
+      `Could not extract job number from QR code.\n\nScanned: ${raw}\n\nExtracted: ${jobNumber || "nothing"}\n\nTry a QR code with just the number: 16900`
+    );
+    return;
+  }
+
+  // Search inventory (searches all lanes automatically)
+  const item = inventory.find(x => {
+    const xJob = String(x.job || "").trim().toUpperCase();
+    return xJob === jobNumber;
+  });
+
+  if (!item) {
+    await uiAlert(
+      "NOT FOUND", 
+      `Job "${jobNumber}" not found in inventory.\n\nSearched for: ${jobNumber}\n\nMake sure this job exists in TRACE.`
+    );
+    return;
+  }
+        loadToForm(item.id);
+        openForkliftJobModal(item, raw);
+      }
+    );
+  } catch (e) {
+    startBtn.disabled = false;
+    await uiAlert("Camera Error", "Could not start camera. Check permissions.");
+  }
+}
+
+async function stopForkliftQRScan(silent = false) {
+  const wrap = document.getElementById("forkliftQrWrap");
+  const stopBtn = document.getElementById("forkliftScanStopBtn");
+  const startBtn = document.getElementById("forkliftScanBtn");
+
+  try {
+    if (qrScannerForklift) {
+      await qrScannerForklift.stop();
+      await qrScannerForklift.clear();
+      qrScannerForklift = null;
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  if (wrap) wrap.classList.add("hidden");
+  if (stopBtn) stopBtn.classList.add("hidden");
+  if (startBtn) startBtn.disabled = false;
+
+  if (!silent) toast("Forklift scanner stopped");
+}
+
+// Hook up the forklift scan buttons
+if (forkliftScanBtn) forkliftScanBtn.addEventListener("click", startForkliftQRScan);
+if (forkliftScanStopBtn) forkliftScanStopBtn.addEventListener("click", () => stopForkliftQRScan(false));
+</script>
+
+</body>
+</html>
+
