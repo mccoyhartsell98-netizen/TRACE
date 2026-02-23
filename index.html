@@ -304,13 +304,18 @@
   }
 
   function enterHub(user){
-  const name =
-    user.display_name?.trim() ||
-    user.name?.trim() ||
-    "Operator";  // <- neutral fallback
+  const label =
+    (user.display_name && String(user.display_name).trim()) ||
+    (user.name && String(user.name).trim()) ||
+    "Operator";
 
-  $("hubGreeting").textContent = `Hello, ${name}`;
+  const hubUserEl = $("hubUser");
+  if (!hubUserEl) {
+    console.error("Missing #hubUser element. Check your HTML ids.");
+    return;
+  }
 
+  hubUserEl.textContent = `Hello, ${label}`;
   setStatus("UNLOCKED");
   show("viewHub","viewPin");
 }
