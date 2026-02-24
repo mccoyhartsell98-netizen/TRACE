@@ -340,12 +340,15 @@
     return data;
   }
 
-function showHub() {
+   function showHub() {
+    $("viewPin").classList.remove("fade-in");
     $("viewPin").classList.add("fade-out");
     setTimeout(() => {
       $("viewPin").classList.add("hide");
+      $("viewPin").classList.remove("fade-out");
       $("viewHub").classList.remove("hide");
       $("viewHub").classList.add("fade-in");
+      setTimeout(() => $("viewHub").classList.remove("fade-in"), 200);
     }, 200);
   }
 
@@ -357,11 +360,13 @@ function showHub() {
     showHub();
   }
 
-  function backToPin(msg = "") {
+    function backToPin(msg = "") {
     pinBuf = "";
     renderPinDots();
     $("pinMsg").textContent = msg;
     setStatus("LOCKED");
+    $("viewPin").classList.remove("fade-out", "fade-in");
+    $("viewHub").classList.remove("fade-out", "fade-in");
     show("viewPin", "viewHub");
   }
 
