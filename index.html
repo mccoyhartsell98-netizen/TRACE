@@ -86,14 +86,15 @@
 
 <body>
   <div class="wrap">
-    <div class="card">
-      <<div class="top">
-  <div>
-    <img src="./trace-logo.png.png" style="height:32px;width:auto;" alt="TRACE" />
-    <div class="sub">Kiosk Access</div>
-  </div>
-  <div class="pill" id="pillStatus">LOCKED</div>
-</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;width:min(520px,95vw)">
+      <img src="./trace-logo.png.png" style="height:350px;width:auto;" alt="TRACE" />
+      <div class="card" style="width:100%">
+        <div class="top">
+          <div>
+            <div class="sub">Kiosk Access</div>
+          </div>
+          <div class="pill" id="pillStatus">LOCKED</div>
+        </div>
       <div class="body">
 
         <!-- PIN GATE -->
@@ -151,7 +152,9 @@
       </div>
     </div>
   </div>
-     <div class="toast" id="toast"></div>
+ </div>
+
+<div class="toast" id="toast"></div>
 
   <!-- MOVE MODAL — Step 1: Lane or Machine -->
   <div class="modal-overlay hide" id="moveModal">
