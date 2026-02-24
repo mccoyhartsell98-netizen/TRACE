@@ -1108,7 +1108,7 @@
   </div>
 
   <div style="display:flex; justify-content:center; margin-top:12px;">
-    <canvas id="jobQrCanvas" width="260" height="260" style="background:#fff; padding:10px; border-radius:12px; display:none;"></canvas>
+    <div id="jobQrCanvas" style="background:#fff; padding:10px; border-radius:12px; display:none;"></div>
   </div>
 
   <div class="tiny" id="jobQrUrlPreview" style="margin-top:10px; color:var(--muted); word-break:break-all;"></div>
@@ -1526,9 +1526,10 @@ if (!canvas) {
   return;
 }
 
-canvas.style.display = "block";
-canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
-new QRCode(canvas, {
+const container = els.jobQrCanvas;
+container.innerHTML = "";
+container.style.display = "inline-block";
+new QRCode(container, {
   text: url,
   width: 260,
   height: 260,
@@ -1540,9 +1541,10 @@ new QRCode(canvas, {
 }
 
 function downloadJobQr(){
-  const canvas = els.jobQrCanvas;
-  if(!canvas) return;
-
+  const container = els.jobQrCanvas;
+  if(!container) return;
+  const canvas = container.querySelector("canvas");
+  if(!canvas){ alert("Generate a QR first."); return; }
   const job = cleanJob(els.job?.value || "JOB");
   const a = document.createElement("a");
   a.download = `TRACE_JOB_${job}.png`;
