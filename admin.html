@@ -12,7 +12,7 @@
   <link rel="icon" type="image/png" href="favicon - Copy.png?v=1">
 
   <script src="https://unpkg.com/html5-qrcode"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js"></script>
   
   <!-- PWA / App support -->
   <link rel="manifest" href="./manifest.json">
@@ -1519,14 +1519,15 @@ async function generateJobQr(){
 
   const url = buildJobUrl(job);
 
-  // canvas QR
-  const canvas = els.jobQrCanvas;
-  canvas.style.display = "block";
+// canvas QR
+const canvas = els.jobQrCanvas;
+if (!canvas) {
+  await uiAlert("QR Error", "Canvas not found. Make sure <canvas id='jobQrCanvas'></canvas> exists.");
+  return;
+}
 
-  await QRCode.toCanvas(canvas, url, {
-    width: 260,
-    margin: 1
-  });
+canvas.style.display = "block";  // show BEFORE drawing
+await window.QRCode.toCanvas(canvas, url, { width: 260, margin: 1 });
 
   els.jobQrUrlPreview.textContent = url;
   els.downloadJobQrBtn.disabled = false;
