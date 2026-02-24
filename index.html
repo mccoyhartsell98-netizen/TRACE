@@ -81,6 +81,10 @@
       cursor:pointer;transition:.12s background;text-align:center;
     }
     .sel-btn:hover{background:var(--btn2)}
+    .fade-out{animation:fadeOut .2s ease forwards;}
+    .fade-in{animation:fadeIn .2s ease forwards;}
+    @keyframes fadeOut{from{opacity:1;}to{opacity:0;}}
+    @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
   </style>
 </head>
 
@@ -336,12 +340,21 @@
     return data;
   }
 
+function showHub() {
+    $("viewPin").classList.add("fade-out");
+    setTimeout(() => {
+      $("viewPin").classList.add("hide");
+      $("viewHub").classList.remove("hide");
+      $("viewHub").classList.add("fade-in");
+    }, 200);
+  }
+
   function enterHub(user) {
     const label = user.display_name || user.name || (user.role ? user.role.toUpperCase() : "USER");
     $("hubUser").textContent = label;
     $("hubAdmin").style.display = (user.role === "admin") ? "block" : "none";
     setStatus("UNLOCKED");
-    show("viewHub", "viewPin");
+    showHub();
   }
 
   function backToPin(msg = "") {
