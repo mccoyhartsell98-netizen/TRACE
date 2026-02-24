@@ -49,6 +49,14 @@
     .tiny{font-size:12px;color:var(--muted);word-break:break-all;margin-top:8px}
     .hide{display:none!important}
 
+.toast{
+      position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+      background:#1a3a1a;border:1px solid #2d7a2d;color:#7fff7f;
+      padding:12px 24px;border-radius:999px;font-weight:900;font-size:14px;
+      z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;
+    }
+    .toast.show{opacity:1;}
+
     /* Modal overlay */
     .modal-overlay{
       position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);
@@ -79,14 +87,13 @@
 <body>
   <div class="wrap">
     <div class="card">
-      <div class="top">
-        <div>
-          <div class="brand">TRACE</div>
-          <div class="sub">Kiosk Access</div>
-        </div>
-        <div class="pill" id="pillStatus">LOCKED</div>
-      </div>
-
+      <<div class="top">
+  <div>
+    <img src="./trace.png.png" style="height:32px;width:auto;" alt="TRACE" />
+    <div class="sub">Kiosk Access</div>
+  </div>
+  <div class="pill" id="pillStatus">LOCKED</div>
+</div>
       <div class="body">
 
         <!-- PIN GATE -->
@@ -144,6 +151,7 @@
       </div>
     </div>
   </div>
+     <div class="toast" id="toast"></div>
 
   <!-- MOVE MODAL — Step 1: Lane or Machine -->
   <div class="modal-overlay hide" id="moveModal">
@@ -188,7 +196,8 @@
     mo:  qs.get("mo") || "",
     qty: qs.get("qty") || ""
   };
-
+  
+  const scannedJob = (qs.get("job") || "").trim();
   const $ = (id) => document.getElementById(id);
   const show = (a, b) => { $(a).classList.remove("hide"); $(b).classList.add("hide"); };
   const setStatus = (t) => { $("pillStatus").textContent = t; };
@@ -227,7 +236,27 @@
 
   function handleMoveSelection(type, value) {
     hideMoveModal();
-    goToMain({ intent: "move", moveType: type, moveTo: value });
+    if (!activeItem) {
+      showToast("No job loaded to move", true);
+      return;
+    }
+    const { user } = getAuth();
+    moveItemToLocation(activeItem.id, value, user?.name || "kiosk")
+      .then(() => {
+        $("scanLine").textContent = `Job ${activeItem.job_number} • Moved to ${type === "lane" ? "Lane " + value : value}`;
+        showToast(`✓ Moved to ${type === "lane" ? "Lane " + value : value}`);
+      })
+      .catch(e => showToast(e.message || "Move failed", true));
+  }
+
+  function showToast(msg, isError = false) {
+    const t = $("toast");
+    t.textContent = msg;
+    t.style.background = isError ? "#3a1a1a" : "#1a3a1a";
+    t.style.borderColor = isError ? "#7a2d2d" : "#2d7a2d";
+    t.style.color = isError ? "#ff7f7f" : "#7fff7f";
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 3000);
   }
 
   $("moveLaneBtn").onclick = () => {
@@ -378,11 +407,17 @@
     if (it.lane) return `Lane ${it.lane}${it.position ? " • " + it.position : ""}`;
     if (it.machine) return `Machine ${it.machine}${it.position ? " • " + it.position : ""}`;
     return "Unassigned";
+ 
+ }
+async function fetchJob(job) {
+    const r = await fetch(`${API_BASE}/items/lookup?job=${encodeURIComponent(job)}`, { cache: "no-store" });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok || !data.ok) throw new Error(data.error || "Lookup failed");
+    return data.item;
   }
 
-  async function loadScannedJob() {
-    const qs = new URLSearchParams(location.search);
-    const job = (qs.get("job") || "").trim();
+ async function loadScannedJob() {
+    const job = scannedJob;
     if (!job) {
       $("scanLine").textContent = "No job loaded";
       activeItem = null;
@@ -390,16 +425,44 @@
     }
     $("scanLine").textContent = `Loading job ${job}...`;
     try {
-      const r = await fetch(`${API_BASE}/items/lookup?job=${encodeURIComponent(job)}`, { cache: "no-store" });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok || !data.ok) throw new Error(data?.error || "Lookup failed");
-      activeItem = data.item;
+      activeItem = await fetchJob(job);
       const loc = formatLoc(activeItem);
       $("scanLine").textContent = `Job ${activeItem.job_number} • MO ${activeItem.mo || "-"} • QTY ${activeItem.qty ?? "-"} • ${loc}`;
     } catch(e) {
       activeItem = null;
       $("scanLine").textContent = `Job ${job} not found in TRACE`;
     }
+  }
+function renderScannedCard(item) {
+    const mo = item.mo || "-";
+    const qty = (item.qty ?? "-");
+    const lane = item.lane ? `Lane ${item.lane}` : "";
+    const machine = item.machine ? `Machine ${item.machine}` : "";
+    const where = [lane, machine].filter(Boolean).join(" • ") || "No location";
+    document.getElementById("scannedCard").style.display = "block";
+    document.getElementById("scannedLine").textContent = `Job ${item.job_number} • MO ${mo} • QTY ${qty}`;
+    document.getElementById("scannedLoc").textContent = `Current: ${where}`;
+  }
+
+  async function moveItemToLocation(itemId, locationId, updatedBy) {
+    const { token } = getAuth();
+    const r = await fetch(`${API_BASE}/items/${itemId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({ location_id: locationId, updated_by: updatedBy })
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok || !data.ok) throw new Error(data.error || "Move failed");
+    return data.item;
+  }
+
+  function renderScannedError(msg) {
+    document.getElementById("scannedCard").style.display = "block";
+    document.getElementById("scannedLine").textContent = `Could not load job: ${msg}`;
+    document.getElementById("scannedLoc").textContent = "";
   }
 
   // Boot
