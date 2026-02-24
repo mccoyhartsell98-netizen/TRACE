@@ -12,7 +12,7 @@
   <link rel="icon" type="image/png" href="favicon - Copy.png?v=1">
 
   <script src="https://unpkg.com/html5-qrcode"></script>
-  <script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   
   <!-- PWA / App support -->
   <link rel="manifest" href="./manifest.json">
@@ -1526,8 +1526,14 @@ if (!canvas) {
   return;
 }
 
-canvas.style.display = "block";  // show BEFORE drawing
-await window.QRCode.toCanvas(canvas, url, { width: 260, margin: 1 });
+canvas.style.display = "block";
+canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+new QRCode(canvas, {
+  text: url,
+  width: 260,
+  height: 260,
+  correctLevel: QRCode.CorrectLevel.H
+});
 
   els.jobQrUrlPreview.textContent = url;
   els.downloadJobQrBtn.disabled = false;
