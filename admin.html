@@ -12,6 +12,7 @@
   <link rel="icon" type="image/png" href="favicon - Copy.png?v=1">
 
   <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   
   <!-- PWA / App support -->
   <link rel="manifest" href="./manifest.json">
@@ -1087,7 +1088,42 @@
                 <button class="danger" id="deleteBtn" disabled>Delete</button>
               </div>
             </div>
+             
+<!-- ===== SECURE QR + QUEUE (ADMIN) ===== -->
+<div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
 
+<h2 style="margin-top:0;">Secure QR + Queue</h2>
+
+<div class="qrWrap" style="margin-top:10px;">
+  <div class="tiny" style="margin-bottom:10px; color:var(--muted); font-weight:800;">
+    Generates a QR that only contains a URL like:
+    <b>https://traceinventory.org/index.html?job=XXXXX</b>
+    (No job details inside the QR — details load from database after PIN.)
+  </div>
+
+  <div class="btnRow">
+    <button class="primary" id="genJobQrBtn">Generate Job QR</button>
+    <button class="ghost" id="downloadJobQrBtn" disabled>Download PNG</button>
+    <button class="primary" id="queueJobBtn">Queue</button>
+  </div>
+
+  <div style="display:flex; justify-content:center; margin-top:12px;">
+    <canvas id="jobQrCanvas" width="260" height="260" style="background:#fff; padding:10px; border-radius:12px; display:none;"></canvas>
+  </div>
+
+  <div class="tiny" id="jobQrUrlPreview" style="margin-top:10px; color:var(--muted); word-break:break-all;"></div>
+</div>
+
+<!-- ===== QUEUE LIST ===== -->
+<div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
+
+<div class="completedHeader" style="margin-bottom:10px;">
+  <div class="completedTitle">⏳ Queue</div>
+  <div class="completedCount" id="queueCount">0</div>
+</div>
+
+<input id="queueSearch" type="text" placeholder="Filter queue (job, MO, status)">
+<div id="queueResults" class="results" style="margin-top:10px;"></div>
             <!-- HISTORY PANEL -->
             <div id="historyPanel" style="display:none; margin-top:12px;">
               <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
@@ -1417,6 +1453,14 @@ const els = {
   scanBody: document.getElementById("scanBody"),
   scanCloseBtn: document.getElementById("scanCloseBtn"),
   scanMoveBtn: document.getElementById("scanMoveBtn"),
+  genJobQrBtn: document.getElementById("genJobQrBtn"),
+  downloadJobQrBtn: document.getElementById("downloadJobQrBtn"),
+  queueJobBtn: document.getElementById("queueJobBtn"),
+  jobQrCanvas: document.getElementById("jobQrCanvas"),
+  jobQrUrlPreview: document.getElementById("jobQrUrlPreview"),
+  queueCount: document.getElementById("queueCount"),
+  queueSearch: document.getElementById("queueSearch"),
+  queueResults: document.getElementById("queueResults"),
 };
 
 // ====== HELPERS ======
@@ -1451,6 +1495,162 @@ function formatLocation(item){
   if (item.machine) return `Machine ${item.machine}`;
   if (item.lane) return item.lane;
   return "Unknown location";
+}
+// ===== QR GENERATOR + QUEUE (ADMIN) =====
+const QUEUE_MACHINE_NAME = "QUEUE"; // you will add this location in DB (see note below)
+
+function getQueueLocationId(){
+  return locIdByMachine.get(QUEUE_MACHINE_NAME) ?? null;
+}
+
+function buildJobUrl(jobNumber){
+  const job = cleanJob(jobNumber);
+  // IMPORTANT: kiosk expects ?job=... already in your forklift scan logic
+  return `https://traceinventory.org/index.html?job=${encodeURIComponent(job)}&role=forklift`;
+}
+
+async function generateJobQr(){
+  const job = cleanJob(els.job?.value || "");
+  if(!job){
+    await uiAlert("QR Generator", "Enter an Item # (Job) first.");
+    els.job?.focus();
+    return;
+  }
+
+  const url = buildJobUrl(job);
+
+  // canvas QR
+  const canvas = els.jobQrCanvas;
+  canvas.style.display = "block";
+
+  await QRCode.toCanvas(canvas, url, {
+    width: 260,
+    margin: 1
+  });
+
+  els.jobQrUrlPreview.textContent = url;
+  els.downloadJobQrBtn.disabled = false;
+}
+
+function downloadJobQr(){
+  const canvas = els.jobQrCanvas;
+  if(!canvas) return;
+
+  const job = cleanJob(els.job?.value || "JOB");
+  const a = document.createElement("a");
+  a.download = `TRACE_JOB_${job}.png`;
+  a.href = canvas.toDataURL("image/png");
+  a.click();
+}
+
+async function queueCurrentJob(){
+  const admin = (role === "admin" && adminUnlocked);
+  if(!admin){
+    await uiAlert("Permission Denied", "Admin only. Unlock admin first.");
+    return;
+  }
+
+  const job = cleanJob(els.job?.value || "");
+  if(!job){
+    await uiAlert("Queue", "Enter/select a job first.");
+    return;
+  }
+
+  const qLocId = getQueueLocationId();
+  if(!qLocId){
+    await uiAlert(
+      "Queue Not Ready",
+      `QUEUE location is missing in DB.\n\nFix: add a location with machine/name = "${QUEUE_MACHINE_NAME}".`
+    );
+    return;
+  }
+
+  // If selectedId exists, queue that item. If not, try to find job in inventory.
+  let item = selectedId ? inventory.find(x => x.id === selectedId) : inventory.find(x => x.job === job);
+
+  if(!item){
+    // If job doesn't exist yet, create it first (minimal create)
+    // Uses current selectedLocationId (lane) by default — we'll override to QUEUE location.
+    try{
+      const payload = {
+        job_number: job,
+        mo: cleanJob(els.mo?.value || ""),
+        qty: Math.max(0, parseInt(els.qty?.value || "0", 10)),
+        status: (els.status?.value || "").trim().slice(0, 40),
+        notes: (els.notes?.value || "").trim().slice(0, 120),
+        updated_by: (els.updatedBy?.value || "").trim().slice(0, 10),
+        location_id: qLocId
+      };
+      await apiPost(`/items`, payload);
+    }catch(e){
+      await uiAlert("Queue Failed", e.message || "Could not create + queue job.");
+      return;
+    }
+  }else{
+    // job exists -> move it to QUEUE location
+    await apiPut(`/items/${item.id}`, { location_id: qLocId });
+  }
+
+  await loadLocations();
+  await loadInventory();
+  renderQueue();
+  toast(`⏳ Queued: ${job}`);
+}
+
+function renderQueue(){
+  const q = normalize(els.queueSearch?.value || "");
+  const listAll = inventory.filter(x => String(x.machine || "").toUpperCase() === QUEUE_MACHINE_NAME);
+
+  let list = listAll;
+  if(q){
+    list = listAll.filter(x =>
+      normalize(x.job).includes(q) ||
+      normalize(x.mo).includes(q) ||
+      normalize(x.status).includes(q)
+    );
+  }
+
+  els.queueCount.textContent = String(listAll.length);
+  els.queueResults.innerHTML = "";
+
+  if(listAll.length === 0){
+    els.queueResults.innerHTML = `<div style="color:var(--muted)">Queue is empty.</div>`;
+    return;
+  }
+
+  list.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "resultItem";
+    div.innerHTML = `
+      <div class="big">Item #${escapeHtml(item.job)}</div>
+      ${item.mo ? `<div class="meta">MO: <b>${escapeHtml(item.mo)}</b></div>` : ``}
+      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${escapeHtml(item.status||"—")}</div>
+      <div class="btnRow" style="margin-top:10px;">
+        <button class="primary" data-move-lane="1">Move to Lane…</button>
+      </div>
+    `;
+
+    // move prompt to lane
+    const btn = div.querySelector("[data-move-lane]");
+    btn.addEventListener("click", async () => {
+      const lane = await uiPrompt("Move From Queue", `Move Item #${item.job} to which lane?`, {
+        placeholder: "Lane # (1-12)",
+        hint: "Example: 7",
+        mask: false
+      });
+      if(lane === null) return;
+      const n = parseInt(String(lane).trim(), 10);
+      if(!Number.isFinite(n) || n < 1 || n > 12){
+        await uiAlert("Invalid Lane", "Lane must be 1–12.");
+        return;
+      }
+      await moveToLane(item.id, `Lane ${n}`);
+      await loadInventory();
+      renderQueue();
+    });
+
+    els.queueResults.appendChild(div);
+  });
 }
 
 // ====== SCAN POPUP ======
@@ -2125,6 +2325,12 @@ els.saveBtn.addEventListener("click", upsertItem);
 els.newBtn.addEventListener("click", clearForm);
 els.deleteBtn.addEventListener("click", deleteSelected);
 
+// ===== QR + QUEUE EVENTS =====
+if (els.genJobQrBtn) els.genJobQrBtn.addEventListener("click", generateJobQr);
+if (els.downloadJobQrBtn) els.downloadJobQrBtn.addEventListener("click", downloadJobQr);
+if (els.queueJobBtn) els.queueJobBtn.addEventListener("click", queueCurrentJob);
+if (els.queueSearch) els.queueSearch.addEventListener("input", renderQueue);
+
 // Undo
 document.getElementById("undoBtn").addEventListener("click", performUndo);
 
@@ -2189,6 +2395,7 @@ window.initApp = async function initApp() {
     renderLaneList();
     renderMachineList();
     renderGlobalSearch();
+    renderQueue();
 
     console.log("✅ ADMIN INIT COMPLETE");
   } catch (err) {
