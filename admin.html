@@ -1639,7 +1639,7 @@ function downloadJobQr(){
 
   const padding = 24;
   const labelHeight = 40;
-  const logoHeight = 60;
+  const logoHeight = 70;
   const gap = 12;
 
   const totalWidth = qrCanvas.width + padding * 2;
@@ -1650,28 +1650,28 @@ function downloadJobQr(){
   out.height = totalHeight;
   const ctx = out.getContext("2d");
 
-  // Background
-  ctx.fillStyle = "#0f1115";
+  // White background
+  ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, out.width, out.height);
 
   // Draw QR code
   const qrY = padding + logoHeight + gap;
   ctx.drawImage(qrCanvas, padding, qrY);
 
-  // Draw item number below QR
-  ctx.fillStyle = "#ffffff";
+  // Item number below QR — black text
+  ctx.fillStyle = "#000000";
   ctx.font = "bold 18px Arial";
   ctx.textAlign = "center";
   ctx.fillText(`Item # ${job}`, totalWidth / 2, qrY + qrCanvas.height + gap + 22);
 
-  // Draw logo above QR
+  // Logo — full width of QR code
   const logo = new Image();
   logo.crossOrigin = "anonymous";
   logo.src = "./trace-logo.png.png";
   logo.onload = () => {
-    const logoAspect = logo.naturalWidth / logo.naturalHeight;
-    const logoW = logoHeight * logoAspect;
-    const logoX = (totalWidth - logoW) / 2;
+    // Stretch logo to match QR width
+    const logoW = qrCanvas.width;
+    const logoX = padding;
     ctx.drawImage(logo, logoX, padding, logoW, logoHeight);
 
     const a = document.createElement("a");
@@ -1680,14 +1680,12 @@ function downloadJobQr(){
     a.click();
   };
   logo.onerror = () => {
-    // If logo fails to load just download without it
     const a = document.createElement("a");
     a.download = `TRACE_JOB_${job}.png`;
     a.href = out.toDataURL("image/png");
     a.click();
   };
 }
-
 async function queueCurrentJob(){
   const admin = (role === "admin" && adminUnlocked);
   if(!admin){
