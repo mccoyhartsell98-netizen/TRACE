@@ -921,6 +921,24 @@
       border-radius:12px;
     }
 
+    .appPage{
+  position:fixed;
+  inset:0;
+  background:var(--bg);
+  z-index:500;
+  overflow-y:auto;
+  padding:18px;
+}
+.pageHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:18px;
+  padding-bottom:14px;
+  border-bottom:1px solid var(--stroke);
+}
+    
    /* ===== TABS ===== */
 .tabBar{
   display:flex;
@@ -1066,10 +1084,11 @@
           <div class="sideMenuTitle">MENU</div>
           <button id="menuCloseBtn" class="ghost">✕</button>
         </div>
-        <div class="sideMenuBody">
-          <button class="ghost" id="openCompletedBtn">Completed Today</button>
-          <button class="ghost" id="openHistoryBtn">Deleted History</button>
-        </div>
+        <<div class="sideMenuBody">
+  <button class="ghost" id="openCompletedBtn">Completed Today</button>
+  <button class="ghost" id="openHistoryBtn">History</button>
+  <button class="ghost" id="openQueueBtn">Queue</button>
+</div>
       </aside>
 
       <div class="grid">
@@ -1194,6 +1213,32 @@
       </div>
     </div>
 
+     <!-- HISTORY PAGE -->
+<div id="historyPage" class="appPage hidden">
+  <div class="wrap">
+    <div class="pageHeader">
+      <button class="ghost" id="historyPageBack">← Back</button>
+      <h2 style="margin:0; font-size:18px;">Deleted History</h2>
+      <button id="clearHistoryBtn2" class="danger">Clear (keep 7 days)</button>
+    </div>
+    <input type="text" id="historySearch2" placeholder="Search deleted jobs...">
+    <div class="results" id="historyResults2" style="margin-top:10px;"></div>
+  </div>
+</div>
+
+<!-- QUEUE PAGE -->
+<div id="queuePage" class="appPage hidden">
+  <div class="wrap">
+    <div class="pageHeader">
+      <button class="ghost" id="queuePageBack">← Back</button>
+      <h2 style="margin:0; font-size:18px;">⏳ Queue</h2>
+      <div class="completedCount" id="queueCount2">0</div>
+    </div>
+    <input type="text" id="queueSearch2" placeholder="Filter queue (job, MO, status)">
+    <div id="queueResults2" class="results" style="margin-top:10px;"></div>
+  </div>
+</div>
+     
     <!-- MOVE OVERLAY -->
     <div class="overlay" id="moveOverlay">
       <div class="modal">
@@ -2354,9 +2399,18 @@ if (openCompletedBtn) {
 if (openHistoryBtn) {
   openHistoryBtn.addEventListener("click", async () => {
     closeSideMenu();
-    els.historyPanel.style.display = "block";
+    showPage("historyPage");
     await refreshHistoryFromDb();
-    renderHistory();
+    renderHistoryPage();
+  });
+}
+
+const openQueueBtn = document.getElementById("openQueueBtn");
+if(openQueueBtn){
+  openQueueBtn.addEventListener("click", () => {
+    closeSideMenu();
+    showPage("queuePage");
+    renderQueuePage();
   });
 }
 
@@ -2433,6 +2487,123 @@ function updateTabBadges(){
   buildLaneButtons();
   buildMachineButtons();
 }
+
+// ====== PAGE NAVIGATION ======
+function showPage(pageId){
+  document.getElementById("appRoot").classList.add("isHidden");
+  document.getElementById(pageId).classList.remove("hidden");
+}
+function hidePage(pageId){
+  document.getElementById(pageId).classList.add("hidden");
+  document.getElementById("appRoot").classList.remove("isHidden");
+  document.getElementById("appRoot").classList.add("isVisible");
+}
+
+// History page
+document.getElementById("historyPageBack").addEventListener("click", () => hidePage("historyPage"));
+document.getElementById("clearHistoryBtn2").addEventListener("click", async () => {
+  const ok = await uiConfirm("Clear History", "This will permanently delete deleted jobs older than 7 days.", "Clear", "Cancel");
+  if(!ok) return;
+  try{
+    await apiDelete("/deleted-items/cleanup?days=7");
+    await refreshHistoryFromDb();
+    renderHistoryPage();
+    await uiAlert("History Cleaned", "Old deleted jobs were removed.");
+  }catch(e){
+    await uiAlert("Error", "Failed to clear history.");
+  }
+});
+document.getElementById("historySearch2").addEventListener("input", renderHistoryPage);
+
+function renderHistoryPage(){
+  const q = normalize(document.getElementById("historySearch2")?.value || "");
+  let list = deletedDbCache;
+  if(q){
+    list = list.filter(x =>
+      normalize(x.job_number).includes(q) ||
+      normalize(x.description).includes(q) ||
+      normalize(x.deleted_by).includes(q) ||
+      normalize(x.delete_reason).includes(q)
+    );
+  }
+  const container = document.getElementById("historyResults2");
+  container.innerHTML = "";
+  if(list.length === 0){
+    container.innerHTML = `<div style="color:var(--muted)">No deleted jobs yet.</div>`;
+    return;
+  }
+  list.slice(0, 120).forEach(item => {
+    const lane = item.lane ? `Lane ${item.lane}` : "";
+    const mach = item.machine ? `Machine ${item.machine}` : "";
+    const from = mach || lane || "—";
+    const div = document.createElement("div");
+    div.className = "resultItem";
+    div.innerHTML = `
+      <div class="big">Job #${escapeHtml(item.job_number || "")}</div>
+      <div class="meta">${escapeHtml(item.description || "—")}</div>
+      <div class="meta">
+        Deleted: ${escapeHtml(item.deleted_at || "")}
+        ${item.deleted_by ? ` • By: ${escapeHtml(item.deleted_by)}` : ""}
+        ${item.delete_reason ? ` • Reason: ${escapeHtml(item.delete_reason)}` : ""}
+        • From: ${escapeHtml(from)}
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// Queue page
+document.getElementById("queuePageBack").addEventListener("click", () => hidePage("queuePage"));
+document.getElementById("queueSearch2").addEventListener("input", renderQueuePage);
+
+function renderQueuePage(){
+  const q = normalize(document.getElementById("queueSearch2")?.value || "");
+  const listAll = inventory.filter(x => String(x.machine || "").toUpperCase() === QUEUE_MACHINE_NAME);
+  let list = listAll;
+  if(q){
+    list = listAll.filter(x =>
+      normalize(x.job).includes(q) ||
+      normalize(x.mo).includes(q) ||
+      normalize(x.status).includes(q)
+    );
+  }
+  document.getElementById("queueCount2").textContent = String(listAll.length);
+  const container = document.getElementById("queueResults2");
+  container.innerHTML = "";
+  if(listAll.length === 0){
+    container.innerHTML = `<div style="color:var(--muted)">Queue is empty.</div>`;
+    return;
+  }
+  list.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "resultItem";
+    div.innerHTML = `
+      <div class="big">Item #${escapeHtml(item.job)}</div>
+      ${item.mo ? `<div class="meta">MO: <b>${escapeHtml(item.mo)}</b></div>` : ``}
+      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${escapeHtml(item.status||"—")}</div>
+      <div class="btnRow" style="margin-top:10px;">
+        <button class="primary" data-move-lane="1">Move to Lane…</button>
+      </div>
+    `;
+    const btn = div.querySelector("[data-move-lane]");
+    btn.addEventListener("click", async () => {
+      const lane = await uiPrompt("Move From Queue", `Move Item #${item.job} to which lane?`, {
+        placeholder: "Lane # (1-12)", hint: "Example: 7", mask: false
+      });
+      if(lane === null) return;
+      const n = parseInt(String(lane).trim(), 10);
+      if(!Number.isFinite(n) || n < 1 || n > 12){
+        await uiAlert("Invalid Lane", "Lane must be 1–12.");
+        return;
+      }
+      await moveToLane(item.id, `Lane ${n}`);
+      await loadInventory();
+      renderQueuePage();
+    });
+    container.appendChild(div);
+  });
+}
+
 // ====== BOOT ======
 window.addEventListener("DOMContentLoaded", async () => {
   wireLoginUI();
