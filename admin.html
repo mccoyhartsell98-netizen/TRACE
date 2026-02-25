@@ -1441,9 +1441,6 @@ const els = {
   queueJobBtn: document.getElementById("queueJobBtn"),
   jobQrCanvas: document.getElementById("jobQrCanvas"),
   jobQrUrlPreview: document.getElementById("jobQrUrlPreview"),
-  queueCount: document.getElementById("queueCount"),
-  queueSearch: document.getElementById("queueSearch"),
-  queueResults: document.getElementById("queueResults"),
 };
 
 // ====== HELPERS ======
@@ -1586,62 +1583,6 @@ async function queueCurrentJob(){
   await loadInventory();
   renderQueue();
   toast(`⏳ Queued: ${job}`);
-}
-
-function renderQueue(){
-  const q = normalize(els.queueSearch?.value || "");
-  const listAll = inventory.filter(x => String(x.machine || "").toUpperCase() === QUEUE_MACHINE_NAME);
-
-  let list = listAll;
-  if(q){
-    list = listAll.filter(x =>
-      normalize(x.job).includes(q) ||
-      normalize(x.mo).includes(q) ||
-      normalize(x.status).includes(q)
-    );
-  }
-
-  els.queueCount.textContent = String(listAll.length);
-  els.queueResults.innerHTML = "";
-
-  if(listAll.length === 0){
-    els.queueResults.innerHTML = `<div style="color:var(--muted)">Queue is empty.</div>`;
-    return;
-  }
-
-  list.forEach(item => {
-    const div = document.createElement("div");
-    div.className = "resultItem";
-    div.innerHTML = `
-      <div class="big">Item #${escapeHtml(item.job)}</div>
-      ${item.mo ? `<div class="meta">MO: <b>${escapeHtml(item.mo)}</b></div>` : ``}
-      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${escapeHtml(item.status||"—")}</div>
-      <div class="btnRow" style="margin-top:10px;">
-        <button class="primary" data-move-lane="1">Move to Lane…</button>
-      </div>
-    `;
-
-    // move prompt to lane
-    const btn = div.querySelector("[data-move-lane]");
-    btn.addEventListener("click", async () => {
-      const lane = await uiPrompt("Move From Queue", `Move Item #${item.job} to which lane?`, {
-        placeholder: "Lane # (1-12)",
-        hint: "Example: 7",
-        mask: false
-      });
-      if(lane === null) return;
-      const n = parseInt(String(lane).trim(), 10);
-      if(!Number.isFinite(n) || n < 1 || n > 12){
-        await uiAlert("Invalid Lane", "Lane must be 1–12.");
-        return;
-      }
-      await moveToLane(item.id, `Lane ${n}`);
-      await loadInventory();
-      renderQueue();
-    });
-
-    els.queueResults.appendChild(div);
-  });
 }
 
 // ====== SCAN POPUP ======
@@ -2320,7 +2261,6 @@ els.deleteBtn.addEventListener("click", deleteSelected);
 if (els.genJobQrBtn) els.genJobQrBtn.addEventListener("click", generateJobQr);
 if (els.downloadJobQrBtn) els.downloadJobQrBtn.addEventListener("click", downloadJobQr);
 if (els.queueJobBtn) els.queueJobBtn.addEventListener("click", queueCurrentJob);
-if (els.queueSearch) els.queueSearch.addEventListener("input", renderQueue);
 
 // Undo
 document.getElementById("undoBtn").addEventListener("click", performUndo);
@@ -2386,7 +2326,6 @@ window.initApp = async function initApp() {
     renderLaneList();
     renderMachineList();
     renderGlobalSearch();
-    renderQueue();
 
     console.log("✅ ADMIN INIT COMPLETE");
   } catch (err) {
