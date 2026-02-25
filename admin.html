@@ -1629,6 +1629,7 @@ new QRCode(container, {
   els.jobQrUrlPreview.textContent = url;
   els.downloadJobQrBtn.disabled = false;
 }
+
 function downloadJobQr(){
   const container = els.jobQrCanvas;
   if(!container) return;
@@ -1638,38 +1639,41 @@ function downloadJobQr(){
 
   const padding = 24;
   const labelHeight = 44;
-  const logoHeight = 80;
   const gap = 16;
 
-  const totalWidth = qrCanvas.width + padding * 2;
-  const totalHeight = logoHeight + gap + qrCanvas.height + gap + labelHeight + padding * 2;
-
-  const out = document.createElement("canvas");
-  out.width = totalWidth;
-  out.height = totalHeight;
-  const ctx = out.getContext("2d");
-
-  // Transparent background
-  ctx.clearRect(0, 0, out.width, out.height);
-
-  // QR code
-  const qrY = padding + logoHeight + gap;
-  ctx.drawImage(qrCanvas, padding, qrY);
-
-  // Item number — black, bold, centered below QR
-  ctx.fillStyle = "#000000";
-  ctx.font = "bold 20px Arial";
-  ctx.textAlign = "center";
-  ctx.fillText(`Item # ${job}`, totalWidth / 2, qrY + qrCanvas.height + gap + 26);
-
-  // Logo full width
   const logo = new Image();
   logo.crossOrigin = "anonymous";
   logo.src = "./trace-logo.png.png";
   logo.onload = () => {
-    const logoW = totalWidth - padding * 2;
-    const logoX = padding;
-    ctx.drawImage(logo, logoX, padding, logoW, logoHeight);
+    // Keep logo aspect ratio, fit within QR width
+    const maxLogoW = qrCanvas.width;
+    const aspect = logo.naturalWidth / logo.naturalHeight;
+    const logoW = maxLogoW;
+    const logoH = Math.round(logoW / aspect);
+
+    const totalWidth = qrCanvas.width + padding * 2;
+    const totalHeight = padding + logoH + gap + qrCanvas.height + gap + labelHeight + padding;
+
+    const out = document.createElement("canvas");
+    out.width = totalWidth;
+    out.height = totalHeight;
+    const ctx = out.getContext("2d");
+
+    // Transparent background
+    ctx.clearRect(0, 0, out.width, out.height);
+
+    // Logo — aspect ratio preserved, full QR width
+    ctx.drawImage(logo, padding, padding, logoW, logoH);
+
+    // QR code
+    const qrY = padding + logoH + gap;
+    ctx.drawImage(qrCanvas, padding, qrY);
+
+    // Item number
+    ctx.fillStyle = "#000000";
+    ctx.font = "bold 20px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(`Item # ${job}`, totalWidth / 2, qrY + qrCanvas.height + gap + 26);
 
     const a = document.createElement("a");
     a.download = `TRACE_JOB_${job}.png`;
