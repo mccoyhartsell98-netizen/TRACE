@@ -1637,22 +1637,48 @@ function downloadJobQr(){
   if(!qrCanvas){ alert("Generate a QR first."); return; }
   const job = cleanJob(els.job?.value || "JOB");
 
-  const padding = 24;
-  const labelHeight = 44;
-  const gap = 16;
-
   const logo = new Image();
   logo.crossOrigin = "anonymous";
   logo.src = "./trace-logo.png.png";
   logo.onload = () => {
-    // Keep logo aspect ratio, fit within QR width
-    const maxLogoW = qrCanvas.width;
-    const aspect = logo.naturalWidth / logo.naturalHeight;
-    const logoW = maxLogoW;
-    const logoH = Math.round(logoW / aspect);
+    // Step 1: draw logo to a temp canvas to find actual content bounds
+    const tmp = document.createElement("canvas");
+    tmp.width = logo.naturalWidth;
+    tmp.height = logo.naturalHeight;
+    const tctx = tmp.getContext("2d");
+    tctx.drawImage(logo, 0, 0);
+
+    // Step 2: scan pixels to find tight bounding box of non-black content
+    const pixels = tctx.getImageData(0, 0, tmp.width, tmp.height).data;
+    let minX = tmp.width, minY = tmp.height, maxX = 0, maxY = 0;
+    for(let y = 0; y < tmp.height; y++){
+      for(let x = 0; x < tmp.width; x++){
+        const i = (y * tmp.width + x) * 4;
+        const r = pixels[i], g = pixels[i+1], b = pixels[i+2], a = pixels[i+3];
+        // Consider pixel "visible" if it's not near-black and not transparent
+        if(a > 30 && (r > 30 || g > 30 || b > 60)){
+          if(x < minX) minX = x;
+          if(x > maxX) maxX = x;
+          if(y < minY) minY = y;
+          if(y > maxY) maxY = y;
+        }
+      }
+    }
+
+    const cropX = minX - 10;
+    const cropY = minY - 10;
+    const cropW = (maxX - minX) + 20;
+    const cropH = (maxY - minY) + 20;
+
+    // Step 3: build final canvas
+    const padding = 28;
+    const gap = 14;
+    const logoDrawH = 60;
+    const logoDrawW = Math.round(logoDrawH * (cropW / cropH));
+    const labelHeight = 44;
 
     const totalWidth = qrCanvas.width + padding * 2;
-    const totalHeight = padding + logoH + gap + qrCanvas.height + gap + labelHeight + padding;
+    const totalHeight = padding + logoDrawH + gap + qrCanvas.height + gap + labelHeight + padding;
 
     const out = document.createElement("canvas");
     out.width = totalWidth;
@@ -1662,15 +1688,16 @@ function downloadJobQr(){
     // Transparent background
     ctx.clearRect(0, 0, out.width, out.height);
 
-    // Logo — aspect ratio preserved, full QR width
-    ctx.drawImage(logo, padding, padding, logoW, logoH);
+    // Draw cropped logo centered
+    const logoX = (totalWidth - logoDrawW) / 2;
+    ctx.drawImage(tmp, cropX, cropY, cropW, cropH, logoX, padding, logoDrawW, logoDrawH);
 
-    // QR code
-    const qrY = padding + logoH + gap;
+    // Draw QR
+    const qrY = padding + logoDrawH + gap;
     ctx.drawImage(qrCanvas, padding, qrY);
 
     // Item number
-    ctx.fillStyle = "#000000";
+    ctx.fillStyle = "#111111";
     ctx.font = "bold 20px Arial";
     ctx.textAlign = "center";
     ctx.fillText(`Item # ${job}`, totalWidth / 2, qrY + qrCanvas.height + gap + 26);
@@ -1687,7 +1714,6 @@ function downloadJobQr(){
     a.click();
   };
 }
-
 async function queueCurrentJob(){
   const admin = (role === "admin" && adminUnlocked);
   if(!admin){
