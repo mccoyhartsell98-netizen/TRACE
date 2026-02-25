@@ -921,6 +921,100 @@
       border-radius:12px;
     }
 
+/* ===== ACTIVITY FEED ===== */
+.feedPanel{
+  position:fixed;
+  top:0;
+  right:0;
+  height:100vh;
+  width:min(380px, 92vw);
+  background:rgba(12,14,18,.95);
+  border-left:1px solid rgba(255,255,255,.10);
+  z-index:99997;
+  box-shadow:-20px 0 60px rgba(0,0,0,.6);
+  backdrop-filter:blur(14px);
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  transform:translateX(100%);
+  transition:transform 280ms ease;
+}
+.feedPanel.open{
+  transform:translateX(0);
+}
+.feedTop{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding-bottom:10px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  margin-bottom:12px;
+  flex:0 0 auto;
+}
+.feedTitle{
+  font-weight:900;
+  letter-spacing:.18em;
+  font-size:12px;
+  color:rgba(255,255,255,.70);
+}
+.feedLive{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:11px;
+  color:rgba(138,255,138,.85);
+  font-weight:900;
+}
+.feedLiveDot{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:rgba(138,255,138,.95);
+  box-shadow:0 0 8px rgba(138,255,138,.45);
+  animation:traceDotPulse 1.15s ease-in-out infinite;
+}
+.feedList{
+  flex:1;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(255,255,255,.18) transparent;
+}
+.feedItem{
+  background:rgba(27,32,48,.85);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:12px;
+  padding:10px 12px;
+  line-height:1.35;
+}
+.feedItem-job{
+  font-size:14px;
+  font-weight:900;
+  color:#fff;
+}
+.feedItem-loc{
+  font-size:12px;
+  color:rgba(180,205,255,.85);
+  margin-top:3px;
+}
+.feedItem-meta{
+  font-size:11px;
+  color:rgba(255,255,255,.40);
+  margin-top:4px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.feedOverlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.35);
+  z-index:99996;
+}
+
     .appPage{
   position:fixed;
   inset:0;
@@ -1068,6 +1162,7 @@
           <button id="undoBtn" class="ghost" disabled>Undo</button>
         </div>
         <div style="display:flex;gap:10px;align-items:center;">
+          <button class="ghost" id="feedBtn" title="Activity Feed">⚡ Feed</button>
           <button class="ghost" id="menuBtn" title="Menu">☰</button>
           <button class="ghost" id="logoutBtn">Logout</button>
         </div>
@@ -1244,6 +1339,23 @@
   </div>
 </div>
      
+<!-- ACTIVITY FEED OVERLAY -->
+<div id="feedOverlay" class="feedOverlay hidden"></div>
+
+<!-- ACTIVITY FEED PANEL -->
+<div id="feedPanel" class="feedPanel">
+  <div class="feedTop">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="feedTitle">ACTIVITY FEED</div>
+      <div class="feedLive"><span class="feedLiveDot"></span> LIVE</div>
+    </div>
+    <button class="ghost" id="feedCloseBtn">✕</button>
+  </div>
+  <div id="feedList" class="feedList">
+    <div style="color:var(--muted); font-size:13px;">Loading...</div>
+  </div>
+</div>
+
     <!-- MOVE OVERLAY -->
     <div class="overlay" id="moveOverlay">
       <div class="modal">
@@ -2668,6 +2780,68 @@ function renderQueuePage(){
     container.appendChild(div);
   });
 }
+
+// ====== ACTIVITY FEED ======
+let feedRefreshTimer = null;
+
+function openFeed(){
+  document.getElementById("feedPanel").classList.add("open");
+  document.getElementById("feedOverlay").classList.remove("hidden");
+  renderFeed();
+  feedRefreshTimer = setInterval(renderFeed, 30000);
+}
+
+function closeFeed(){
+  document.getElementById("feedPanel").classList.remove("open");
+  document.getElementById("feedOverlay").classList.add("hidden");
+  clearInterval(feedRefreshTimer);
+}
+
+function timeAgo(ts){
+  if(!ts) return "";
+  const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
+  if(diff < 60) return `${diff}s ago`;
+  if(diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  if(diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+  return `${Math.floor(diff/86400)}d ago`;
+}
+
+function renderFeed(){
+  const container = document.getElementById("feedList");
+  if(!container) return;
+
+  const sorted = [...inventory]
+    .filter(x => x.updatedAt)
+    .sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+    .slice(0, 50);
+
+  if(sorted.length === 0){
+    container.innerHTML = `<div style="color:var(--muted);font-size:13px;">No activity yet.</div>`;
+    return;
+  }
+
+  container.innerHTML = "";
+  sorted.forEach(item => {
+    const loc = item.machine ? `Machine ${item.machine}` : (item.lane || "Unknown");
+    const by = item.updatedBy || "Unknown";
+    const when = timeAgo(item.updatedAt);
+    const div = document.createElement("div");
+    div.className = "feedItem";
+    div.innerHTML = `
+      <div class="feedItem-job">Item #${escapeHtml(item.job)}${item.mo ? ` <span style="font-weight:400;color:var(--muted);font-size:12px;">MO: ${escapeHtml(item.mo)}</span>` : ""}</div>
+      <div class="feedItem-loc">📍 ${escapeHtml(loc)} • ${escapeHtml(item.status || "—")}</div>
+      <div class="feedItem-meta">
+        <span>👤 ${escapeHtml(by)}</span>
+        <span>${escapeHtml(when)}</span>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+document.getElementById("feedBtn").addEventListener("click", openFeed);
+document.getElementById("feedCloseBtn").addEventListener("click", closeFeed);
+document.getElementById("feedOverlay").addEventListener("click", closeFeed);
 
 // ====== BOOT ======
 window.addEventListener("DOMContentLoaded", async () => {
