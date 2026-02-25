@@ -1085,6 +1085,7 @@
               <div class="full btnRow">
                 <button class="primary" id="saveBtn">Save / Update</button>
                 <button id="newBtn">New</button>
+                <button class="primary" id="queueJobBtn">Queue</button>
                 <button class="danger" id="deleteBtn" disabled>Delete</button>
               </div>
             </div>
@@ -1094,18 +1095,10 @@
 
 <h2 style="margin-top:0;">Secure QR + Queue</h2>
 
-<div class="qrWrap" style="margin-top:10px;">
-  <div class="tiny" style="margin-bottom:10px; color:var(--muted); font-weight:800;">
-    Generates a QR that only contains a URL like:
-    <b>https://traceinventory.org/index.html?job=XXXXX</b>
-    (No job details inside the QR — details load from database after PIN.)
-  </div>
-
   <div class="btnRow">
     <button class="primary" id="genJobQrBtn">Generate Job QR</button>
     <button class="ghost" id="downloadJobQrBtn" disabled>Download PNG</button>
-    <button class="primary" id="queueJobBtn">Queue</button>
-  </div>
+</div>
 
   <div style="display:flex; justify-content:center; margin-top:12px;">
     <div id="jobQrCanvas" style="background:#fff; padding:10px; border-radius:12px; display:none;"></div>
