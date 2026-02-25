@@ -1675,7 +1675,7 @@ function downloadJobQr(){
     const gap = 14;
     const logoDrawH = 60;
     const logoDrawW = Math.round(logoDrawH * (cropW / cropH));
-    const labelHeight = 44;
+    const labelHeight = 70;
 
     const totalWidth = qrCanvas.width + padding * 2;
     const totalHeight = padding + logoDrawH + gap + qrCanvas.height + gap + labelHeight + padding;
@@ -1698,9 +1698,9 @@ function downloadJobQr(){
 
     // Item number
     ctx.fillStyle = "#111111";
-    ctx.font = "bold 20px Arial";
+    ctx.font = "bold 48px Arial";
     ctx.textAlign = "center";
-    ctx.fillText(`Item # ${job}`, totalWidth / 2, qrY + qrCanvas.height + gap + 26);
+    ctx.fillText(`${job}`, totalWidth / 2, qrY + qrCanvas.height + gap + 26);
 
     const a = document.createElement("a");
     a.download = `TRACE_JOB_${job}.png`;
