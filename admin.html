@@ -1063,7 +1063,6 @@
         </div>
         <div style="display:flex;gap:10px;align-items:center;">
           <button class="ghost" id="menuBtn" title="Menu">☰</button>
-          <button class="ghost" id="historyBtn">History</button>
           <button class="ghost" id="logoutBtn">Logout</button>
         </div>
       </div>
@@ -1542,11 +1541,7 @@ const els = {
   saveBtn: document.getElementById("saveBtn"),
   newBtn: document.getElementById("newBtn"),
   deleteBtn: document.getElementById("deleteBtn"),
-  historyBtn: document.getElementById("historyBtn"),
   clearHistoryBtn: document.getElementById("clearHistoryBtn"),
-  historyPanel: document.getElementById("historyPanel"),
-  historySearch: document.getElementById("historySearch"),
-  historyResults: document.getElementById("historyResults"),
   scanOverlay: document.getElementById("scanOverlay"),
   scanTitle: document.getElementById("scanTitle"),
   scanBody: document.getElementById("scanBody"),
@@ -2413,14 +2408,6 @@ if(openQueueBtn){
     renderQueuePage();
   });
 }
-
-// History btn (top bar)
-els.historyBtn.addEventListener("click", async () => {
-  const open = els.historyPanel.style.display !== "none";
-  els.historyPanel.style.display = open ? "none" : "block";
-  if(!open){ await refreshHistoryFromDb(); renderHistory(); }
-});
-els.historySearch.addEventListener("input", renderHistory);
 
 // Input cleanup
 els.job.addEventListener("input", () => { els.job.value = cleanJob(els.job.value); });
