@@ -1629,7 +1629,6 @@ new QRCode(container, {
   els.jobQrUrlPreview.textContent = url;
   els.downloadJobQrBtn.disabled = false;
 }
-
 function downloadJobQr(){
   const container = els.jobQrCanvas;
   if(!container) return;
@@ -1638,9 +1637,9 @@ function downloadJobQr(){
   const job = cleanJob(els.job?.value || "JOB");
 
   const padding = 24;
-  const labelHeight = 40;
-  const logoHeight = 70;
-  const gap = 12;
+  const labelHeight = 44;
+  const logoHeight = 80;
+  const gap = 16;
 
   const totalWidth = qrCanvas.width + padding * 2;
   const totalHeight = logoHeight + gap + qrCanvas.height + gap + labelHeight + padding * 2;
@@ -1650,27 +1649,25 @@ function downloadJobQr(){
   out.height = totalHeight;
   const ctx = out.getContext("2d");
 
-  // White background
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, out.width, out.height);
+  // Transparent background
+  ctx.clearRect(0, 0, out.width, out.height);
 
-  // Draw QR code
+  // QR code
   const qrY = padding + logoHeight + gap;
   ctx.drawImage(qrCanvas, padding, qrY);
 
-  // Item number below QR — black text
+  // Item number — black, bold, centered below QR
   ctx.fillStyle = "#000000";
-  ctx.font = "bold 18px Arial";
+  ctx.font = "bold 20px Arial";
   ctx.textAlign = "center";
-  ctx.fillText(`Item # ${job}`, totalWidth / 2, qrY + qrCanvas.height + gap + 22);
+  ctx.fillText(`Item # ${job}`, totalWidth / 2, qrY + qrCanvas.height + gap + 26);
 
-  // Logo — full width of QR code
+  // Logo full width
   const logo = new Image();
   logo.crossOrigin = "anonymous";
   logo.src = "./trace-logo.png.png";
   logo.onload = () => {
-    // Stretch logo to match QR width
-    const logoW = qrCanvas.width;
+    const logoW = totalWidth - padding * 2;
     const logoX = padding;
     ctx.drawImage(logo, logoX, padding, logoW, logoHeight);
 
@@ -1686,6 +1683,7 @@ function downloadJobQr(){
     a.click();
   };
 }
+
 async function queueCurrentJob(){
   const admin = (role === "admin" && adminUnlocked);
   if(!admin){
