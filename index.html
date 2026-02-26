@@ -430,8 +430,10 @@ function mapLocations(raw){
   }
 
   async function enterHub(user) {
-    const label = user.display_name || user.name || (user.role ? user.role.toUpperCase() : "USER");
-    $("hubUser").textContent = label;
+    const name = user.display_name || user.name || (user.role ? user.role.toUpperCase() : "USER");
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? "Good Morning" : hour < 17 ? "Good Afternoon" : "Good Evening";
+    $("hubUser").textContent = `${greeting}, ${name}!`;
     $("hubAdmin").style.display = (user.role === "admin") ? "block" : "none";
     setStatus("UNLOCKED");
     showHub();
