@@ -1348,7 +1348,6 @@
         <span style="font-size:12px;color:rgba(138,255,138,.85);font-weight:900;">LIVE</span>
       </div>
     </div>
-    <input type="text" id="feedSearch" placeholder="Search by item #, MO, or user...">
     <div id="feedResults" style="margin-top:12px;"></div>
   </div>
 </div>
@@ -2943,15 +2942,6 @@ function renderFeedPage(){
 
 document.getElementById("feedPageBack").addEventListener("click", () => hidePage("feedPage"));
 document.getElementById("feedSearch").addEventListener("input", renderFeedPage);
-
-const openFeedBtn = document.getElementById("openFeedBtn");
-if(openFeedBtn){
-  openFeedBtn.addEventListener("click", () => {
-    closeSideMenu();
-    showPage("feedPage");
-    renderFeedPage();
-  });
-}
 
 // ====== MOVE NOTIFICATION ======
 let notifTimer = null;
