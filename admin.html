@@ -619,6 +619,29 @@
       text-transform:uppercase;
     }
 
+/* ===== USER MANAGEMENT ===== */
+    .userTable{width:100%;border-collapse:collapse;margin-top:10px;}
+    .userTable th{text-align:left;padding:10px 12px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--stroke);font-weight:900;}
+    .userTable td{padding:12px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:14px;vertical-align:middle;}
+    .userTable tr:last-child td{border-bottom:none;}
+    .userTable tr:hover td{background:rgba(255,255,255,.02);}
+    .rolePill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:900;}
+    .rolePill.driver{background:rgba(58,122,254,.18);border:1px solid rgba(58,122,254,.35);color:rgba(180,205,255,.9);}
+    .rolePill.supervisor{background:rgba(255,209,102,.14);border:1px solid rgba(255,209,102,.35);color:rgba(255,230,140,.9);}
+    .rolePill.admin{background:rgba(138,255,138,.12);border:1px solid rgba(138,255,138,.30);color:rgba(138,255,138,.9);}
+    .userFormCard{background:var(--panel2);border:1px solid var(--stroke);border-radius:12px;padding:16px;margin-bottom:16px;}
+    .userFormCard h3{margin:0 0 14px 0;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:900;}
+    .pinGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;}
+    .pinKey{padding:16px 10px;font-size:20px;font-weight:900;border-radius:12px;border:1px solid var(--stroke);background:rgba(255,255,255,.04);color:var(--text);cursor:pointer;text-align:center;user-select:none;transition:background 100ms;}
+    .pinKey:hover{background:rgba(58,122,254,.18);border-color:rgba(58,122,254,.45);}
+    .pinKey:active{transform:scale(.96);}
+    .pinKey.del{font-size:16px;background:rgba(255,107,107,.08);}
+    .pinKey.del:hover{background:rgba(255,107,107,.18);}
+    .pinDisplay{display:flex;gap:12px;justify-content:center;margin:14px 0 4px;}
+    .pinDot{width:16px;height:16px;border-radius:50%;border:2px solid rgba(58,122,254,.45);background:transparent;transition:background 120ms;}
+    .pinDot.filled{background:rgba(58,122,254,.9);border-color:rgba(58,122,254,.9);box-shadow:0 0 10px rgba(58,122,254,.4);}
+    .userActionsRow{display:flex;gap:8px;flex-wrap:wrap;}
+
     @media (max-width: 980px){
       body{overflow:auto;}
       .wrap{height:auto;}
@@ -1214,6 +1237,7 @@
   <button class="ghost" id="openHistoryBtn">History</button>
   <button class="ghost" id="openQueueBtn">Queue</button>
   <button class="ghost" id="openFeedBtn">Activity Feed</button>
+  <button class="ghost" id="openUsersBtn">User Management</button>
 </div>
       </aside>
 
@@ -1378,6 +1402,93 @@
     </div>
     <input type="text" id="feedSearch" placeholder="Search by item #, MO, or user...">
     <div id="feedResults" style="margin-top:12px;"></div>
+  </div>
+</div>
+
+<!-- USERS PAGE -->
+<div id="usersPage" class="appPage hidden">
+  <div class="wrap" style="max-width:900px;">
+    <div class="pageHeader">
+      <button class="ghost" id="usersPageBack">← Back</button>
+      <h2 style="margin:0;font-size:18px;">👤 User Management</h2>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="userCount" class="completedCount">0</span>
+        <span style="font-size:12px;color:var(--muted);">accounts</span>
+      </div>
+    </div>
+
+    <!-- CREATE / EDIT FORM -->
+    <div class="userFormCard" id="userFormCard">
+      <h3 id="userFormTitle">Create New Account</h3>
+      <div class="formGrid">
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">Full Name *</label>
+          <input id="uName" type="text" placeholder="e.g. John Smith">
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">Badge ID *</label>
+          <input id="uBadge" type="text" placeholder="e.g. FD-001">
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">Role *</label>
+          <select id="uRole" style="padding:14px;font-size:16px;border-radius:10px;border:1px solid var(--stroke);background:var(--panel2);color:var(--text);outline:none;width:100%;">
+            <option value="driver">Forklift Driver</option>
+            <option value="supervisor">Supervisor</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">4-Digit PIN *</label>
+          <div class="pinDisplay" id="pinDisplay">
+            <div class="pinDot" id="pd0"></div>
+            <div class="pinDot" id="pd1"></div>
+            <div class="pinDot" id="pd2"></div>
+            <div class="pinDot" id="pd3"></div>
+          </div>
+          <div class="pinGrid">
+            <div class="pinKey" data-pin="1">1</div>
+            <div class="pinKey" data-pin="2">2</div>
+            <div class="pinKey" data-pin="3">3</div>
+            <div class="pinKey" data-pin="4">4</div>
+            <div class="pinKey" data-pin="5">5</div>
+            <div class="pinKey" data-pin="6">6</div>
+            <div class="pinKey" data-pin="7">7</div>
+            <div class="pinKey" data-pin="8">8</div>
+            <div class="pinKey" data-pin="9">9</div>
+            <div class="pinKey del" data-pin="clear">✕ Clear</div>
+            <div class="pinKey" data-pin="0">0</div>
+            <div class="pinKey del" data-pin="back">⌫</div>
+          </div>
+        </div>
+      </div>
+      <div class="btnRow" style="margin-top:16px;">
+        <button class="primary" id="saveUserBtn">Save Account</button>
+        <button class="ghost" id="cancelUserEditBtn" style="display:none;">Cancel Edit</button>
+      </div>
+      <div id="userFormMsg" style="margin-top:10px;font-size:13px;min-height:18px;color:var(--muted);"></div>
+    </div>
+
+    <!-- USER TABLE -->
+    <input type="text" id="userSearch" placeholder="Search by name, badge, or role..." style="margin-bottom:12px;">
+    <div style="background:var(--panel);border:1px solid var(--stroke);border-radius:12px;overflow:hidden;">
+      <table class="userTable" id="userTable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Badge ID</th>
+            <th>Role</th>
+            <th>PIN</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="userTableBody"></tbody>
+      </table>
+      <div id="userEmptyState" class="emptyState">
+        <div class="emptyState-icon">👤</div>
+        <div class="emptyState-title">No Accounts Yet</div>
+        <div class="emptyState-sub">Create your first forklift driver or supervisor account above.</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -3089,6 +3200,213 @@ document.getElementById("addLocationSaveBtn").addEventListener("click", async ()
     btn.disabled = false;
     btn.textContent = "Add Location";
   }
+});
+
+// ====== USER MANAGEMENT ======
+let usersList = [];
+let editingUserId = null;
+let currentPin = "";
+const USERS_STORAGE_KEY = "trace_users_v1";
+
+function loadUsersFromStorage(){
+  try{ const r = localStorage.getItem(USERS_STORAGE_KEY); return r ? JSON.parse(r) : []; }
+  catch(e){ return []; }
+}
+function saveUsersToStorage(list){
+  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(list));
+}
+
+async function loadUsers(){
+  try{
+    const data = await apiGet("/users");
+    usersList = (Array.isArray(data) ? data : (data.users || data.rows || [])).map(u => ({
+      id: String(u.id || u.user_id || Math.random()),
+      name: u.name || u.full_name || "",
+      badge: u.badge || u.badge_id || "",
+      role: u.role || "driver",
+      pin: u.pin || ""
+    }));
+  } catch(e){
+    usersList = loadUsersFromStorage();
+    console.warn("Using localStorage for users:", e.message);
+  }
+}
+
+function rolePillHtml(role){
+  const labels = { driver:"Forklift Driver", supervisor:"Supervisor", admin:"Admin" };
+  return `<span class="rolePill ${role}">${labels[role] || role}</span>`;
+}
+
+function renderUsersPage(){
+  const q = (document.getElementById("userSearch")?.value || "").toLowerCase();
+  const tbody = document.getElementById("userTableBody");
+  const empty = document.getElementById("userEmptyState");
+  const countEl = document.getElementById("userCount");
+  if(!tbody) return;
+
+  let list = usersList;
+  if(q) list = list.filter(u =>
+    u.name.toLowerCase().includes(q) ||
+    u.badge.toLowerCase().includes(q) ||
+    u.role.toLowerCase().includes(q)
+  );
+
+  if(countEl) countEl.textContent = String(usersList.length);
+  tbody.innerHTML = "";
+
+  if(usersList.length === 0){
+    if(empty) empty.style.display = "flex";
+    return;
+  }
+  if(empty) empty.style.display = "none";
+
+  list.forEach(u => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><b>${escapeHtml(u.name)}</b></td>
+      <td style="color:var(--muted);font-weight:700;">${escapeHtml(u.badge)}</td>
+      <td>${rolePillHtml(u.role)}</td>
+      <td><span style="letter-spacing:4px;font-size:18px;color:var(--muted);">••••</span></td>
+      <td>
+        <div class="userActionsRow">
+          <button class="ghost" style="font-size:12px;padding:6px 10px;" data-edit="${escapeHtml(u.id)}">✏️ Edit</button>
+          <button class="danger" style="font-size:12px;padding:6px 10px;" data-del="${escapeHtml(u.id)}">🗑 Delete</button>
+        </div>
+      </td>`;
+    tr.querySelector("[data-edit]").addEventListener("click", () => startEditUser(u.id));
+    tr.querySelector("[data-del]").addEventListener("click", () => deleteUser(u.id));
+    tbody.appendChild(tr);
+  });
+}
+
+function startEditUser(id){
+  const u = usersList.find(x => x.id === id);
+  if(!u) return;
+  editingUserId = id;
+  currentPin = "";
+  document.getElementById("uName").value = u.name;
+  document.getElementById("uBadge").value = u.badge;
+  document.getElementById("uRole").value = u.role;
+  document.getElementById("userFormTitle").textContent = `Edit: ${u.name}`;
+  document.getElementById("cancelUserEditBtn").style.display = "inline-block";
+  document.getElementById("saveUserBtn").textContent = "💾 Update Account";
+  document.getElementById("userFormMsg").textContent = "Leave PIN blank to keep current PIN.";
+  document.getElementById("userFormMsg").style.color = "var(--warn)";
+  updatePinDisplay();
+  document.getElementById("userFormCard").scrollIntoView({ behavior:"smooth" });
+}
+
+function cancelUserEdit(){
+  editingUserId = null;
+  currentPin = "";
+  document.getElementById("uName").value = "";
+  document.getElementById("uBadge").value = "";
+  document.getElementById("uRole").value = "driver";
+  document.getElementById("userFormTitle").textContent = "Create New Account";
+  document.getElementById("cancelUserEditBtn").style.display = "none";
+  document.getElementById("saveUserBtn").textContent = "💾 Save Account";
+  document.getElementById("userFormMsg").textContent = "";
+  updatePinDisplay();
+}
+
+function updatePinDisplay(){
+  for(let i=0;i<4;i++){
+    const dot = document.getElementById(`pd${i}`);
+    if(dot) dot.classList.toggle("filled", i < currentPin.length);
+  }
+}
+
+function handlePinKey(key){
+  if(key === "clear"){ currentPin = ""; }
+  else if(key === "back"){ currentPin = currentPin.slice(0,-1); }
+  else if(currentPin.length < 4){ currentPin += key; }
+  updatePinDisplay();
+}
+
+async function saveUser(){
+  const name  = (document.getElementById("uName")?.value || "").trim();
+  const badge = (document.getElementById("uBadge")?.value || "").trim();
+  const role  = document.getElementById("uRole")?.value || "driver";
+  const msgEl = document.getElementById("userFormMsg");
+
+  if(!name){  msgEl.textContent = "⚠️ Full name is required."; msgEl.style.color="var(--bad)"; return; }
+  if(!badge){ msgEl.textContent = "⚠️ Badge ID is required.";  msgEl.style.color="var(--bad)"; return; }
+
+  const dupBadge = usersList.find(u => u.badge.toLowerCase() === badge.toLowerCase() && u.id !== editingUserId);
+  if(dupBadge){ msgEl.textContent = `⚠️ Badge ID "${badge}" already belongs to ${dupBadge.name}.`; msgEl.style.color="var(--bad)"; return; }
+
+  if(!editingUserId && currentPin.length !== 4){
+    msgEl.textContent = "⚠️ Please enter a full 4-digit PIN."; msgEl.style.color="var(--bad)"; return;
+  }
+  if(editingUserId && currentPin.length > 0 && currentPin.length < 4){
+    msgEl.textContent = "⚠️ PIN must be exactly 4 digits."; msgEl.style.color="var(--bad)"; return;
+  }
+
+  const btn = document.getElementById("saveUserBtn");
+  btn.disabled = true;
+
+  const existingPin = usersList.find(u => u.id === editingUserId)?.pin || "";
+  const finalPin = currentPin.length === 4 ? currentPin : existingPin;
+
+  const newUser = {
+    id: editingUserId || ("u_" + Date.now()),
+    name, badge, role, pin: finalPin
+  };
+
+  // Try API, fall back to localStorage
+  try{
+    if(editingUserId) await apiPut(`/users/${editingUserId}`, { name, badge_id:badge, role, pin:finalPin });
+    else await apiPost("/users", { name, badge_id:badge, role, pin:finalPin });
+  }catch(e){ console.warn("API /users not available, using localStorage"); }
+
+  if(editingUserId){
+    const idx = usersList.findIndex(u => u.id === editingUserId);
+    if(idx >= 0) usersList[idx] = newUser;
+  } else {
+    usersList.push(newUser);
+  }
+  saveUsersToStorage(usersList);
+
+  msgEl.textContent = editingUserId ? "✅ Account updated!" : "✅ Account created!";
+  msgEl.style.color = "var(--good)";
+  setTimeout(() => { msgEl.textContent = ""; }, 2500);
+
+  const wasEditing = editingUserId;
+  cancelUserEdit();
+  renderUsersPage();
+  btn.disabled = false;
+  toast(wasEditing ? `✅ Updated ${name}` : `✅ Created ${name}`);
+}
+
+async function deleteUser(id){
+  const u = usersList.find(x => x.id === id);
+  if(!u) return;
+  const ok = await uiConfirm("Delete Account", `Delete account for ${u.name} (Badge: ${u.badge})?\n\nThis cannot be undone.`, "Delete", "Cancel");
+  if(!ok) return;
+  try{ await apiDelete(`/users/${id}`); }catch(e){}
+  usersList = usersList.filter(x => x.id !== id);
+  saveUsersToStorage(usersList);
+  renderUsersPage();
+  toast(`🗑 Deleted ${u.name}`);
+}
+
+// Wire PIN keypad
+document.querySelectorAll(".pinKey").forEach(btn => {
+  btn.addEventListener("click", () => handlePinKey(btn.dataset.pin));
+});
+
+// Wire user form buttons
+document.getElementById("saveUserBtn").addEventListener("click", saveUser);
+document.getElementById("cancelUserEditBtn").addEventListener("click", cancelUserEdit);
+document.getElementById("userSearch").addEventListener("input", renderUsersPage);
+
+// Wire page navigation
+document.getElementById("usersPageBack").addEventListener("click", () => hidePage("usersPage"));
+document.getElementById("openUsersBtn").addEventListener("click", async () => {
+  closeSideMenu();
+  showPage("usersPage");
+  await loadUsers();
+  renderUsersPage();
 });
 
 // ====== BOOT ======
