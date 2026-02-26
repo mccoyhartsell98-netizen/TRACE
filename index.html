@@ -103,9 +103,12 @@
 
         <!-- PIN GATE -->
         <div id="viewPin">
-          <div style="font-weight:900;">Enter PIN</div>
-          <div class="pinDots" id="pinDots">______</div>
-
+  <div style="font-weight:900;">Select Your Name</div>
+  <select id="userSelect" style="width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:12px;font-weight:700;outline:none;margin:10px 0 14px;font-size:15px;">
+    <option value="">Loading...</option>
+  </select>
+  <div style="font-weight:900;">Enter PIN</div>
+  <div class="pinDots" id="pinDots">______</div>
           <div class="grid" id="pinPad">
             <button class="btn" data-d="1">1</button>
             <button class="btn" data-d="2">2</button>
@@ -486,18 +489,22 @@ function mapLocations(raw){
   $("pinClear").onclick = () => { pinBuf = ""; renderPinDots(); };
 
   $("pinSubmit").onclick = async () => {
-    $("pinMsg").textContent = "Checking...";
-    try {
-      if (!/^\d{4}$/.test(pinBuf)) { $("pinMsg").textContent = "PIN must be 4 digits"; return; }
-      const data = await pinLogin(pinBuf);
-      saveAuth(data.token, data.user);
-      pinBuf = ""; renderPinDots();
-      $("pinMsg").textContent = "";
-      enterHub(data.user);
-    } catch(err) {
-      $("pinMsg").textContent = err?.error || "Invalid PIN";
-    }
-  };
+  if (!/^\d{4}$/.test(pinBuf)) {
+    $("pinMsg").textContent = "PIN must be 4 digits";
+    return;
+  }
+  $("pinMsg").textContent = "Checking...";
+  try {
+    const data = await pinLogin(pinBuf);
+    saveAuth(data.token, data.user);
+    pinBuf = ""; renderPinDots();
+    $("pinMsg").textContent = "";
+    enterHub(data.user);
+  } catch(err) {
+    $("pinMsg").textContent = err?.error || "Invalid PIN";
+    pinBuf = ""; renderPinDots();
+  }
+};
 
   $("pinGoMain").onclick = () => {
     location.href = new URL(ADMIN_URL, location.href).toString();
@@ -577,10 +584,36 @@ function renderScannedCard(item) {
     document.getElementById("scannedLoc").textContent = "";
   }
 
+async function loadUserDropdown() {
+  const select = $("userSelect");
+  if (!select) return;
+  try {
+    const r = await fetch(`${API_BASE}/kiosk-users`);
+    const data = await r.json();
+    const users = Array.isArray(data) ? data : [];
+    select.innerHTML = '<option value="">— Select your name —</option>';
+    users.forEach(u => {
+      const opt = document.createElement("option");
+      opt.value = u.id;
+      opt.textContent = `${u.name} (${u.badge_id})`;
+      opt.dataset.role  = u.role;
+      opt.dataset.name  = u.name;
+      opt.dataset.badge = u.badge_id;
+      select.appendChild(opt);
+    });
+    if (users.length === 0) {
+      select.innerHTML = '<option value="">No accounts set up yet</option>';
+    }
+  } catch(e) {
+    console.warn("Could not load kiosk users:", e);
+  }
+}
+
   // Boot
   hintPayload();
   renderPinDots();
   checkApi();
+  loadUserDropdown();
 
   (async function boot() {
     await loadLocations();
