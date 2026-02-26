@@ -2336,7 +2336,6 @@ function renderLaneList(){
   if(laneItemsAll.length === 0){
     els.laneResults.innerHTML = `
       <div class="emptyState">
-        <div class="emptyState-icon">🏁</div>
         <div class="emptyState-title">Lane is Empty</div>
         <div class="emptyState-sub">No jobs currently in ${selectedLane}.</div>
       </div>`;
@@ -2963,7 +2962,6 @@ function renderQueuePage(){
   if(listAll.length === 0){
     container.innerHTML = `
       <div class="emptyState">
-        <div class="emptyState-icon">⏳</div>
         <div class="emptyState-title">Queue is Empty</div>
         <div class="emptyState-sub">Jobs added to the queue will appear here ready to be moved to a lane.</div>
       </div>`;
@@ -3276,8 +3274,8 @@ function renderUsersPage(){
       <td><span style="letter-spacing:4px;font-size:18px;color:var(--muted);">••••</span></td>
       <td>
         <div class="userActionsRow">
-          <button class="ghost" style="font-size:12px;padding:6px 10px;" data-edit="${escapeHtml(u.id)}">✏️ Edit</button>
-          <button class="danger" style="font-size:12px;padding:6px 10px;" data-del="${escapeHtml(u.id)}">🗑 Delete</button>
+          <button class="ghost" style="font-size:12px;padding:6px 10px;" data-edit="${escapeHtml(u.id)}">Edit</button>
+          <button class="danger" style="font-size:12px;padding:6px 10px;" data-del="${escapeHtml(u.id)}">Delete</button>
         </div>
       </td>`;
     tr.querySelector("[data-edit]").addEventListener("click", () => startEditUser(u.id));
