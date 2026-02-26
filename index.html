@@ -193,6 +193,31 @@
     </div>
   </div>
 
+<!-- SEARCH MODAL -->
+<div class="modal-overlay hide" id="searchModal">
+  <div class="modal">
+    <div class="modal-title">Search Job / MO</div>
+
+    <input id="searchInput" placeholder="Type job number or MO…" />
+
+    <div class="grid2" style="margin-top:10px">
+      <button class="btn" id="searchGoBtn">SEARCH</button>
+      <button class="btn secondary" id="searchCancelBtn">Cancel</button>
+    </div>
+
+    <div class="msg" id="searchMsg" style="margin-top:10px"></div>
+
+    <div class="section" id="searchResultCard" style="margin-top:12px; display:none;">
+      <div style="font-weight:900" id="searchResultLine1">—</div>
+      <div class="tiny" id="searchResultLine2">—</div>
+      <div class="grid2" style="margin-top:10px">
+        <button class="btn" id="searchLoadBtn">LOAD THIS JOB</button>
+        <button class="btn secondary" id="searchClearBtn">Clear</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
   const MAIN_TRACE_URL = "./index.html";
   const ADMIN_URL = "./admin.html";
@@ -300,6 +325,24 @@ function mapLocations(raw){
         || null;
   }
 
+async function searchAny(query){
+  const q = String(query || "").trim();
+  if(!q) return null;
+
+  // 1) Try local cache first (fast)
+  const local = findItem(q);
+  if(local) return local;
+
+  // 2) Fallback to API lookup (works even if inventory list is stale)
+  try{
+    const item = await fetchJob(q);
+    return item; // API shape handled by setActiveItemFromAnyShape
+  }catch(e){
+    return null;
+  }
+}
+
+
   function showMoveModal() {
     $("moveModal").classList.remove("hide");
     $("moveStep1").classList.remove("hide");
@@ -369,6 +412,63 @@ function mapLocations(raw){
   $("moveModal").addEventListener("click", (e) => {
     if (e.target === $("moveModal")) hideMoveModal();
   });
+
+
+$("searchCancelBtn").onclick = closeSearchModal;
+$("searchClearBtn").onclick = () => {
+  $("searchResultCard").style.display = "none";
+  $("searchMsg").textContent = "";
+  pendingSearchItem = null;
+};
+
+$("searchModal").addEventListener("click", (e) => {
+  if (e.target === $("searchModal")) closeSearchModal();
+});
+
+$("searchGoBtn").onclick = async () => {
+  const q = $("searchInput").value.trim();
+  if(!q){
+    $("searchMsg").textContent = "Type a job number or MO.";
+    return;
+  }
+
+  $("searchMsg").textContent = "Searching…";
+  const found = await searchAny(q);
+
+  if(!found){
+    $("searchMsg").textContent = "Not found in TRACE.";
+    $("searchResultCard").style.display = "none";
+    pendingSearchItem = null;
+    return;
+  }
+
+  pendingSearchItem = found;
+  $("searchMsg").textContent = "";
+
+  // Build a nice preview
+  const job = (found.job ?? found.job_number ?? "—");
+  const mo  = (found.mo ?? "—");
+  const qty = (found.qty ?? "—");
+  const lane = found.lane ? (String(found.lane).includes("Lane") ? found.lane : `Lane ${found.lane}`) : "";
+  const machine = found.machine ? `Machine ${found.machine}` : "";
+  const where = [lane, machine].filter(Boolean).join(" • ") || "No location";
+
+  $("searchResultLine1").textContent = `Job ${job} • MO ${mo} • QTY ${qty}`;
+  $("searchResultLine2").textContent = where;
+  $("searchResultCard").style.display = "block";
+};
+
+$("searchLoadBtn").onclick = async () => {
+  if(!pendingSearchItem) return;
+  setActiveItemFromAnyShape(pendingSearchItem);
+
+  // refresh caches so move/location lookups stay accurate
+  await loadLocations();
+  await loadInventory();
+
+  closeSearchModal();
+  showToast("✓ Job loaded");
+};
 
   async function checkApi() {
     try {
@@ -515,13 +615,61 @@ function mapLocations(raw){
   // Hub buttons
   $("hubLogout").onclick = () => { clearAuth(); backToPin("Logged out."); };
   $("hubMove").onclick = showMoveModal;
-  $("hubSearch").onclick = () => { goToMain({ intent: "search" }); };
+  $("hubSearch").onclick = () => { openSearchModal(); };
   $("hubAdmin").onclick = () => {
     location.href = new URL(ADMIN_URL, location.href).toString();
   };
 
   // Scanned job helpers
   let activeItem = null;
+
+let pendingSearchItem = null;
+
+function openSearchModal(){
+  $("searchModal").classList.remove("hide");
+  $("searchMsg").textContent = "";
+  $("searchInput").value = "";
+  $("searchResultCard").style.display = "none";
+  pendingSearchItem = null;
+  setTimeout(() => $("searchInput").focus(), 50);
+}
+
+function closeSearchModal(){
+  $("searchModal").classList.add("hide");
+}
+
+function setActiveItemFromAnyShape(it){
+  // supports both shapes:
+  // - inventory-mapped: { id, job, mo, qty, status, lane, machine }
+  // - api lookup:       { id, job_number, mo, qty, status, lane, machine, position }
+  const job = String(it.job ?? it.job_number ?? "").trim().toUpperCase();
+  const mo  = String(it.mo ?? "").trim().toUpperCase();
+  const qty = (it.qty ?? "-");
+  const status = it.status ?? "—";
+
+  // Normalize lane/machine display if present
+  const lane = it.lane ? (String(it.lane).includes("Lane") ? String(it.lane) : `Lane ${it.lane}`) : "";
+  const machine = it.machine ? String(it.machine) : "";
+
+  activeItem = {
+    id: it.id ?? it.item_id ?? it.itemId,
+    job,
+    mo,
+    qty,
+    status,
+    lane,
+    machine
+  };
+
+  const loc = activeItem.machine ? `Machine ${activeItem.machine}` : (activeItem.lane || "Unknown");
+  $("scanLine").textContent = `Job ${activeItem.job} • MO ${activeItem.mo || "-"} • QTY ${activeItem.qty ?? "-"} • ${loc}`;
+  $("jobCardStatus").textContent = activeItem.status || "—";
+
+  // Persist into URL so refresh keeps it (no reload, no auth loss)
+  const url = new URL(location.href);
+  url.searchParams.set("job", activeItem.job);
+  history.replaceState({}, "", url.toString());
+}
 
   function formatLoc(it) {
     if (!it) return "Unknown";
