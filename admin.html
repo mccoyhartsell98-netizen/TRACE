@@ -1375,21 +1375,6 @@
         <span style="font-size:12px;color:rgba(138,255,138,.85);font-weight:900;">LIVE</span>
       </div>
     </div>
-    <div id="feedResults" style="margin-top:12px;"></div>
-  </div>
-</div>
-
-<!-- ACTIVITY FEED PAGE -->
-<div id="feedPage" class="appPage hidden">
-  <div class="wrap">
-    <div class="pageHeader">
-      <button class="ghost" id="feedPageBack">← Back</button>
-      <h2 style="margin:0; font-size:18px;">⚡ Activity Feed</h2>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div style="width:8px;height:8px;border-radius:50%;background:rgba(138,255,138,.95);box-shadow:0 0 8px rgba(138,255,138,.45);animation:traceDotPulse 1.15s ease-in-out infinite;"></div>
-        <span style="font-size:12px;color:rgba(138,255,138,.85);font-weight:900;">LIVE</span>
-      </div>
-    </div>
     <input type="text" id="feedSearch" placeholder="Search by item #, MO, or user...">
     <div id="feedResults" style="margin-top:12px;"></div>
   </div>
@@ -2109,16 +2094,9 @@ function renderHistory(){
       normalize(x.delete_reason).includes(q)
     );
   }
+  if(!els.historyResults) return;
   els.historyResults.innerHTML = "";
-  if(list.length === 0){
-    container.innerHTML = `
-      <div class="emptyState">
-        <div class="emptyState-icon">🗂️</div>
-        <div class="emptyState-title">No Deleted Jobs</div>
-        <div class="emptyState-sub">Deleted jobs will appear here. History is kept for 30 days.</div>
-      </div>`;
-    return;
-  }
+  if(list.length === 0) return;
   list.slice(0, 120).forEach(item => {
     const lane = item.lane ? `Lane ${item.lane}` : "";
     const mach = item.machine ? `Machine ${item.machine}` : "";
@@ -2138,22 +2116,6 @@ function renderHistory(){
     els.historyResults.appendChild(div);
   });
 }
-
-if (els.clearHistoryBtn) {
-  els.clearHistoryBtn.addEventListener("click", async () => {
-    const ok = await uiConfirm("Clear History", "This will permanently delete deleted jobs older than 7 days.", "Clear", "Cancel");
-    if (!ok) return;
-    try {
-      await apiDelete("/deleted-items/cleanup?days=7");
-      await refreshHistoryFromDb();
-      renderHistory();
-      await uiAlert("History Cleaned", "Old deleted jobs were removed.");
-    } catch (e) {
-      await uiAlert("Error", "Failed to clear history.");
-    }
-  });
-}
-
 // ====== BUTTON BUILDERS ======
 function buildLaneButtons(){
   els.laneGrid.innerHTML = "";
@@ -2419,7 +2381,7 @@ async function deleteSelected(){
     renderLaneList();
     renderMachineList();
     renderGlobalSearch();
-    if(els.historyPanel.style.display !== "none"){ await refreshHistoryFromDb(); renderHistory(); }
+    await refreshHistoryFromDb();
   }catch(err){
     console.error("DELETE FAILED", err);
     let msg = "Delete failed. ";
@@ -2735,7 +2697,7 @@ updateTabBadges();
       renderGlobalSearch();
       updateTabBadges();
     }, 60000);
-  } catch (err) { {
+  } catch (err) { 
     console.error("❌ Init failed:", err);
     els.globalResults.innerHTML = `
       <div style="color:var(--bad); font-weight:900;">API / INIT ERROR</div>
@@ -2962,69 +2924,6 @@ if(openFeedBtn){
     renderFeedPage();
   });
 }
-
-// ====== ACTIVITY FEED PAGE ======
-function timeAgo(ts){
-  if(!ts) return "";
-  const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
-  if(diff < 60) return `${diff}s ago`;
-  if(diff < 3600) return `${Math.floor(diff/60)}m ago`;
-  if(diff < 86400) return `${Math.floor(diff/3600)}h ago`;
-  return `${Math.floor(diff/86400)}d ago`;
-}
-
-function renderFeedPage(){
-  const q = normalize(document.getElementById("feedSearch")?.value || "");
-  const container = document.getElementById("feedResults");
-  if(!container) return;
-
-  let sorted = [...inventory]
-    .filter(x => x.updatedAt)
-    .sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-
-  if(q){
-    sorted = sorted.filter(x =>
-      normalize(x.job).includes(q) ||
-      normalize(x.mo).includes(q) ||
-      normalize(x.updatedBy).includes(q)
-    );
-  }
-
-  container.innerHTML = "";
-  if(sorted.length === 0){
-    container.innerHTML = `<div style="color:var(--muted);font-size:13px;">No activity yet.</div>`;
-    return;
-  }
-
-  sorted.slice(0, 80).forEach(item => {
-    const loc = item.machine ? `Machine ${item.machine}` : (item.lane || "Unknown");
-    const by = item.updatedBy || "—";
-    const when = timeAgo(item.updatedAt);
-    const div = document.createElement("div");
-    div.className = "feedItem";
-    div.innerHTML = `
-      <div class="feedItem-job">
-        Item #${escapeHtml(item.job)}
-        ${item.mo ? `<span style="font-weight:400;color:var(--muted);font-size:12px;margin-left:8px;">MO: ${escapeHtml(item.mo)}</span>` : ""}
-      </div>
-      <div class="feedItem-loc">📍 ${escapeHtml(loc)} • <span style="color:var(--good)">${escapeHtml(item.status||"—")}</span></div>
-      <div class="feedItem-meta">
-        <span>👤 ${escapeHtml(by)}</span>
-        <span>${escapeHtml(when)}</span>
-      </div>
-    `;
-    div.addEventListener("click", () => {
-      hidePage("feedPage");
-      if(item.machine) selectMachine(item.machine);
-      else if(item.lane) selectLane(item.lane);
-      loadToForm(item.id);
-    });
-    container.appendChild(div);
-  });
-}
-
-document.getElementById("feedPageBack").addEventListener("click", () => hidePage("feedPage"));
-document.getElementById("feedSearch").addEventListener("input", renderFeedPage);
 
 // ====== MOVE NOTIFICATION ======
 let notifTimer = null;
