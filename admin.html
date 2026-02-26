@@ -1187,6 +1187,7 @@
           <button id="undoBtn" class="ghost" disabled>Undo</button>
         </div>
         <div style="display:flex;gap:10px;align-items:center;">
+          <button class="ghost" id="addLocationBtn" title="Add Lane or Machine">+</button>
           <button class="ghost" id="menuBtn" title="Menu">☰</button>
           <button class="ghost" id="logoutBtn">Logout</button>
         </div>
@@ -1392,6 +1393,38 @@
     <div class="moveNotif-progress" id="moveNotifProgress"></div>
   </div>
 </div>
+
+<!-- ADD LOCATION MODAL -->
+    <div class="overlay" id="addLocationOverlay">
+      <div class="modal" style="max-width:420px;">
+        <div class="modalTop">
+          <div class="modalTitle">Add Location</div>
+          <button class="ghost" id="addLocationCloseBtn">Close</button>
+        </div>
+        <div style="color:var(--muted);font-size:13px;margin-bottom:14px;">
+          Add a new lane or machine to the system. It will be available immediately.
+        </div>
+        <div class="formGrid">
+          <div class="full">
+            <select id="addLocationType" style="width:100%;padding:14px;font-size:16px;border-radius:10px;border:1px solid var(--stroke);background:var(--panel2);color:var(--text);outline:none;">
+              <option value="lane">Lane</option>
+              <option value="machine">Machine</option>
+            </select>
+          </div>
+          <div class="full" id="addLaneWrap">
+            <input id="addLaneNumber" type="number" min="1" max="99" placeholder="Lane number (e.g. 13)">
+          </div>
+          <div class="full hide" id="addMachineWrap">
+            <input id="addMachineName" type="text" placeholder="Machine name (e.g. S10)">
+          </div>
+        </div>
+        <div class="btnRow" style="margin-top:14px;justify-content:flex-end;">
+          <button class="ghost" id="addLocationCancelBtn">Cancel</button>
+          <button class="primary" id="addLocationSaveBtn">Add Location</button>
+        </div>
+        <div id="addLocationMsg" style="margin-top:10px;font-size:13px;color:var(--muted);min-height:18px;"></div>
+      </div>
+    </div>
 
     <!-- MOVE OVERLAY -->
     <div class="overlay" id="moveOverlay">
@@ -2974,6 +3007,89 @@ async function runAutoCleanupIfNeeded(){
     console.warn("⚠️ Auto cleanup failed:", e.message);
   }
 }
+
+// ====== ADD LOCATION ======
+document.getElementById("addLocationBtn").addEventListener("click", () => {
+  document.getElementById("addLocationOverlay").classList.add("show");
+  document.getElementById("addLocationMsg").textContent = "";
+  document.getElementById("addLaneNumber").value = "";
+  document.getElementById("addMachineName").value = "";
+  document.getElementById("addLocationType").value = "lane";
+  document.getElementById("addLaneWrap").classList.remove("hide");
+  document.getElementById("addMachineWrap").classList.add("hide");
+});
+
+document.getElementById("addLocationType").addEventListener("change", (e) => {
+  const isLane = e.target.value === "lane";
+  document.getElementById("addLaneWrap").classList.toggle("hide", !isLane);
+  document.getElementById("addMachineWrap").classList.toggle("hide", isLane);
+});
+
+function closeAddLocation(){
+  document.getElementById("addLocationOverlay").classList.remove("show");
+}
+document.getElementById("addLocationCloseBtn").addEventListener("click", closeAddLocation);
+document.getElementById("addLocationCancelBtn").addEventListener("click", closeAddLocation);
+document.getElementById("addLocationOverlay").addEventListener("click", (e) => {
+  if(e.target === document.getElementById("addLocationOverlay")) closeAddLocation();
+});
+
+document.getElementById("addLocationSaveBtn").addEventListener("click", async () => {
+  const type = document.getElementById("addLocationType").value;
+  const msg  = document.getElementById("addLocationMsg");
+  const btn  = document.getElementById("addLocationSaveBtn");
+
+  let payload = {};
+  if(type === "lane"){
+    const n = parseInt(document.getElementById("addLaneNumber").value, 10);
+    if(!Number.isFinite(n) || n < 1 || n > 99){
+      msg.textContent = "Enter a valid lane number (1–99).";
+      msg.style.color = "var(--bad)";
+      return;
+    }
+    const exists = locations.some(l => l.type === "lane" && l.laneNum === n);
+    if(exists){
+      msg.textContent = `Lane ${n} already exists.`;
+      msg.style.color = "var(--bad)";
+      return;
+    }
+    payload = { lane: n };
+  } else {
+    const name = document.getElementById("addMachineName").value.trim();
+    if(!name){
+      msg.textContent = "Enter a machine name.";
+      msg.style.color = "var(--bad)";
+      return;
+    }
+    const exists = locations.some(l => l.type === "machine" && l.machineName.toLowerCase() === name.toLowerCase());
+    if(exists){
+      msg.textContent = `Machine "${name}" already exists.`;
+      msg.style.color = "var(--bad)";
+      return;
+    }
+    payload = { machine: name };
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Adding...";
+  msg.textContent = "";
+  try{
+    await apiPost("/locations", payload);
+    await loadLocations();
+    await loadInventory();
+    buildLaneButtons();
+    buildMachineButtons();
+    updateTabBadges();
+    closeAddLocation();
+    toast(`✅ ${type === "lane" ? `Lane ${payload.lane}` : payload.machine} added`);
+  }catch(e){
+    msg.textContent = e.message || "Failed to add location.";
+    msg.style.color = "var(--bad)";
+  }finally{
+    btn.disabled = false;
+    btn.textContent = "Add Location";
+  }
+});
 
 // ====== BOOT ======
 window.addEventListener("DOMContentLoaded", async () => {
