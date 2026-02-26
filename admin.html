@@ -950,6 +950,33 @@
   justify-content:space-between;
 }
 
+/* ===== EMPTY STATES ===== */
+.emptyState{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:48px 24px;
+  text-align:center;
+  gap:12px;
+}
+.emptyState-icon{
+  font-size:52px;
+  opacity:.55;
+  line-height:1;
+}
+.emptyState-title{
+  font-size:16px;
+  font-weight:900;
+  color:var(--muted);
+}
+.emptyState-sub{
+  font-size:13px;
+  color:rgba(255,255,255,.35);
+  max-width:240px;
+  line-height:1.5;
+}
+
 /* ===== MOVE NOTIFICATION ===== */
 .moveNotif{
   position:fixed;
@@ -2084,7 +2111,12 @@ function renderHistory(){
   }
   els.historyResults.innerHTML = "";
   if(list.length === 0){
-    els.historyResults.innerHTML = `<div style="color:var(--muted)">No deleted jobs yet.</div>`;
+    container.innerHTML = `
+      <div class="emptyState">
+        <div class="emptyState-icon">🗂️</div>
+        <div class="emptyState-title">No Deleted Jobs</div>
+        <div class="emptyState-sub">Deleted jobs will appear here. History is kept for 30 days.</div>
+      </div>`;
     return;
   }
   list.slice(0, 120).forEach(item => {
@@ -2188,8 +2220,24 @@ function renderLaneList(){
   els.laneCount.textContent = `${laneItemsAll.length} items`;
   els.laneResults.innerHTML = "";
 
-  if(laneItemsAll.length === 0){ els.laneResults.innerHTML = `<div style="color:var(--muted)">Empty lane.</div>`; return; }
-  if(laneItems.length === 0){ els.laneResults.innerHTML = `<div style="color:var(--muted)">No match in this lane.</div>`; return; }
+  if(laneItemsAll.length === 0){
+    els.laneResults.innerHTML = `
+      <div class="emptyState">
+        <div class="emptyState-icon">🏁</div>
+        <div class="emptyState-title">Lane is Empty</div>
+        <div class="emptyState-sub">No jobs currently in ${selectedLane}.</div>
+      </div>`;
+    return;
+  }
+  if(laneItems.length === 0){
+    els.laneResults.innerHTML = `
+      <div class="emptyState">
+        <div class="emptyState-icon">🔍</div>
+        <div class="emptyState-title">No Match</div>
+        <div class="emptyState-sub">No jobs match your search in ${selectedLane}.</div>
+      </div>`;
+    return;
+  }
 
   laneItems.sort((a,b) => (parseInt(a.job,10)||0) - (parseInt(b.job,10)||0));
   laneItems.forEach(item => {
@@ -2216,8 +2264,24 @@ function renderMachineList(){
   els.machineCount.textContent = `${machineItemsAll.length} jobs`;
   els.machineResults.innerHTML = "";
 
-  if(machineItemsAll.length === 0){ els.machineResults.innerHTML = `<div style="color:var(--muted)">Empty machine.</div>`; return; }
-  if(machineItems.length === 0){ els.machineResults.innerHTML = `<div style="color:var(--muted)">No match on this machine.</div>`; return; }
+  if(machineItemsAll.length === 0){
+    els.machineResults.innerHTML = `
+      <div class="emptyState">
+        <div class="emptyState-icon">⚙️</div>
+        <div class="emptyState-title">Machine is Empty</div>
+        <div class="emptyState-sub">No jobs currently on ${selectedMachine}.</div>
+      </div>`;
+    return;
+  }
+  if(machineItems.length === 0){
+    els.machineResults.innerHTML = `
+      <div class="emptyState">
+        <div class="emptyState-icon">🔍</div>
+        <div class="emptyState-title">No Match</div>
+        <div class="emptyState-sub">No jobs match your search on ${selectedMachine}.</div>
+      </div>`;
+    return;
+  }
 
   machineItems.sort((a,b) => (parseInt(a.job,10)||0) - (parseInt(b.job,10)||0));
   machineItems.forEach(item => {
@@ -2662,7 +2726,16 @@ renderGlobalSearch();
 updateTabBadges();
 
     console.log("✅ ADMIN INIT COMPLETE");
-  } catch (err) {
+    runAutoCleanupIfNeeded();
+    setInterval(async () => {
+      await loadLocations();
+      await loadInventory();
+      renderLaneList();
+      renderMachineList();
+      renderGlobalSearch();
+      updateTabBadges();
+    }, 60000);
+  } catch (err) { {
     console.error("❌ Init failed:", err);
     els.globalResults.innerHTML = `
       <div style="color:var(--bad); font-weight:900;">API / INIT ERROR</div>
@@ -2775,7 +2848,12 @@ function renderQueuePage(){
   const container = document.getElementById("queueResults2");
   container.innerHTML = "";
   if(listAll.length === 0){
-    container.innerHTML = `<div style="color:var(--muted)">Queue is empty.</div>`;
+    container.innerHTML = `
+      <div class="emptyState">
+        <div class="emptyState-icon">⏳</div>
+        <div class="emptyState-title">Queue is Empty</div>
+        <div class="emptyState-sub">Jobs added to the queue will appear here ready to be moved to a lane.</div>
+      </div>`;
     return;
   }
   list.forEach(item => {
@@ -2837,7 +2915,12 @@ function renderFeedPage(){
 
   container.innerHTML = "";
   if(sorted.length === 0){
-    container.innerHTML = `<div style="color:var(--muted);font-size:13px;">No activity yet.</div>`;
+    container.innerHTML = `
+      <div class="emptyState">
+        <div class="emptyState-icon">⚡</div>
+        <div class="emptyState-title">No Activity Yet</div>
+        <div class="emptyState-sub">Move events will appear here as jobs are updated across lanes and machines.</div>
+      </div>`;
     return;
   }
 
@@ -2974,6 +3057,25 @@ function showMoveNotif(job, detail){
     notif.classList.remove("show");
   }, 3200);
 }
+
+// ====== AUTO CLEANUP ======
+async function runAutoCleanupIfNeeded(){
+  const key = "trace_last_cleanup";
+  const last = localStorage.getItem(key);
+  const now = Date.now();
+  const oneDayMs = 24 * 60 * 60 * 1000;
+
+  if(last && (now - parseInt(last, 10)) < oneDayMs) return;
+
+  try{
+    await apiDelete("/deleted-items/cleanup?days=30");
+    localStorage.setItem(key, String(now));
+    console.log("✅ Auto cleanup ran — deleted items older than 30 days removed.");
+  }catch(e){
+    console.warn("⚠️ Auto cleanup failed:", e.message);
+  }
+}
+
 // ====== BOOT ======
 window.addEventListener("DOMContentLoaded", async () => {
   wireLoginUI();
