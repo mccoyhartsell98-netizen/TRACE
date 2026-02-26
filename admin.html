@@ -921,98 +921,96 @@
       border-radius:12px;
     }
 
-/* ===== ACTIVITY FEED ===== */
-.feedPanel{
-  position:fixed;
-  top:0;
-  right:0;
-  height:100vh;
-  width:min(380px, 92vw);
-  background:rgba(12,14,18,.95);
-  border-left:1px solid rgba(255,255,255,.10);
-  z-index:99997;
-  box-shadow:-20px 0 60px rgba(0,0,0,.6);
-  backdrop-filter:blur(14px);
-  padding:14px;
-  display:flex;
-  flex-direction:column;
-  transform:translateX(100%);
-  transition:transform 280ms ease;
-}
-.feedPanel.open{
-  transform:translateX(0);
-}
-.feedTop{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  padding-bottom:10px;
-  border-bottom:1px solid rgba(255,255,255,.08);
-  margin-bottom:12px;
-  flex:0 0 auto;
-}
-.feedTitle{
-  font-weight:900;
-  letter-spacing:.18em;
-  font-size:12px;
-  color:rgba(255,255,255,.70);
-}
-.feedLive{
-  display:flex;
-  align-items:center;
-  gap:6px;
-  font-size:11px;
-  color:rgba(138,255,138,.85);
-  font-weight:900;
-}
-.feedLiveDot{
-  width:7px;
-  height:7px;
-  border-radius:50%;
-  background:rgba(138,255,138,.95);
-  box-shadow:0 0 8px rgba(138,255,138,.45);
-  animation:traceDotPulse 1.15s ease-in-out infinite;
-}
-.feedList{
-  flex:1;
-  overflow-y:auto;
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-  scrollbar-width:thin;
-  scrollbar-color:rgba(255,255,255,.18) transparent;
-}
+/* ===== ACTIVITY FEED PAGE ===== */
 .feedItem{
-  background:rgba(27,32,48,.85);
-  border:1px solid rgba(255,255,255,.07);
+  background:var(--panel2);
+  border:1px solid var(--stroke);
   border-radius:12px;
-  padding:10px 12px;
-  line-height:1.35;
+  padding:12px;
+  margin-bottom:8px;
+  cursor:pointer;
 }
+.feedItem:hover{ border-color:rgba(58,122,254,.45); }
 .feedItem-job{
-  font-size:14px;
+  font-size:15px;
   font-weight:900;
   color:#fff;
 }
 .feedItem-loc{
-  font-size:12px;
+  font-size:13px;
   color:rgba(180,205,255,.85);
-  margin-top:3px;
+  margin-top:4px;
 }
 .feedItem-meta{
   font-size:11px;
   color:rgba(255,255,255,.40);
-  margin-top:4px;
+  margin-top:6px;
   display:flex;
   align-items:center;
   justify-content:space-between;
 }
-.feedOverlay{
+
+/* ===== MOVE NOTIFICATION ===== */
+.moveNotif{
   position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.35);
-  z-index:99996;
+  top:18px;
+  right:18px;
+  z-index:999999;
+  width:min(300px, calc(100vw - 36px));
+  background:rgba(12,14,18,.95);
+  border:1px solid rgba(58,122,254,.45);
+  border-radius:16px;
+  padding:14px 16px;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);
+  backdrop-filter:blur(14px);
+  transform:translateX(calc(100% + 36px));
+  opacity:0;
+  transition:transform 320ms cubic-bezier(.2,.9,.2,1), opacity 320ms ease;
+  pointer-events:none;
+}
+.moveNotif.show{
+  transform:translateX(0);
+  opacity:1;
+}
+.moveNotif-top{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:6px;
+}
+.moveNotif-title{
+  font-weight:900;
+  font-size:11px;
+  letter-spacing:.12em;
+  color:rgba(180,205,255,.9);
+  text-transform:uppercase;
+}
+.moveNotif-job{
+  font-size:16px;
+  font-weight:900;
+  color:#fff;
+}
+.moveNotif-detail{
+  font-size:12px;
+  color:rgba(255,255,255,.55);
+  margin-top:3px;
+}
+.moveNotif-bar{
+  height:2px;
+  background:rgba(58,122,254,.25);
+  border-radius:999px;
+  margin-top:10px;
+  overflow:hidden;
+}
+.moveNotif-progress{
+  height:100%;
+  width:100%;
+  background:rgba(58,122,254,.8);
+  border-radius:999px;
+}
+.moveNotif-progress.drain{
+  transition:transform 3s linear;
+  transform:translateX(-100%);
 }
 
     .appPage{
@@ -1162,7 +1160,6 @@
           <button id="undoBtn" class="ghost" disabled>Undo</button>
         </div>
         <div style="display:flex;gap:10px;align-items:center;">
-          <button class="ghost" id="feedBtn" title="Activity Feed">⚡ Feed</button>
           <button class="ghost" id="menuBtn" title="Menu">☰</button>
           <button class="ghost" id="logoutBtn">Logout</button>
         </div>
@@ -1184,10 +1181,11 @@
           <div class="sideMenuTitle">MENU</div>
           <button id="menuCloseBtn" class="ghost">✕</button>
         </div>
-        <<div class="sideMenuBody">
+        <div class="sideMenuBody">
   <button class="ghost" id="openCompletedBtn">Completed Today</button>
   <button class="ghost" id="openHistoryBtn">History</button>
   <button class="ghost" id="openQueueBtn">Queue</button>
+  <button class="ghost" id="openFeedBtn">⚡ Activity Feed</button>
 </div>
       </aside>
 
@@ -1338,21 +1336,49 @@
     <div id="queueResults2" class="results" style="margin-top:10px;"></div>
   </div>
 </div>
-     
-<!-- ACTIVITY FEED OVERLAY -->
-<div id="feedOverlay" class="feedOverlay hidden"></div>
 
-<!-- ACTIVITY FEED PANEL -->
-<div id="feedPanel" class="feedPanel">
-  <div class="feedTop">
-    <div style="display:flex;align-items:center;gap:10px;">
-      <div class="feedTitle">ACTIVITY FEED</div>
-      <div class="feedLive"><span class="feedLiveDot"></span> LIVE</div>
+<!-- ACTIVITY FEED PAGE -->
+<div id="feedPage" class="appPage hidden">
+  <div class="wrap">
+    <div class="pageHeader">
+      <button class="ghost" id="feedPageBack">← Back</button>
+      <h2 style="margin:0; font-size:18px;">⚡ Activity Feed</h2>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:8px;height:8px;border-radius:50%;background:rgba(138,255,138,.95);box-shadow:0 0 8px rgba(138,255,138,.45);animation:traceDotPulse 1.15s ease-in-out infinite;"></div>
+        <span style="font-size:12px;color:rgba(138,255,138,.85);font-weight:900;">LIVE</span>
+      </div>
     </div>
-    <button class="ghost" id="feedCloseBtn">✕</button>
+    <input type="text" id="feedSearch" placeholder="Search by item #, MO, or user...">
+    <div id="feedResults" style="margin-top:12px;"></div>
   </div>
-  <div id="feedList" class="feedList">
-    <div style="color:var(--muted); font-size:13px;">Loading...</div>
+</div>
+
+<!-- ACTIVITY FEED PAGE -->
+<div id="feedPage" class="appPage hidden">
+  <div class="wrap">
+    <div class="pageHeader">
+      <button class="ghost" id="feedPageBack">← Back</button>
+      <h2 style="margin:0; font-size:18px;">⚡ Activity Feed</h2>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:8px;height:8px;border-radius:50%;background:rgba(138,255,138,.95);box-shadow:0 0 8px rgba(138,255,138,.45);animation:traceDotPulse 1.15s ease-in-out infinite;"></div>
+        <span style="font-size:12px;color:rgba(138,255,138,.85);font-weight:900;">LIVE</span>
+      </div>
+    </div>
+    <input type="text" id="feedSearch" placeholder="Search by item #, MO, or user...">
+    <div id="feedResults" style="margin-top:12px;"></div>
+  </div>
+</div>
+
+<!-- MOVE NOTIFICATION -->
+<div id="moveNotif" class="moveNotif">
+  <div class="moveNotif-top">
+    <span>📦</span>
+    <span class="moveNotif-title">Item Moved</span>
+  </div>
+  <div class="moveNotif-job" id="moveNotifJob"></div>
+  <div class="moveNotif-detail" id="moveNotifDetail"></div>
+  <div class="moveNotif-bar">
+    <div class="moveNotif-progress" id="moveNotifProgress"></div>
   </div>
 </div>
 
@@ -2390,6 +2416,7 @@ async function moveToLane(id, lane){
     await loadInventory();
     hideLoading();
     toast(`✅ Moved to ${lane}`);
+    showMoveNotif(item?.job || id, `→ ${lane} • by ${item?.updatedBy || "—"}`);
     pushUndo({ type:"move", itemId:id, originalLocationId, originalLocation, newLocation:lane });
     selectLane(lane);
     renderLaneList();
@@ -2421,6 +2448,7 @@ async function moveToMachine(id, machine){
     await loadInventory();
     hideLoading();
     toast(`✅ Moved to ${machine}`);
+    showMoveNotif(item?.job || id, `→ ${machine} • by ${item?.updatedBy || "—"}`);
     pushUndo({ type:"move", itemId:id, originalLocationId, originalLocation, newLocation:machine });
     selectMachine(machine);
     renderLaneList();
@@ -2781,22 +2809,7 @@ function renderQueuePage(){
   });
 }
 
-// ====== ACTIVITY FEED ======
-let feedRefreshTimer = null;
-
-function openFeed(){
-  document.getElementById("feedPanel").classList.add("open");
-  document.getElementById("feedOverlay").classList.remove("hidden");
-  renderFeed();
-  feedRefreshTimer = setInterval(renderFeed, 30000);
-}
-
-function closeFeed(){
-  document.getElementById("feedPanel").classList.remove("open");
-  document.getElementById("feedOverlay").classList.add("hidden");
-  clearInterval(feedRefreshTimer);
-}
-
+// ====== ACTIVITY FEED PAGE ======
 function timeAgo(ts){
   if(!ts) return "";
   const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
@@ -2806,43 +2819,171 @@ function timeAgo(ts){
   return `${Math.floor(diff/86400)}d ago`;
 }
 
-function renderFeed(){
-  const container = document.getElementById("feedList");
+function renderFeedPage(){
+  const q = normalize(document.getElementById("feedSearch")?.value || "");
+  const container = document.getElementById("feedResults");
   if(!container) return;
 
-  const sorted = [...inventory]
+  let sorted = [...inventory]
     .filter(x => x.updatedAt)
-    .sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt))
-    .slice(0, 50);
+    .sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 
+  if(q){
+    sorted = sorted.filter(x =>
+      normalize(x.job).includes(q) ||
+      normalize(x.mo).includes(q) ||
+      normalize(x.updatedBy).includes(q)
+    );
+  }
+
+  container.innerHTML = "";
   if(sorted.length === 0){
     container.innerHTML = `<div style="color:var(--muted);font-size:13px;">No activity yet.</div>`;
     return;
   }
 
-  container.innerHTML = "";
-  sorted.forEach(item => {
+  sorted.slice(0, 80).forEach(item => {
     const loc = item.machine ? `Machine ${item.machine}` : (item.lane || "Unknown");
-    const by = item.updatedBy || "Unknown";
+    const by = item.updatedBy || "—";
     const when = timeAgo(item.updatedAt);
     const div = document.createElement("div");
     div.className = "feedItem";
     div.innerHTML = `
-      <div class="feedItem-job">Item #${escapeHtml(item.job)}${item.mo ? ` <span style="font-weight:400;color:var(--muted);font-size:12px;">MO: ${escapeHtml(item.mo)}</span>` : ""}</div>
-      <div class="feedItem-loc">📍 ${escapeHtml(loc)} • ${escapeHtml(item.status || "—")}</div>
+      <div class="feedItem-job">
+        Item #${escapeHtml(item.job)}
+        ${item.mo ? `<span style="font-weight:400;color:var(--muted);font-size:12px;margin-left:8px;">MO: ${escapeHtml(item.mo)}</span>` : ""}
+      </div>
+      <div class="feedItem-loc">📍 ${escapeHtml(loc)} • <span style="color:var(--good)">${escapeHtml(item.status||"—")}</span></div>
       <div class="feedItem-meta">
         <span>👤 ${escapeHtml(by)}</span>
         <span>${escapeHtml(when)}</span>
       </div>
     `;
+    div.addEventListener("click", () => {
+      hidePage("feedPage");
+      if(item.machine) selectMachine(item.machine);
+      else if(item.lane) selectLane(item.lane);
+      loadToForm(item.id);
+    });
     container.appendChild(div);
   });
 }
 
-document.getElementById("feedBtn").addEventListener("click", openFeed);
-document.getElementById("feedCloseBtn").addEventListener("click", closeFeed);
-document.getElementById("feedOverlay").addEventListener("click", closeFeed);
+document.getElementById("feedPageBack").addEventListener("click", () => hidePage("feedPage"));
+document.getElementById("feedSearch").addEventListener("input", renderFeedPage);
 
+const openFeedBtn = document.getElementById("openFeedBtn");
+if(openFeedBtn){
+  openFeedBtn.addEventListener("click", () => {
+    closeSideMenu();
+    showPage("feedPage");
+    renderFeedPage();
+  });
+}
+
+// ====== ACTIVITY FEED PAGE ======
+function timeAgo(ts){
+  if(!ts) return "";
+  const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
+  if(diff < 60) return `${diff}s ago`;
+  if(diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  if(diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+  return `${Math.floor(diff/86400)}d ago`;
+}
+
+function renderFeedPage(){
+  const q = normalize(document.getElementById("feedSearch")?.value || "");
+  const container = document.getElementById("feedResults");
+  if(!container) return;
+
+  let sorted = [...inventory]
+    .filter(x => x.updatedAt)
+    .sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+  if(q){
+    sorted = sorted.filter(x =>
+      normalize(x.job).includes(q) ||
+      normalize(x.mo).includes(q) ||
+      normalize(x.updatedBy).includes(q)
+    );
+  }
+
+  container.innerHTML = "";
+  if(sorted.length === 0){
+    container.innerHTML = `<div style="color:var(--muted);font-size:13px;">No activity yet.</div>`;
+    return;
+  }
+
+  sorted.slice(0, 80).forEach(item => {
+    const loc = item.machine ? `Machine ${item.machine}` : (item.lane || "Unknown");
+    const by = item.updatedBy || "—";
+    const when = timeAgo(item.updatedAt);
+    const div = document.createElement("div");
+    div.className = "feedItem";
+    div.innerHTML = `
+      <div class="feedItem-job">
+        Item #${escapeHtml(item.job)}
+        ${item.mo ? `<span style="font-weight:400;color:var(--muted);font-size:12px;margin-left:8px;">MO: ${escapeHtml(item.mo)}</span>` : ""}
+      </div>
+      <div class="feedItem-loc">📍 ${escapeHtml(loc)} • <span style="color:var(--good)">${escapeHtml(item.status||"—")}</span></div>
+      <div class="feedItem-meta">
+        <span>👤 ${escapeHtml(by)}</span>
+        <span>${escapeHtml(when)}</span>
+      </div>
+    `;
+    div.addEventListener("click", () => {
+      hidePage("feedPage");
+      if(item.machine) selectMachine(item.machine);
+      else if(item.lane) selectLane(item.lane);
+      loadToForm(item.id);
+    });
+    container.appendChild(div);
+  });
+}
+
+document.getElementById("feedPageBack").addEventListener("click", () => hidePage("feedPage"));
+document.getElementById("feedSearch").addEventListener("input", renderFeedPage);
+
+const openFeedBtn = document.getElementById("openFeedBtn");
+if(openFeedBtn){
+  openFeedBtn.addEventListener("click", () => {
+    closeSideMenu();
+    showPage("feedPage");
+    renderFeedPage();
+  });
+}
+
+// ====== MOVE NOTIFICATION ======
+let notifTimer = null;
+
+function showMoveNotif(job, detail){
+  const notif = document.getElementById("moveNotif");
+  const jobEl = document.getElementById("moveNotifJob");
+  const detailEl = document.getElementById("moveNotifDetail");
+  const progress = document.getElementById("moveNotifProgress");
+  if(!notif || !jobEl || !detailEl || !progress) return;
+
+  jobEl.textContent = `Item #${job}`;
+  detailEl.textContent = detail;
+
+  progress.classList.remove("drain");
+  progress.style.transition = "none";
+  progress.style.transform = "translateX(0)";
+
+  notif.classList.add("show");
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      progress.style.transition = "transform 3s linear";
+      progress.classList.add("drain");
+    });
+  });
+
+  clearTimeout(notifTimer);
+  notifTimer = setTimeout(() => {
+    notif.classList.remove("show");
+  }, 3200);
+}
 // ====== BOOT ======
 window.addEventListener("DOMContentLoaded", async () => {
   wireLoginUI();
