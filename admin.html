@@ -2063,7 +2063,7 @@ async function queueCurrentJob(){
 
   await loadLocations();
   await loadInventory();
-  renderQueue();
+  renderQueuePage();
   toast(`⏳ Queued: ${job}`);
 }
 
@@ -3218,7 +3218,7 @@ function saveUsersToStorage(list){
 
 async function loadUsers(){
   try{
-    const data = await apiGet("/users");
+    const data = await apiGet("/kiosk-users");
     usersList = (Array.isArray(data) ? data : (data.users || data.rows || [])).map(u => ({
       id: String(u.id || u.user_id || Math.random()),
       name: u.name || u.full_name || "",
@@ -3355,9 +3355,8 @@ async function saveUser(){
 
   // Try API, fall back to localStorage
   try{
-    if(editingUserId) await apiPut(`/users/${editingUserId}`, { name, badge_id:badge, role, pin:finalPin });
-    else await apiPost("/users", { name, badge_id:badge, role, pin:finalPin });
-  }catch(e){ console.warn("API /users not available, using localStorage"); }
+  if(editingUserId) await apiPut(`/kiosk-users/${editingUserId}`, { name, badge_id:badge, role, pin:finalPin });
+  else await apiPost("/kiosk-users", { name, badge_id:badge, role, pin:finalPin });
 
   if(editingUserId){
     const idx = usersList.findIndex(u => u.id === editingUserId);
@@ -3376,6 +3375,12 @@ async function saveUser(){
   renderUsersPage();
   btn.disabled = false;
   toast(wasEditing ? `✅ Updated ${name}` : `✅ Created ${name}`);
+   } catch(e) {
+    msgEl.textContent = `⚠️ ${e.message || "Save failed"}`;
+    msgEl.style.color = "var(--bad)";
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 async function deleteUser(id){
@@ -3383,7 +3388,7 @@ async function deleteUser(id){
   if(!u) return;
   const ok = await uiConfirm("Delete Account", `Delete account for ${u.name} (Badge: ${u.badge})?\n\nThis cannot be undone.`, "Delete", "Cancel");
   if(!ok) return;
-  try{ await apiDelete(`/users/${id}`); }catch(e){}
+  try{ await apiDelete(`/kiosk-users/${id}`); }catch(e){}
   usersList = usersList.filter(x => x.id !== id);
   saveUsersToStorage(usersList);
   renderUsersPage();
