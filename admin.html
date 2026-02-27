@@ -4026,6 +4026,7 @@ async function stopQRScan(silent=false){
     stepBody.textContent = step.body;
     nextBtn.textContent = idx === STEPS.length - 1 ? "Got it ✓" : "Next →";
 
+    current = idx;
     document.querySelectorAll(".tutorialPip").forEach((p, i) => p.classList.toggle("active", i === idx));
 
     if(!step.target){
