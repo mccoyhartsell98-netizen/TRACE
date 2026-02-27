@@ -1273,16 +1273,6 @@
 
   <!-- SEARCH TAB -->
   <div class="tabPanel active scroll" id="searchTab">
-    <div class="scanBar">
-      <button id="scanBtn" class="primary">Scan Pallet</button>
-      <button id="scanStopBtn" class="ghost hidden">Stop</button>
-    </div>
-    <div id="qrWrap" class="qrWrap hidden">
-      <div id="qr-reader" class="qrReader"></div>
-      <div class="tiny" style="margin-top:10px; color:var(--muted);">
-        Tip: QR should contain MO (ex: <b>MO-5048</b>) or Item # (ex: <b>6910153</b>)
-      </div>
-    </div>
     <input id="globalSearch" type="text" placeholder="Search Item # or MO (example: 6910153 or MO-5048)">
     <div class="results" id="globalResults" style="margin-top:10px;"></div>
     <div class="hint" style="margin-top:12px;">
@@ -2770,12 +2760,6 @@ function closeSideMenu(){ sideMenu.classList.add("hidden"); menuOverlay.classLis
 menuBtn.addEventListener("click", () => { sideMenu.classList.remove("hidden"); menuOverlay.classList.remove("hidden"); });
 menuCloseBtn.addEventListener("click", closeSideMenu);
 menuOverlay.addEventListener("click", closeSideMenu);
-
-// QR scan buttons
-const scanBtn = document.getElementById("scanBtn");
-const scanStopBtn = document.getElementById("scanStopBtn");
-if (scanBtn) scanBtn.addEventListener("click", startQRScan);
-if (scanStopBtn) scanStopBtn.addEventListener("click", () => stopQRScan(false));
 
 // Search inputs
 els.globalSearch.addEventListener("input", renderGlobalSearch);
