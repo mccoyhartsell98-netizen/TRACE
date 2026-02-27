@@ -2282,15 +2282,15 @@ function buildLaneButtons(){
   const laneNums = locations.filter(l => l.type === "lane").map(l => l.laneNum).sort((a,b) => a-b);
   laneNums.forEach(i => {
     const lane = `Lane ${i}`;
-    const lane = `Lane ${i}`;
     const count = inventory.filter(x => x.lane === lane).length;
     const btn = document.createElement("div");
     btn.className = "laneBtn" + (lane===selectedLane ? " active" : "");
     btn.innerHTML = `${lane} ${count > 0 ? `<span class="laneBtnBadge">${count}</span>` : ""}`;
     btn.addEventListener("click", () => selectLane(lane));
     els.laneGrid.appendChild(btn);
-  }
+  });
 }
+
 
 function buildMachineButtons(){
   els.machineGrid.innerHTML = "";
