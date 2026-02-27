@@ -3220,6 +3220,7 @@ document.getElementById("addLocationSaveBtn").addEventListener("click", async ()
 document.getElementById("deleteLocationBtn").addEventListener("click", async () => {
   const type = document.getElementById("addLocationType").value;
   const msg  = document.getElementById("addLocationMsg");
+    closeAddLocation();
 
   // Build list of deletable locations
   const list = type === "lane"
