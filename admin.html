@@ -3980,6 +3980,13 @@ async function stopQRScan(silent=false){
       top = window.innerHeight / 2 - TH / 2;
       left = window.innerWidth / 2 - TW / 2;
     } else {
+      // Scroll element into view on mobile if needed
+      const step = STEPS[current];
+      if(step?.target){
+        const el = document.querySelector(step.target);
+        if(el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+
       // Try below
       if(rect.bottom + TH + pad < window.innerHeight){
         top = rect.bottom + pad;
@@ -4002,10 +4009,15 @@ async function stopQRScan(silent=false){
       }
     }
 
+    // Hard clamp — never go off screen
+    top = Math.max(pad, Math.min(top, window.innerHeight - TH - pad));
+    left = Math.max(pad, Math.min(left, window.innerWidth - TW - pad));
+
     tooltip.style.top = top + "px";
     tooltip.style.left = left + "px";
     tooltip.style.width = TW + "px";
   }
+       
 
   function goTo(idx, skipHooks = false){
     const step = STEPS[idx];
