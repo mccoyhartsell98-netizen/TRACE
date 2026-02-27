@@ -1149,6 +1149,26 @@
 }
 .tabPanel{ display:none; }
 .tabPanel.active{ display:block; }
+
+/* ===== TUTORIAL ===== */
+.tutorialOverlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:999990;display:none;align-items:center;justify-content:center;}
+.tutorialOverlay.show{display:flex;}
+.tutorialCard{width:min(480px,92vw);background:rgba(18,22,30,.97);border:1px solid rgba(58,122,254,.45);border-radius:18px;padding:26px 24px;box-shadow:0 24px 80px rgba(0,0,0,.7);}
+.tutorialStep{display:none;}
+.tutorialStep.active{display:block;}
+.tutorialTop{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.tutorialTitle{font-size:16px;font-weight:900;letter-spacing:.06em;color:#fff;}
+.tutorialPips{display:flex;gap:6px;}
+.tutorialPip{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.18);transition:background 200ms;}
+.tutorialPip.active{background:rgba(58,122,254,.9);}
+.tutorialIcon{font-size:42px;margin-bottom:12px;}
+.tutorialHeading{font-size:18px;font-weight:900;color:#fff;margin-bottom:8px;}
+.tutorialBody{font-size:14px;color:rgba(255,255,255,.72);line-height:1.6;margin-bottom:22px;}
+.tutorialFooter{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.tutorialSkip{font-size:12px;color:rgba(255,255,255,.4);background:none;border:none;cursor:pointer;padding:4px;}
+.tutorialSkip:hover{color:rgba(255,255,255,.7);}
+.tutorialNext{padding:10px 22px;border-radius:12px;font-weight:900;font-size:14px;background:rgba(58,122,254,.28);border:1px solid rgba(58,122,254,.55);color:#fff;cursor:pointer;}
+.tutorialNext:hover{background:rgba(58,122,254,.4);}
   </style>
 </head>
 
@@ -1248,6 +1268,7 @@
         </div>
         <div class="sideMenuBody">
   <div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#2A7FFF;text-shadow:0 0 8px rgba(42,127,255,0.6);padding:4px 2px;border-bottom:1px solid rgba(42,127,255,0.35);margin-bottom:4px;">Operations</div>
+  <button class="ghost" id="replayTutorialBtn">Tutorial</button>
   <button class="ghost" id="openCompletedBtn">Completed Today</button>
   <button class="ghost" id="openHistoryBtn">History</button>
   <button class="ghost" id="openQueueBtn">Queue</button>
@@ -1584,6 +1605,57 @@
         </div>
       </div>
     </div>
+
+<!-- TUTORIAL OVERLAY -->
+<div class="tutorialOverlay" id="tutorialOverlay">
+  <div class="tutorialCard">
+    <div class="tutorialTop">
+      <div class="tutorialTitle">TRACE ADMIN TUTORIAL</div>
+      <div class="tutorialPips" id="tutorialPips"></div>
+    </div>
+    <div id="tutorialSteps">
+      <div class="tutorialStep active">
+        <div class="tutorialIcon">👋</div>
+        <div class="tutorialHeading">Welcome to TRACE Admin</div>
+        <div class="tutorialBody">This is the admin panel for managing inventory across all lanes and machines. Let's walk through how it works in under a minute.</div>
+      </div>
+      <div class="tutorialStep">
+        <div class="tutorialIcon">🔍</div>
+        <div class="tutorialHeading">Search</div>
+        <div class="tutorialBody">Use the Search tab to find any job by Item # or MO number. Results show the job's current location, status, and quantity.</div>
+      </div>
+      <div class="tutorialStep">
+        <div class="tutorialIcon">🏷️</div>
+        <div class="tutorialHeading">Lanes & Machines</div>
+        <div class="tutorialBody">The Lanes and Machines tabs show all jobs currently in each location. Click a lane or machine button to see what's inside, then click any job to load it into the form.</div>
+      </div>
+      <div class="tutorialStep">
+        <div class="tutorialIcon">📦</div>
+        <div class="tutorialHeading">Moving a Job</div>
+        <div class="tutorialBody">Click the Move button on any job card to open the move panel. Select a Lane or Machine to instantly move the job. The system updates in real time.</div>
+      </div>
+      <div class="tutorialStep">
+        <div class="tutorialIcon">⏳</div>
+        <div class="tutorialHeading">The Queue</div>
+        <div class="tutorialBody">Jobs waiting to be assigned a lane live in the Queue. Open it from the menu. Click Move to Lane… on any queued job to assign it, or Generate QR to print a label.</div>
+      </div>
+      <div class="tutorialStep">
+        <div class="tutorialIcon">✏️</div>
+        <div class="tutorialHeading">Updating a Job</div>
+        <div class="tutorialBody">Click any job to load it into the Job Update form on the right. Edit the qty, status, or notes then hit Send to Lane to save it to the current lane.</div>
+      </div>
+      <div class="tutorialStep">
+        <div class="tutorialIcon">✅</div>
+        <div class="tutorialHeading">You're Ready</div>
+        <div class="tutorialBody">That's the core workflow. Use the menu (☰) for History, Activity Feed, User Management and more. You can replay this tutorial anytime from the menu.</div>
+      </div>
+    </div>
+    <div class="tutorialFooter">
+      <button class="tutorialSkip" id="tutorialSkip">Skip tutorial</button>
+      <button class="tutorialNext" id="tutorialNext">Next →</button>
+    </div>
+  </div>
+</div>
 
     <!-- TRACE Assistant -->
     <button id="chatFab" class="chatFab" aria-label="Open TRACE Assistant" title="TRACE Assistant">
@@ -3493,6 +3565,11 @@ if(openQrBtn){
   });
 }
 
+document.getElementById("replayTutorialBtn").addEventListener("click", () => {
+  closeSideMenu();
+  window.showTutorial();
+});
+
 document.getElementById("qrPageBack").addEventListener("click", () => hidePage("qrPage"));
 
 document.getElementById("qrJob").addEventListener("input", (e) => {
@@ -3804,6 +3881,59 @@ async function stopQRScan(silent=false){
   if(startBtnEl) startBtnEl.disabled = false;
   if(!silent) toast("Scanner stopped");
 }
+
+// ====== TUTORIAL ======
+(function initTutorial(){
+  const STORAGE_KEY = "trace_tutorial_seen";
+  const overlay = document.getElementById("tutorialOverlay");
+  const stepsEls = document.querySelectorAll(".tutorialStep");
+  const pipsContainer = document.getElementById("tutorialPips");
+  const nextBtn = document.getElementById("tutorialNext");
+  const skipBtn = document.getElementById("tutorialSkip");
+  if(!overlay || !nextBtn || !skipBtn) return;
+
+  const total = stepsEls.length;
+  let current = 0;
+
+  // Build pip dots
+  for(let i = 0; i < total; i++){
+    const pip = document.createElement("div");
+    pip.className = "tutorialPip" + (i === 0 ? " active" : "");
+    pipsContainer.appendChild(pip);
+  }
+
+  function goTo(idx){
+    stepsEls.forEach((s,i) => s.classList.toggle("active", i === idx));
+    document.querySelectorAll(".tutorialPip").forEach((p,i) => p.classList.toggle("active", i === idx));
+    nextBtn.textContent = idx === total - 1 ? "Got it ✓" : "Next →";
+    current = idx;
+  }
+
+  function closeTutorial(){
+    overlay.classList.remove("show");
+    localStorage.setItem(STORAGE_KEY, "1");
+  }
+
+  nextBtn.addEventListener("click", () => {
+    if(current < total - 1) goTo(current + 1);
+    else closeTutorial();
+  });
+
+  skipBtn.addEventListener("click", closeTutorial);
+
+  window.showTutorial = function(){
+    current = 0;
+    goTo(0);
+    overlay.classList.add("show");
+  };
+
+  // Show on first login
+  if(!localStorage.getItem(STORAGE_KEY)){
+    // Wait for app to fully load before showing
+    setTimeout(() => window.showTutorial(), 1200);
+  }
+})();
+
 </script>
 </body>
 </html>
