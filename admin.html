@@ -2279,7 +2279,9 @@ function renderHistory(){
 // ====== BUTTON BUILDERS ======
 function buildLaneButtons(){
   els.laneGrid.innerHTML = "";
-  for(let i=1;i<=12;i++){
+  const laneNums = locations.filter(l => l.type === "lane").map(l => l.laneNum).sort((a,b) => a-b);
+  laneNums.forEach(i => {
+    const lane = `Lane ${i}`;
     const lane = `Lane ${i}`;
     const count = inventory.filter(x => x.lane === lane).length;
     const btn = document.createElement("div");
@@ -2558,15 +2560,14 @@ function openMoveOverlay(id){
   moveTargetId = id;
   els.moveTitle.textContent = `Move Item #${item.job}`;
 
-  els.moveLaneGrid.innerHTML = "";
-  for(let i=1;i<=12;i++){
-    const lane = `Lane ${i}`;
+  locations.filter(l => l.type === "lane").sort((a,b) => a.laneNum - b.laneNum).forEach(loc => {
+    const lane = `Lane ${loc.laneNum}`;
     const btn = document.createElement("div");
     btn.className = "laneBtn";
     btn.textContent = lane;
     btn.addEventListener("click", async () => { await moveToLane(moveTargetId, lane); closeMoveOverlay(); });
     els.moveLaneGrid.appendChild(btn);
-  }
+  });
 
   els.moveMachineGrid.innerHTML = "";
   MACHINES.forEach(m => {
