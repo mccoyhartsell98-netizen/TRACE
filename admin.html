@@ -1252,6 +1252,7 @@
   <button class="ghost" id="openQueueBtn">Queue</button>
   <button class="ghost" id="openFeedBtn">Activity Feed</button>
   <button class="ghost" id="openUsersBtn">User Management</button>
+  <button class="ghost" id="openQrBtn">Generate QR</button>
 </div>
       </aside>
 
@@ -1344,23 +1345,6 @@
               </div>
             </div>
              
-<!-- ===== SECURE QR + QUEUE (ADMIN) ===== -->
-<div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
-
-<h2 style="margin-top:0;">Secure QR + Queue</h2>
-
-  <div class="btnRow">
-    <button class="primary" id="genJobQrBtn">Generate Job QR</button>
-    <button class="ghost" id="downloadJobQrBtn" disabled>Download PNG</button>
-</div>
-
-  <div style="display:flex; justify-content:center; margin-top:12px;">
-    <div id="jobQrCanvas" style="background:#fff; padding:10px; border-radius:12px; display:none;"></div>
-  </div>
-
-  <div class="tiny" id="jobQrUrlPreview" style="margin-top:10px; color:var(--muted); word-break:break-all;"></div>
-</div>
-
             <!-- HISTORY PANEL -->
             <div id="historyPanel" style="display:none; margin-top:12px;">
               <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
@@ -1430,6 +1414,35 @@
         <span style="font-size:12px;color:var(--muted);">accounts</span>
       </div>
     </div>
+
+<!-- QR PAGE -->
+<div id="qrPage" class="appPage hidden">
+  <div class="wrap" style="max-width:600px;">
+    <div class="pageHeader">
+      <button class="ghost" id="qrPageBack">← Back</button>
+      <h2 style="margin:0;font-size:18px;">Generate Job QR</h2>
+      <div></div>
+    </div>
+    <div class="card">
+      <div class="formGrid">
+        <div class="full">
+          <input id="qrJob" type="text" placeholder="Item # (e.g. 6910153)">
+        </div>
+        <div class="full">
+          <input id="qrMo" type="text" placeholder="MO # (optional)">
+        </div>
+      </div>
+      <div class="btnRow" style="margin-top:14px;">
+        <button class="primary" id="genQrBtn">Generate QR</button>
+        <button class="ghost" id="downloadQrBtn" disabled>Download PNG</button>
+      </div>
+      <div style="display:flex;justify-content:center;margin-top:18px;">
+        <div id="qrPageCanvas" style="background:#fff;padding:10px;border-radius:12px;display:none;"></div>
+      </div>
+      <div class="tiny" id="qrPageUrlPreview" style="margin-top:10px;color:var(--muted);word-break:break-all;"></div>
+    </div>
+  </div>
+</div>
 
     <!-- CREATE / EDIT FORM -->
     <div class="userFormCard" id="userFormCard">
@@ -3482,6 +3495,77 @@ document.getElementById("openUsersBtn").addEventListener("click", async () => {
   await loadUsers();
   renderUsersPage();
 });
+
+const openQrBtn = document.getElementById("openQrBtn");
+if(openQrBtn){
+  openQrBtn.addEventListener("click", () => {
+    closeSideMenu();
+    showPage("qrPage");
+  });
+}
+
+document.getElementById("qrPageBack").addEventListener("click", () => hidePage("qrPage"));
+
+document.getElementById("qrJob").addEventListener("input", (e) => {
+  e.target.value = cleanJob(e.target.value);
+});
+
+document.getElementById("genQrBtn").addEventListener("click", () => {
+  const job = cleanJob(document.getElementById("qrJob").value);
+  if(!job){ uiAlert("QR Generator", "Enter an Item # first."); return; }
+
+  const url = buildJobUrl(job);
+  const container = document.getElementById("qrPageCanvas");
+  container.innerHTML = "";
+  container.style.display = "inline-block";
+  new QRCode(container, { text: url, width: 260, height: 260, correctLevel: QRCode.CorrectLevel.H });
+  document.getElementById("qrPageUrlPreview").textContent = url;
+  document.getElementById("downloadQrBtn").disabled = false;
+});
+
+document.getElementById("downloadQrBtn").addEventListener("click", () => {
+  const container = document.getElementById("qrPageCanvas");
+  const qrCanvas = container.querySelector("canvas");
+  if(!qrCanvas){ uiAlert("Error", "Generate a QR first."); return; }
+  const job = cleanJob(document.getElementById("qrJob").value || "JOB");
+
+  const logo = new Image();
+  logo.crossOrigin = "anonymous";
+  logo.src = "./trace-logo.png.png";
+  logo.onload = () => {
+    const tmp = document.createElement("canvas");
+    tmp.width = logo.naturalWidth;
+    tmp.height = logo.naturalHeight;
+    const tctx = tmp.getContext("2d");
+    tctx.drawImage(logo, 0, 0);
+    const pixels = tctx.getImageData(0, 0, tmp.width, tmp.height).data;
+    let minX = tmp.width, minY = tmp.height, maxX = 0, maxY = 0;
+    for(let y=0;y<tmp.height;y++) for(let x=0;x<tmp.width;x++){
+      const i=(y*tmp.width+x)*4;
+      if(pixels[i+3]>30&&(pixels[i]>30||pixels[i+1]>30||pixels[i+2]>60)){
+        if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y;
+      }
+    }
+    const cropX=minX-10,cropY=minY-10,cropW=(maxX-minX)+20,cropH=(maxY-minY)+20;
+    const padding=28,gap=14,logoDrawH=60,logoDrawW=Math.round(logoDrawH*(cropW/cropH)),labelHeight=70;
+    const totalWidth=qrCanvas.width+padding*2;
+    const totalHeight=padding+logoDrawH+gap+qrCanvas.height+gap+labelHeight+padding;
+    const out=document.createElement("canvas");
+    out.width=totalWidth; out.height=totalHeight;
+    const ctx=out.getContext("2d");
+    ctx.clearRect(0,0,out.width,out.height);
+    ctx.drawImage(tmp,cropX,cropY,cropW,cropH,(totalWidth-logoDrawW)/2,padding,logoDrawW,logoDrawH);
+    ctx.drawImage(qrCanvas,padding,padding+logoDrawH+gap);
+    ctx.fillStyle="#111"; ctx.font="bold 48px Arial"; ctx.textAlign="center";
+    ctx.fillText(job,totalWidth/2,padding+logoDrawH+gap+qrCanvas.height+gap+26);
+    const a=document.createElement("a");
+    a.download=`TRACE_JOB_${job}.png`;
+    a.href=out.toDataURL("image/png");
+    a.click();
+  };
+});
+
+
 
 // ====== BOOT ======
 window.addEventListener("DOMContentLoaded", async () => {
