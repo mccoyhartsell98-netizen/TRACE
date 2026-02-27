@@ -2575,14 +2575,16 @@ function openMoveOverlay(id){
   moveTargetId = id;
   els.moveTitle.textContent = `Move Item #${item.job}`;
 
+  els.moveLaneGrid.innerHTML = "";
   locations.filter(l => l.type === "lane").sort((a,b) => a.laneNum - b.laneNum).forEach(loc => {
     const lane = `Lane ${loc.laneNum}`;
     const btn = document.createElement("div");
     btn.className = "laneBtn";
     btn.textContent = lane;
-    btn.addEventListener("click", () => {
-  openMoveOverlay(item.id);
-});
+    btn.addEventListener("click", async () => { await moveToLane(moveTargetId, lane); closeMoveOverlay(); });
+    els.moveLaneGrid.appendChild(btn);
+  });
+
   els.moveMachineGrid.innerHTML = "";
   MACHINES.forEach(m => {
     const btn = document.createElement("div");
@@ -3018,15 +3020,14 @@ function renderQueuePage(){
       await loadInventory();
       renderQueuePage();
     });
+    div.querySelector("[data-gen-qr]").addEventListener("click", () => {
+      document.getElementById("qrJob").value = item.job;
+      hidePage("queuePage");
+      showPage("qrPage");
+    });
     container.appendChild(div);
   });
 }
-
-div.querySelector("[data-gen-qr]").addEventListener("click", () => {
-  document.getElementById("qrJob").value = item.job;
-  hidePage("queuePage");
-  showPage("qrPage");
-});
 
 // ====== ACTIVITY FEED PAGE ======
 function timeAgo(ts){
