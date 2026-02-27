@@ -3878,7 +3878,7 @@ async function stopQRScan(silent=false){
 (function initTutorial(){
   const STORAGE_KEY = "trace_tutorial_seen";
 
-  const STEPS = [
+ const STEPS = [
     {
       target: null,
       title: "Welcome to TRACE Admin",
@@ -3911,8 +3911,43 @@ async function stopQRScan(silent=false){
     },
     {
       target: "#menuBtn",
-      title: "Menu",
-      body: "Access Queue, Activity Feed, History, User Management and more. You can also replay this tutorial anytime from here.",
+      title: "The Menu",
+      body: "Everything else lives here. Click it to open — the tutorial will walk you through each option.",
+      onEnter: () => {
+        sideMenu.classList.remove("hidden");
+        menuOverlay.classList.remove("hidden");
+      }
+    },
+    {
+      target: "#openQueueBtn",
+      title: "Queue",
+      body: "Jobs waiting to be assigned a lane. Open this to move queued jobs to a lane or generate their QR label.",
+    },
+    {
+      target: "#openCompletedBtn",
+      title: "Completed Today",
+      body: "Shows a panel of jobs that were completed today. Quick reference without leaving the main screen.",
+    },
+    {
+      target: "#openHistoryBtn",
+      title: "History",
+      body: "Full log of deleted jobs. Useful for auditing or recovering information about removed items.",
+    },
+    {
+      target: "#openFeedBtn",
+      title: "Activity Feed",
+      body: "Live feed of every job movement across lanes and machines. Shows who moved what and when.",
+    },
+    {
+      target: "#openUsersBtn",
+      title: "User Management",
+      body: "Create and manage forklift driver, operator, and supervisor accounts with PINs for the kiosk.",
+    },
+    {
+      target: "#replayTutorialBtn",
+      title: "Replay Tutorial",
+      body: "You can restart this tutorial anytime from here. Great for training new supervisors.",
+      onLeave: () => closeSideMenu()
     },
   ];
 
@@ -3973,9 +4008,18 @@ async function stopQRScan(silent=false){
     tooltip.style.width = TW + "px";
   }
 
-  function goTo(idx){
+  ffunction goTo(idx, skipHooks = false){
     const step = STEPS[idx];
-    current = idx;
+
+    if(!skipHooks){
+      if(STEPS[current]?.onLeave) STEPS[current].onLeave();
+      if(step.onEnter){
+        current = idx;
+        step.onEnter();
+        setTimeout(() => goTo(idx, true), 350);
+        return;
+      }
+    }
 
     stepNum.textContent = `STEP ${idx + 1} OF ${STEPS.length}`;
     stepTitle.textContent = step.title;
@@ -4008,6 +4052,7 @@ async function stopQRScan(silent=false){
   function closeTutorial(){
     overlay.classList.remove("show");
     localStorage.setItem(STORAGE_KEY, "1");
+    closeSideMenu();
   }
 
   nextBtn.addEventListener("click", () => {
