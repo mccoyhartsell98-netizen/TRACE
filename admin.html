@@ -2882,7 +2882,7 @@ function updateTabBadges(){
   const lanesBadge = document.getElementById("lanesBadge");
   const machinesBadge = document.getElementById("machinesBadge");
   if(lanesBadge) lanesBadge.textContent = inventory.filter(x => x.lane).length;
-  if(machinesBadge) machinesBadge.textContent = inventory.filter(x => x.machine).length;
+  if(machinesBadge) machinesBadge.textContent = inventory.filter(x => x.machine && x.machine.toUpperCase() !== "QUEUE").length;
   buildLaneButtons();
   buildMachineButtons();
 }
