@@ -1224,7 +1224,7 @@
           <button id="undoBtn" class="ghost" disabled>Undo</button>
         </div>
         <div style="display:flex;gap:10px;align-items:center;">
-          <button class="ghost" id="addLocationBtn" title="Add Lane or Machine">+</button>
+          <button class="ghost" id="addLocationBtn" title="Add Lane or Machine">+ Location</button>
           <button class="ghost" id="menuBtn" title="Menu">☰</button>
           <button class="ghost" id="logoutBtn">Logout</button>
         </div>
@@ -1340,9 +1340,9 @@
                 <input id="updatedBy" type="text" placeholder="Updated by (initials)">
               </div>
               <div class="full btnRow">
-                <button class="primary" id="saveBtn">Save / Update</button>
+                <button class="primary" id="saveBtn">Send to Lane</button>
                 <button id="newBtn">New</button>
-                <button class="primary" id="queueJobBtn">Queue</button>
+                <button class="primary" id="queueJobBtn">Send to Queue</button>
                 <button class="danger" id="deleteBtn" disabled>Delete</button>
               </div>
             </div>
@@ -2580,10 +2580,9 @@ function openMoveOverlay(id){
     const btn = document.createElement("div");
     btn.className = "laneBtn";
     btn.textContent = lane;
-    btn.addEventListener("click", async () => { await moveToLane(moveTargetId, lane); closeMoveOverlay(); });
-    els.moveLaneGrid.appendChild(btn);
-  });
-
+    btn.addEventListener("click", () => {
+  openMoveOverlay(item.id);
+});
   els.moveMachineGrid.innerHTML = "";
   MACHINES.forEach(m => {
     const btn = document.createElement("div");
@@ -3001,6 +3000,7 @@ function renderQueuePage(){
       <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${escapeHtml(item.status||"—")}</div>
       <div class="btnRow" style="margin-top:10px;">
         <button class="primary" data-move-lane="1">Move to Lane…</button>
+<button class="ghost" data-gen-qr="1">Generate QR</button>
       </div>
     `;
     const btn = div.querySelector("[data-move-lane]");
@@ -3021,6 +3021,12 @@ function renderQueuePage(){
     container.appendChild(div);
   });
 }
+
+div.querySelector("[data-gen-qr]").addEventListener("click", () => {
+  document.getElementById("qrJob").value = item.job;
+  hidePage("queuePage");
+  showPage("qrPage");
+});
 
 // ====== ACTIVITY FEED PAGE ======
 function timeAgo(ts){
@@ -3700,7 +3706,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       }
     });
 
-    add("bot", 'ADMIN PANEL ONLINE. Type "help" for commands.');
+    add("bot", 'ADMIN PANEL ONLINE. Try asking:\n• Where is 78011\n• What\'s in Lane 3\n• Move 78011 to Lane 2\n• What\'s on S8');
   } catch (err) {
     console.error("TRACE Assistant failed:", err);
   }
