@@ -3003,6 +3003,8 @@ function renderQueuePage(){
       ${item.mo ? `<div class="meta">MO: <b>${escapeHtml(item.mo)}</b></div>` : ``}
       <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${escapeHtml(item.status||"—")}</div>
       <div class="btnRow" style="margin-top:10px;">
+        <button class="primary" data-move-lane="1">Move to Lane…</button>
+<button class="ghost" data-gen-qr="1">Generate QR</button>
       </div>
     `;
     const btn = div.querySelector("[data-move-lane]");
