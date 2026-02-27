@@ -1224,7 +1224,7 @@
           <button id="undoBtn" class="ghost" disabled>Undo</button>
         </div>
         <div style="display:flex;gap:10px;align-items:center;">
-          <button class="ghost" id="addLocationBtn" title="Add Lane or Machine">+ Location</button>
+          <button class="ghost" id="addLocationBtn" title="Add Lane or Machine">Add Location</button>
           <button class="ghost" id="menuBtn" title="Menu">☰</button>
           <button class="ghost" id="logoutBtn">Logout</button>
         </div>
@@ -2388,7 +2388,9 @@ function renderLaneList(){
       ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ``}
       <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${item.status ? escapeHtml(item.status) : "—"}</div>
       <div class="meta">${escapeHtml(item.lane)} • Notes: ${item.notes ? escapeHtml(item.notes) : "—"}${by}${at}</div>
+      <div class="btnRow" style="margin-top:10px;"><button class="primary" data-move="1">Move</button></div>
     `;
+    div.querySelector("[data-move]").addEventListener("click", (e) => { e.stopPropagation(); openMoveOverlay(item.id); });
     div.addEventListener("click", ()=> loadToForm(item.id));
     els.laneResults.appendChild(div);
   });
@@ -3001,8 +3003,6 @@ function renderQueuePage(){
       ${item.mo ? `<div class="meta">MO: <b>${escapeHtml(item.mo)}</b></div>` : ``}
       <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${escapeHtml(item.status||"—")}</div>
       <div class="btnRow" style="margin-top:10px;">
-        <button class="primary" data-move-lane="1">Move to Lane…</button>
-<button class="ghost" data-gen-qr="1">Generate QR</button>
       </div>
     `;
     const btn = div.querySelector("[data-move-lane]");
