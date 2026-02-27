@@ -4008,7 +4008,7 @@ async function stopQRScan(silent=false){
     tooltip.style.width = TW + "px";
   }
 
-  ffunction goTo(idx, skipHooks = false){
+  function goTo(idx, skipHooks = false){
     const step = STEPS[idx];
 
     if(!skipHooks){
