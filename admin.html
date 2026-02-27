@@ -1545,9 +1545,10 @@
           </div>
         </div>
         <div class="btnRow" style="margin-top:14px;justify-content:flex-end;">
-          <button class="ghost" id="addLocationCancelBtn">Cancel</button>
-          <button class="primary" id="addLocationSaveBtn">Add Location</button>
-        </div>
+  <button class="ghost" id="addLocationCancelBtn">Cancel</button>
+  <button class="danger" id="deleteLocationBtn">Delete Location</button>
+  <button class="primary" id="addLocationSaveBtn">Add Location</button>
+</div>
         <div id="addLocationMsg" style="margin-top:10px;font-size:13px;color:var(--muted);min-height:18px;"></div>
       </div>
     </div>
@@ -3212,6 +3213,59 @@ document.getElementById("addLocationSaveBtn").addEventListener("click", async ()
   }finally{
     btn.disabled = false;
     btn.textContent = "Add Location";
+  }
+});
+
+document.getElementById("deleteLocationBtn").addEventListener("click", async () => {
+  const type = document.getElementById("addLocationType").value;
+  const msg  = document.getElementById("addLocationMsg");
+
+  // Build list of deletable locations
+  const list = type === "lane"
+    ? locations.filter(l => l.type === "lane").sort((a,b) => a.laneNum - b.laneNum)
+    : locations.filter(l => l.type === "machine");
+
+  if(list.length === 0){
+    msg.textContent = `No ${type}s to delete.`;
+    msg.style.color = "var(--bad)";
+    return;
+  }
+
+  const options = list.map(l => l.label).join(", ");
+  const input = await uiPrompt(
+    `Delete ${type === "lane" ? "Lane" : "Machine"}`,
+    `Which ${type} do you want to delete?\n\nAvailable: ${options}`,
+    { placeholder: type === "lane" ? "e.g. Lane 5" : "e.g. S10", mask: false }
+  );
+
+  if(!input) return;
+
+  const match = list.find(l => l.label.toLowerCase() === input.trim().toLowerCase());
+  if(!match){
+    msg.textContent = `"${input}" not found.`;
+    msg.style.color = "var(--bad)";
+    return;
+  }
+
+  const ok = await uiConfirm(
+    "Confirm Delete",
+    `Delete ${match.label}? This cannot be undone.\n\nMake sure it has no items in it first.`,
+    "Delete", "Cancel"
+  );
+  if(!ok) return;
+
+  try{
+    await apiDelete(`/locations/${match.location_id}`);
+    await loadLocations();
+    await loadInventory();
+    buildLaneButtons();
+    buildMachineButtons();
+    updateTabBadges();
+    closeAddLocation();
+    toast(`Deleted ${match.label}`);
+  } catch(e) {
+    msg.textContent = e.message || "Delete failed.";
+    msg.style.color = "var(--bad)";
   }
 });
 
