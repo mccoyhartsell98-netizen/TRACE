@@ -1415,35 +1415,6 @@
       </div>
     </div>
 
-<!-- QR PAGE -->
-<div id="qrPage" class="appPage hidden">
-  <div class="wrap" style="max-width:600px;">
-    <div class="pageHeader">
-      <button class="ghost" id="qrPageBack">← Back</button>
-      <h2 style="margin:0;font-size:18px;">Generate Job QR</h2>
-      <div></div>
-    </div>
-    <div class="card">
-      <div class="formGrid">
-        <div class="full">
-          <input id="qrJob" type="text" placeholder="Item # (e.g. 6910153)">
-        </div>
-        <div class="full">
-          <input id="qrMo" type="text" placeholder="MO # (optional)">
-        </div>
-      </div>
-      <div class="btnRow" style="margin-top:14px;">
-        <button class="primary" id="genQrBtn">Generate QR</button>
-        <button class="ghost" id="downloadQrBtn" disabled>Download PNG</button>
-      </div>
-      <div style="display:flex;justify-content:center;margin-top:18px;">
-        <div id="qrPageCanvas" style="background:#fff;padding:10px;border-radius:12px;display:none;"></div>
-      </div>
-      <div class="tiny" id="qrPageUrlPreview" style="margin-top:10px;color:var(--muted);word-break:break-all;"></div>
-    </div>
-  </div>
-</div>
-
     <!-- CREATE / EDIT FORM -->
     <div class="userFormCard" id="userFormCard">
       <h3 id="userFormTitle">Create New Account</h3>
@@ -1516,6 +1487,35 @@
         <div class="emptyState-title">No Accounts Yet</div>
         <div class="emptyState-sub">Create your first forklift driver or supervisor account above.</div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- QR PAGE -->
+<div id="qrPage" class="appPage hidden">
+  <div class="wrap" style="max-width:600px;">
+    <div class="pageHeader">
+      <button class="ghost" id="qrPageBack">← Back</button>
+      <h2 style="margin:0;font-size:18px;">Generate Job QR</h2>
+      <div></div>
+    </div>
+    <div class="card">
+      <div class="formGrid">
+        <div class="full">
+          <input id="qrJob" type="text" placeholder="Item # (e.g. 6910153)">
+        </div>
+        <div class="full">
+          <input id="qrMo" type="text" placeholder="MO # (optional)">
+        </div>
+      </div>
+      <div class="btnRow" style="margin-top:14px;">
+        <button class="primary" id="genQrBtn">Generate QR</button>
+        <button class="ghost" id="downloadQrBtn" disabled>Download PNG</button>
+      </div>
+      <div style="display:flex;justify-content:center;margin-top:18px;">
+        <div id="qrPageCanvas" style="background:#fff;padding:10px;border-radius:12px;display:none;"></div>
+      </div>
+      <div class="tiny" id="qrPageUrlPreview" style="margin-top:10px;color:var(--muted);word-break:break-all;"></div>
     </div>
   </div>
 </div>
