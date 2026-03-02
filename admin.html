@@ -2349,15 +2349,15 @@ function renderHistory(){
   });
 }
 // ====== BUTTON BUILDERS ======
-function buildLaneButtons(){
+ffunction buildLaneButtons(){
   els.laneGrid.innerHTML = "";
   const laneNums = locations.filter(l => l.type === "lane").map(l => l.laneNum).sort((a,b) => a-b);
-  laneNums.forEach(i => {
+  ineNums.forEach(i => {
     const lane = `Lane ${i}`;
-    const count = inventory.filter(x => x.lane === lane).length;
+    const displayName = i === 1 ? "Wrap Queue" : lane;
     const btn = document.createElement("div");
     btn.className = "laneBtn" + (lane===selectedLane ? " active" : "");
-    btn.innerHTML = `${lane} ${count > 0 ? `<span class="laneBtnBadge">${count}</span>` : ""}`;
+    btn.innerHTML = `${displayName} ${count > 0 ? `<span class="laneBtnBadge">${count}</span>` : ""}`;
     btn.addEventListener("click", () => selectLane(lane));
     els.laneGrid.appendChild(btn);
   });
