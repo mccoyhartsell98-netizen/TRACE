@@ -3395,7 +3395,12 @@ async function loadUsers(){
 }
 
 function rolePillHtml(role){
-  const labels = { driver:"Forklift Driver", supervisor:"Supervisor", admin:"Admin" };
+  const labels = { 
+    driver: "Forklift Driver", 
+    operator: "Machine Operator",   
+    supervisor: "Supervisor", 
+    admin: "Admin" 
+  };
   return `<span class="rolePill ${role}">${labels[role] || role}</span>`;
 }
 
