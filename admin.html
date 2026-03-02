@@ -2137,8 +2137,16 @@ async function queueCurrentJob(){
       return;
     }
   }else{
-    // job exists -> move it to QUEUE location
-    await apiPut(`/items/${item.id}`, { location_id: qLocId });
+    // job exists -> move it to QUEUE location, also update form fields
+    const payload = {
+      location_id: qLocId,
+      mo: cleanJob(els.mo?.value || ""),
+      qty: Math.max(0, parseInt(els.qty?.value || "0", 10)),
+      status: (els.status?.value || "").trim().slice(0, 40),
+      notes: (els.notes?.value || "").trim().slice(0, 120),
+      updated_by: (els.updatedBy?.value || "").trim().slice(0, 10),
+    };
+    await apiPut(`/items/${item.id}`, payload);
   }
 
   await loadLocations();
@@ -2529,6 +2537,7 @@ function clearForm(){
   els.status.value = "";
   els.notes.value = "";
   els.updatedBy.value = "";
+  els.job.disabled = false;
   updateFormUI();
 }
 
@@ -2580,6 +2589,7 @@ async function upsertItem(){
     renderMachineList();
     renderGlobalSearch();
     clearForm();
+    toast(`⏳ Queued: ${job}`);
   }catch(err){
     console.error("SAVE FAILED", err);
     let msg = "Save failed. ";
@@ -3046,7 +3056,8 @@ function renderQueuePage(){
       <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${escapeHtml(item.status||"—")}</div>
       <div class="btnRow" style="margin-top:10px;">
         <button class="primary" data-move-lane="1">Move to Lane…</button>
-<button class="ghost" data-gen-qr="1">Generate QR</button>
+        <button class="ghost" data-gen-qr="1">Generate QR</button>
+        <button class="danger" data-remove-queue="1">Remove from Queue</button>
       </div>
     `;
     const btn = div.querySelector("[data-move-lane]");
@@ -3064,6 +3075,21 @@ function renderQueuePage(){
       await loadInventory();
       renderQueuePage();
     });
+
+    div.querySelector("[data-remove-queue]").addEventListener("click", async () => {
+      const ok = await uiConfirm(
+        "Remove from Queue",
+        `Remove Item #${item.job} from the queue?\n\nIt will be moved back to Lane 1. You can move it elsewhere from there.`,
+        "Remove", "Cancel"
+      );
+      if(!ok) return;
+      await moveToLane(item.id, "Lane 1");
+      await loadInventory();
+      renderQueuePage();
+      toast(`↩ Removed ${item.job} from queue → Lane 1`);
+    });
+
+    div.querySelector("[data-gen-qr]").addEventListener("click", () => {
     div.querySelector("[data-gen-qr]").addEventListener("click", () => {
       document.getElementById("qrJob").value = item.job;
       hidePage("queuePage");
