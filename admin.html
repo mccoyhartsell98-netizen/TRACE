@@ -2352,12 +2352,12 @@ function renderHistory(){
 function buildLaneButtons(){
   els.laneGrid.innerHTML = "";
   const laneNums = locations.filter(l => l.type === "lane").map(l => l.laneNum).sort((a,b) => a-b);
-  ineNums.forEach(i => {
+  laneNums.forEach(i => {
     const lane = `Lane ${i}`;
-    const displayName = i === 1 ? "Wrap Queue" : lane;
+    const count = inventory.filter(x => x.lane === lane).length;
     const btn = document.createElement("div");
     btn.className = "laneBtn" + (lane===selectedLane ? " active" : "");
-    btn.innerHTML = `${displayName} ${count > 0 ? `<span class="laneBtnBadge">${count}</span>` : ""}`;
+    btn.innerHTML = `${lane} ${count > 0 ? `<span class="laneBtnBadge">${count}</span>` : ""}`;
     btn.addEventListener("click", () => selectLane(lane));
     els.laneGrid.appendChild(btn);
   });
