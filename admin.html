@@ -2349,7 +2349,7 @@ function renderHistory(){
   });
 }
 // ====== BUTTON BUILDERS ======
-ffunction buildLaneButtons(){
+function buildLaneButtons(){
   els.laneGrid.innerHTML = "";
   const laneNums = locations.filter(l => l.type === "lane").map(l => l.laneNum).sort((a,b) => a-b);
   ineNums.forEach(i => {
