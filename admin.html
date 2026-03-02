@@ -3079,17 +3079,21 @@ function renderQueuePage(){
     });
 
     div.querySelector("[data-remove-queue]").addEventListener("click", async () => {
-      const ok = await uiConfirm(
-        "Remove from Queue",
-        `Remove Item #${item.job} from the queue?\n\nIt will be moved back to Lane 1. You can move it elsewhere from there.`,
-        "Remove", "Cancel"
-      );
-      if(!ok) return;
-      await moveToLane(item.id, "Lane 1");
-      await loadInventory();
-      renderQueuePage();
-      toast(`↩ Removed ${item.job} from queue → Lane 1`);
-    });
+  const ok = await uiConfirm(
+    "Remove from Queue",
+    `Delete Item #${item.job} completely?\n\nThis cannot be undone.`,
+    "Delete", "Cancel"
+  );
+  if(!ok) return;
+  try{
+    await apiDelete(`/items/${item.id}`);
+    await loadInventory();
+    renderQueuePage();
+    toast(`🗑 Deleted ${item.job} from queue`);
+  }catch(e){
+    await uiAlert("Delete Failed", e.message || "Could not delete job.");
+  }
+});
 
     div.querySelector("[data-gen-qr]").addEventListener("click", () => {
       document.getElementById("qrJob").value = item.job;
