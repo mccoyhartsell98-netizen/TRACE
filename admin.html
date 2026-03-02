@@ -2575,10 +2575,6 @@ async function upsertItem(){
 
   const payload = { job_number: jobRaw, mo: moRaw, qty, status, notes, updated_by: updatedBy, location_id };
 
-  if(!selectedId){
-    const exists = inventory.some(x => normalize(x.job) === normalize(jobRaw));
-    if(exists){ await uiAlert("Duplicate Job", "That Job # already exists. Search it and update it instead."); return; }
-  }
 
   try{
     if(selectedId) await apiPut(`/items/${selectedId}`, payload);
