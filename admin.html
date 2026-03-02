@@ -2152,9 +2152,9 @@ async function queueCurrentJob(){
   await loadLocations();
   await loadInventory();
   renderQueuePage();
-  toast(`⏳ Queued: ${job}`);
+  clearForm();
+  showMoveNotif(job, `✅ Successfully added to Queue`);
 }
-
 // ====== SCAN POPUP ======
 let scannedItemId = null;
 
@@ -2589,7 +2589,8 @@ async function upsertItem(){
     renderMachineList();
     renderGlobalSearch();
     clearForm();
-    toast(`⏳ Queued: ${job}`);
+    const dest = selectedLocation.type === "lane" ? selectedLocation.value : `Machine: ${selectedLocation.value}`;
+    showMoveNotif(jobRaw, `✅ Successfully added to ${dest}`);
   }catch(err){
     console.error("SAVE FAILED", err);
     let msg = "Save failed. ";
@@ -3089,7 +3090,6 @@ function renderQueuePage(){
       toast(`↩ Removed ${item.job} from queue → Lane 1`);
     });
 
-    div.querySelector("[data-gen-qr]").addEventListener("click", () => {
     div.querySelector("[data-gen-qr]").addEventListener("click", () => {
       document.getElementById("qrJob").value = item.job;
       hidePage("queuePage");
