@@ -2122,9 +2122,21 @@ async function queueCurrentJob(){
     // Double check API before creating to avoid duplicates
     try{
       const found = await apiGet(`/items/lookup?job=${encodeURIComponent(job)}`);
-      if(found?.item) item = found.item;
+      if(found?.item){
+        const loc = locations.find(l => l.location_id === Number(found.item.location_id));
+        item = {
+          id: found.item.id,
+          job: found.item.job_number,
+          mo: found.item.mo || "",
+          qty: found.item.qty,
+          status: found.item.status,
+          lane: loc?.type === "lane" ? `Lane ${loc.laneNum}` : "",
+          machine: loc?.type === "machine" ? loc.machineName : "",
+          location_id: found.item.location_id
+        };
+      }
     }catch(e){}
-
+  }
     if(!item){
     try{
       const payload = {
