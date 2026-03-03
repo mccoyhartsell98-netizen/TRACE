@@ -2137,7 +2137,8 @@ async function queueCurrentJob(){
       }
     }catch(e){}
   }
-    if(!item){
+
+  if(!item){
     try{
       const payload = {
         job_number: job,
@@ -2153,9 +2154,8 @@ async function queueCurrentJob(){
       await uiAlert("Queue Failed", e.message || "Could not create + queue job.");
       return;
     }
-    }
-  }else{
-    // job exists -> move it to QUEUE location, also update form fields
+  } else {
+    // job exists -> move it to QUEUE location
     const payload = {
       location_id: qLocId,
       mo: cleanJob(els.mo?.value || ""),
@@ -2166,7 +2166,6 @@ async function queueCurrentJob(){
     };
     await apiPut(`/items/${item.id}`, payload);
   }
-
   await loadLocations();
   await loadInventory();
   renderQueuePage();
