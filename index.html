@@ -721,19 +721,26 @@ function renderScannedCard(item) {
   }
 
   async function moveItemToLocation(itemId, locationId, updatedBy) {
-    const { token } = getAuth();
-    const r = await fetch(`${API_BASE}/items/${itemId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
-      body: JSON.stringify({ location_id: locationId, updated_by: updatedBy })
-    });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok || !data.ok) throw new Error(data.error || "Move failed");
-    return data.item;
-  }
+  const { token } = getAuth();
+  const r = await fetch(`${API_BASE}/items/${itemId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      location_id: locationId,
+      updated_by:  updatedBy,
+      mo:          activeItem?.mo     || "",
+      qty:         activeItem?.qty    ?? 0,
+      status:      activeItem?.status || "",
+      notes:       activeItem?.notes  || ""
+    })
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok || !data.ok) throw new Error(data.error || "Move failed");
+  return data.item;
+}
 
   function renderScannedError(msg) {
     document.getElementById("scannedCard").style.display = "block";
