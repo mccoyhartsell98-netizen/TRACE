@@ -2680,17 +2680,19 @@ function closeMoveOverlay(){
 async function moveToLane(id, lane){
   const location_id = locIdByLane.get(lane) ?? null;
   if(!location_id){ await uiAlert("Location Error", `No DB mapping for ${lane}.`); return; }
-
   const item = inventory.find(x => x.id === id);
   const originalLocationId = item?.location_id;
   const originalLocation = item?.lane || item?.machine || "Unknown";
-
   try{
     showLoading(`Moving to ${lane}...`);
-    await apiPut(`/items/${id}`, { 
-  location_id,
-  updated_by: updatedBy || undefined
-});
+    await apiPut(`/items/${id}`, {
+      location_id,
+      mo:         item?.mo         || "",
+      qty:        item?.qty        ?? 0,
+      status:     item?.status     || "",
+      notes:      item?.notes      || "",
+      updated_by: item?.updatedBy  || ""
+    });
     await loadLocations();
     await loadInventory();
     hideLoading();
@@ -2715,14 +2717,19 @@ async function moveToLane(id, lane){
 async function moveToMachine(id, machine){
   const location_id = locIdByMachine.get(machine) ?? null;
   if(!location_id){ await uiAlert("Location Error", `No DB mapping for machine ${machine}.`); return; }
-
   const item = inventory.find(x => x.id === id);
   const originalLocationId = item?.location_id;
   const originalLocation = item?.lane || item?.machine || "Unknown";
-
   try{
     showLoading(`Moving to ${machine}...`);
-    await apiPut(`/items/${id}`, { location_id });
+    await apiPut(`/items/${id}`, {
+      location_id,
+      mo:         item?.mo         || "",
+      qty:        item?.qty        ?? 0,
+      status:     item?.status     || "",
+      notes:      item?.notes      || "",
+      updated_by: item?.updatedBy  || ""
+    });
     await loadLocations();
     await loadInventory();
     hideLoading();
