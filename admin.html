@@ -2687,7 +2687,10 @@ async function moveToLane(id, lane){
 
   try{
     showLoading(`Moving to ${lane}...`);
-    await apiPut(`/items/${id}`, { location_id });
+    await apiPut(`/items/${id}`, { 
+  location_id,
+  updated_by: updatedBy || undefined
+});
     await loadLocations();
     await loadInventory();
     hideLoading();
