@@ -38,7 +38,18 @@
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
     .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
     .pinDots{font-size:22px;letter-spacing:6px;margin:10px 0 6px}
-    .msg{font-size:12px;color:var(--muted);min-height:18px}
+    .msg{
+  font-size:12px;
+  color:var(--muted);
+  min-height:18px;
+  text-align:center;
+  padding:8px 12px;
+  border-radius:8px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  display: none;
+}
+.msg:not(:empty){display:block;}
     input{
       width:100%;background:var(--panel2);color:var(--text);
       border:1px solid var(--border);border-radius:12px;
@@ -545,7 +556,9 @@ $("searchLoadBtn").onclick = async () => {
         $("scanLine").textContent = `Job ${item.job} • MO ${item.mo || "-"} • QTY ${item.qty ?? "-"} • ${loc}`;
         $("jobCardStatus").textContent = item.status || "—";
       } else {
-        $("scanLine").textContent = `Job #${scannedJob} not found in inventory`;
+        $("scanLine").textContent = `Job #${scannedJob} not found in TRACE`;
+        $("jobCardStatus").textContent = "NOT FOUND";
+        showNotFoundHelp(scannedJob);
       }
     } else {
       $("scanLine").textContent = "No job loaded";
@@ -756,6 +769,41 @@ function showScanAgain() {
   $("jobCard").appendChild(btn);
 }
 
+
+function showNotFoundHelp(job) {
+  const existing = $("notFoundHelp");
+  if (existing) existing.remove();
+
+  const div = document.createElement("div");
+  div.id = "notFoundHelp";
+  div.style.marginTop = "12px";
+  div.innerHTML = `
+    <div style="font-size:13px;color:rgba(255,107,107,.9);font-weight:700;margin-bottom:10px;">
+      ⚠️ Contact your supervisor to add Job #${job} to the system.
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <button class="btn" id="notFoundTryAgain">Try Again</button>
+      <button class="btn secondary" id="notFoundSearch">Search Manually</button>
+    </div>
+  `;
+
+  $("jobCard").appendChild(div);
+
+  $("notFoundTryAgain").onclick = () => {
+    activeItem = null;
+    $("scanLine").textContent = "No job loaded";
+    $("jobCardStatus").textContent = "—";
+    const url = new URL(location.href);
+    url.searchParams.delete("job");
+    history.replaceState({}, "", url.toString());
+    div.remove();
+  };
+
+  $("notFoundSearch").onclick = () => {
+    div.remove();
+    openSearchModal();
+  };
+}
 
   // Boot
   hintPayload();
