@@ -372,6 +372,7 @@ async function searchAny(query){
         $("scanLine").textContent = `Job ${activeItem.job} • MO ${activeItem.mo || "-"} • QTY ${activeItem.qty ?? "-"} • ${loc}`;
         $("jobCardStatus").textContent = activeItem.status || "—";
         showToast(`✓ Moved to ${label}`);
+        showScanAgain();
       })
       .catch(e => showToast(e.message || "Move failed", true));
   }
@@ -758,6 +759,32 @@ async function loadUserDropdown() {
     console.warn("Could not load kiosk users:", e);
   }
 }
+
+
+function showScanAgain() {
+  const existing = $("scanAgainBtn");
+  if (existing) existing.remove();
+
+  const btn = document.createElement("button");
+  btn.className = "btn";
+  btn.id = "scanAgainBtn";
+  btn.style.marginTop = "12px";
+  btn.textContent = "Scan Next Job";
+  btn.onclick = () => {
+    activeItem = null;
+    $("scanLine").textContent = "No job loaded";
+    $("jobCardStatus").textContent = "—";
+    const url = new URL(location.href);
+    url.searchParams.delete("job");
+    url.searchParams.delete("mo");
+    url.searchParams.delete("qty");
+    history.replaceState({}, "", url.toString());
+    btn.remove();
+    showToast("Ready to scan next job!");
+  };
+  $("jobCard").appendChild(btn);
+}
+
 
   // Boot
   hintPayload();
