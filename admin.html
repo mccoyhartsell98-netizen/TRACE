@@ -2119,8 +2119,13 @@ async function queueCurrentJob(){
   let item = selectedId ? inventory.find(x => x.id === selectedId) : inventory.find(x => x.job === job);
 
   if(!item){
-    // If job doesn't exist yet, create it first (minimal create)
-    // Uses current selectedLocationId (lane) by default — we'll override to QUEUE location.
+    // Double check API before creating to avoid duplicates
+    try{
+      const found = await apiGet(`/items/lookup?job=${encodeURIComponent(job)}`);
+      if(found?.item) item = found.item;
+    }catch(e){}
+
+    if(!item){
     try{
       const payload = {
         job_number: job,
@@ -2135,6 +2140,7 @@ async function queueCurrentJob(){
     }catch(e){
       await uiAlert("Queue Failed", e.message || "Could not create + queue job.");
       return;
+    }
     }
   }else{
     // job exists -> move it to QUEUE location, also update form fields
