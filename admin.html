@@ -2462,9 +2462,24 @@ function renderLaneList(){
       ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ``}
       <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${item.status ? escapeHtml(item.status) : "—"}</div>
       <div class="meta">${escapeHtml(item.lane)} • Notes: ${item.notes ? escapeHtml(item.notes) : "—"}${by}${at}</div>
-      <div class="btnRow" style="margin-top:10px;"><button class="primary" data-move="1">Move</button></div>
+      <div class="btnRow" style="margin-top:10px;">
+        <button class="primary" data-move="1">Move</button>
+        <button class="ghost" data-send-queue="1" style="border-color:rgba(255,209,102,.35);color:rgba(255,230,140,.9);">⏸ Hold</button>
+      </div>
     `;
     div.querySelector("[data-move]").addEventListener("click", (e) => { e.stopPropagation(); openMoveOverlay(item.id); });
+div.querySelector("[data-send-queue]").addEventListener("click", async (e) => {
+  e.stopPropagation();
+  const qLocId = getQueueLocationId();
+  if(!qLocId){ await uiAlert("Queue Not Ready", `QUEUE location missing in DB.`); return; }
+  await apiPut(`/items/${item.id}`, { location_id: qLocId, mo: item.mo||"", qty: item.qty??0, status: item.status||"", notes: item.notes||"", updated_by: item.updatedBy||"" });
+  await loadLocations();
+  await loadInventory();
+  renderLaneList();
+  renderMachineList();
+  showMoveNotif(item.job, `⏸ Sent back to Queue`);
+  toast(`⏸ ${item.job} sent to Queue`);
+});
     div.addEventListener("click", ()=> loadToForm(item.id));
     els.laneResults.appendChild(div);
   });
@@ -2504,12 +2519,30 @@ function renderMachineList(){
     const by = item.updatedBy ? ` • By: ${escapeHtml(item.updatedBy)}` : "";
     const at = item.updatedAt ? ` • Updated ${escapeHtml(formatTimestamp(item.updatedAt))}` : "";
     div.innerHTML = `
+      <div.innerHTML = `
       <div class="big">Item #${escapeHtml(item.job)}</div>
       ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ``}
       <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${item.status ? escapeHtml(item.status) : "—"}</div>
       <div class="meta">Machine: ${escapeHtml(item.machine)} • Notes: ${item.notes ? escapeHtml(item.notes) : "—"}${by}${at}</div>
+      <div class="btnRow" style="margin-top:10px;">
+        <button class="primary" data-move="1">Move</button>
+        <button class="ghost" data-send-queue="1" style="border-color:rgba(255,209,102,.35);color:rgba(255,230,140,.9);">⏸ Hold</button>
+      </div>
     `;
-    div.addEventListener("click", ()=> loadToForm(item.id));
+    div.querySelector("[data-move]").addEventListener("click", (e) => { e.stopPropagation(); openMoveOverlay(item.id); });
+div.querySelector("[data-send-queue]").addEventListener("click", async (e) => {
+  e.stopPropagation();
+  const qLocId = getQueueLocationId();
+  if(!qLocId){ await uiAlert("Queue Not Ready", `QUEUE location missing in DB.`); return; }
+  await apiPut(`/items/${item.id}`, { location_id: qLocId, mo: item.mo||"", qty: item.qty??0, status: item.status||"", notes: item.notes||"", updated_by: item.updatedBy||"" });
+  await loadLocations();
+  await loadInventory();
+  renderLaneList();
+  renderMachineList();
+  showMoveNotif(item.job, `⏸ Sent back to Queue`);
+  toast(`⏸ ${item.job} sent to Queue`);
+});
+div.addEventListener("click", ()=> loadToForm(item.id));
     els.machineResults.appendChild(div);
   });
 }
