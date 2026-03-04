@@ -1979,7 +1979,7 @@ function buildJobUrl(jobNumber){
 }
 
 async function generateJobQr(){
-  const job = cleanJob(els.job?.value || "");
+  const job = cleanJob(document.getElementById("qrJob")?.value || "");
   if(!job){
     await uiAlert("QR Generator", "Enter an Item # (Job) first.");
     els.job?.focus();
