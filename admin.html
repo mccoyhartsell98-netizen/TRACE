@@ -2108,8 +2108,8 @@ async function queueCurrentJob(){
 
 // DUPLICATE CHECK
   if(!selectedId){
-    const existing = inventory.find(x => x.job === job && String(x.machine || "").toUpperCase() !== "QUEUE");
-    if(existing){
+    const existing = inventory.find(x => x.job === job);
+    if(existing && String(existing.machine || "").toUpperCase() !== "QUEUE"){
       const loc = existing.machine ? `Machine: ${existing.machine}` : (existing.lane || "Unknown");
       const ok = await uiConfirm(
         "⚠️ Duplicate Job Detected",
