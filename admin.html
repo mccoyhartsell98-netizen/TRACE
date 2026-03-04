@@ -3369,14 +3369,16 @@ if(exists){
   btn.textContent = "Adding...";
   msg.textContent = "";
   try{
-    await apiPost("/locations", payload);
-    await loadLocations();
-    await loadInventory();
-    buildLaneButtons();
-    buildMachineButtons();
-    updateTabBadges();
-    closeAddLocation();
-    toast(`✅ ${type === "lane" ? `Lane ${payload.lane}` : payload.machine} added`);
+await apiPost("/locations", payload);
+await loadLocations();
+await loadInventory();
+buildLaneButtons();
+buildMachineButtons();
+updateTabBadges();
+renderLaneList();
+renderMachineList();
+closeAddLocation();
+toast(`✅ ${type === "lane" ? `Lane ${payload.lane}` : payload.machine} added`);
   }catch(e){
     msg.textContent = e.message || "Failed to add location.";
     msg.style.color = "var(--bad)";
