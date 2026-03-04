@@ -2110,14 +2110,44 @@ async function queueCurrentJob(){
   if(!selectedId){
     const existing = inventory.find(x => x.job === job);
     if(existing){
+      const isExtraLane = /^Lane [1-7]A$/i.test(existing.lane || "");
       const loc = existing.machine ? `Machine: ${existing.machine}` : (existing.lane || "Unknown");
-      const ok = await uiConfirm(
-        "⚠️ Duplicate Job Detected",
-        `Item #${job} already exists in ${loc}\n\nQty: ${existing.qty} • Status: ${existing.status || "—"}\n\nAdd a duplicate to the queue anyway?`,
-        "Yes, Add to Queue",
-        "Cancel"
-      );
-      if(!ok) return;
+
+      if(isExtraLane){
+        const newQty = Math.max(0, parseInt(els.qty?.value || "0", 10));
+        const combinedQty = (existing.qty ?? 0) + newQty;
+        const ok = await uiConfirm(
+          "⚠️ Job Found in Extra Lane",
+          `Item #${job} already exists in ${loc} with Qty: ${existing.qty}\n\nDo you want to add Qty ${newQty} to it? (New total: ${combinedQty})\n\nClick Cancel to create a separate queue entry instead.`,
+          "Yes, Combine Qty",
+          "Cancel"
+        );
+        if(ok){
+          await apiPut(`/items/${existing.id}`, {
+            qty: combinedQty,
+            location_id: existing.location_id,
+            mo: existing.mo||"",
+            status: existing.status||"",
+            notes: existing.notes||"",
+            updated_by: (els.updatedBy?.value||"").trim()
+          });
+          await loadLocations();
+          await loadInventory();
+          clearForm();
+          showMoveNotif(job, `✅ Qty updated in ${loc}`);
+          toast(`✅ ${job} qty updated to ${combinedQty} in ${loc}`);
+          return;
+        }
+        // if cancelled, fall through to create new queue entry
+      } else {
+        const ok = await uiConfirm(
+          "⚠️ Duplicate Job Detected",
+          `Item #${job} already exists in ${loc}\n\nQty: ${existing.qty} • Status: ${existing.status || "—"}\n\nAdd a duplicate to the queue anyway?`,
+          "Yes, Add to Queue",
+          "Cancel"
+        );
+        if(!ok) return;
+      }
     }
   }
 
