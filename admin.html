@@ -2460,7 +2460,7 @@ function renderLaneList(){
     div.innerHTML = `
       <div class="big">Item #${escapeHtml(item.job)}</div>
       ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ``}
-      <div style="margin-top:6px;font-size:13px;font-weight:900;color:#8aff8a;">Location: <b>${escapeHtml(item.lane)}</b></div>
+      <div style="margin-top:6px;font-size:15px;font-weight:900;color:#8aff8a;">Location: <b>${escapeHtml(item.lane)}</b></div>
       <div class="qty" style="margin-top:4px;color:#4fc3f7;">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${item.status ? escapeHtml(item.status) : "—"}</div>      
 <div class="meta" style="margin-top:4px;">Notes: ${item.notes ? escapeHtml(item.notes) : "—"}</div>
       <div class="meta" style="margin-top:4px;">${by}${at}</div>
