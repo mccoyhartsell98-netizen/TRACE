@@ -2106,6 +2106,21 @@ async function queueCurrentJob(){
     return;
   }
 
+// DUPLICATE CHECK
+  if(!selectedId){
+    const existing = inventory.find(x => x.job === job);
+    if(existing){
+      const loc = existing.machine ? `Machine: ${existing.machine}` : (existing.lane || "Unknown");
+      const ok = await uiConfirm(
+        "⚠️ Duplicate Job Detected",
+        `Item #${job} already exists in ${loc}\nQty: ${existing.qty} • Status: ${existing.status || "—"}\n\nAre you sure you want to add a duplicate to the queue?`,
+        "Yes, Add to Queue",
+        "Cancel"
+      );
+      if(!ok) return;
+    }
+  }
+
   const qLocId = getQueueLocationId();
   if(!qLocId){
     await uiAlert(
@@ -2613,21 +2628,6 @@ async function upsertItem(){
   const jobRaw = cleanJob(els.job.value).trim();
   const moRaw  = cleanJob(els.mo.value).trim();
   if(!jobRaw){ await uiAlert("Validation Error", "Job # is required."); els.job.focus(); return; }
-
-  // DUPLICATE CHECK
-  if(!selectedId){
-    const existing = inventory.find(x => x.job === jobRaw);
-    if(existing){
-      const loc = existing.machine ? `Machine: ${existing.machine}` : (existing.lane || "Unknown");
-      const ok = await uiConfirm(
-        "⚠️ Duplicate Job Detected",
-        `Item #${jobRaw} already exists in ${loc}\nQty: ${existing.qty} • Status: ${existing.status || "—"}\n\nAre you sure you want to create a duplicate?`,
-        "Yes, Create Duplicate",
-        "Cancel"
-      );
-      if(!ok) return;
-    }
-  }
 
   const qty = Math.max(0, parseInt(els.qty.value || "0", 10));
   const status = (els.status.value || "").trim().slice(0, 40);
