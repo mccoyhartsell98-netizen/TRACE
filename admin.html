@@ -3411,7 +3411,10 @@ document.getElementById("deleteLocationBtn").addEventListener("click", async () 
 
   if(!input) return;
 
-  const match = list.find(l => l.label.toLowerCase() === input.trim().toLowerCase());
+  const match = list.find(l => 
+  l.label.toLowerCase() === input.trim().toLowerCase() ||
+  l.label.toLowerCase() === `lane ${input.trim().toLowerCase()}`
+);
   if(!match){
     msg.textContent = `"${input}" not found.`;
     msg.style.color = "var(--bad)";
@@ -3426,6 +3429,7 @@ document.getElementById("deleteLocationBtn").addEventListener("click", async () 
   if(!ok) return;
 
   try{
+    console.log("Deleting location:", match.location_id, match.label);
     await apiDelete(`/locations/${match.location_id}`);
     await loadLocations();
     await loadInventory();
