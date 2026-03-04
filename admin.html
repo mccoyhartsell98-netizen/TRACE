@@ -2131,7 +2131,7 @@ async function queueCurrentJob(){
   }
 
   // If selectedId exists, queue that item. If not, try to find job in inventory.
-  let item = selectedId ? inventory.find(x => x.id === selectedId) : inventory.find(x => x.job === job);
+  let item = selectedId ? inventory.find(x => x.id === selectedId) : null;
 
   if(!item){
     // Double check API before creating to avoid duplicates
