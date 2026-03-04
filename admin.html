@@ -2109,7 +2109,7 @@ async function queueCurrentJob(){
 // DUPLICATE CHECK
   if(!selectedId){
     const existing = inventory.find(x => x.job === job);
-    if(existing && String(existing.machine || "").toUpperCase() !== "QUEUE"){
+    if(existing){
       const loc = existing.machine ? `Machine: ${existing.machine}` : (existing.lane || "Unknown");
       const ok = await uiConfirm(
         "⚠️ Duplicate Job Detected",
@@ -2131,7 +2131,7 @@ async function queueCurrentJob(){
   }
 
   // If selectedId exists, queue that item. If not, try to find job in inventory.
-  let item = selectedId ? inventory.find(x => x.id === selectedId) : null;
+  let item = selectedId ? inventory.find(x => x.id === selectedId) : inventory.find(x => x.job === job);
 
   if(!item){
     // Double check API before creating to avoid duplicates
