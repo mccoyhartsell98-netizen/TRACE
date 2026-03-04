@@ -2123,8 +2123,10 @@ async function queueCurrentJob(){
           "Cancel"
         );
         if(ok){
-          const qLocId = getQueueLocationId();
+          aconst qLocId = getQueueLocationId();
 if(!qLocId){ await uiAlert("Queue Not Ready", "QUEUE location missing."); return; }
+console.log("locIdByMachine contents:", [...locIdByMachine.entries()]);
+console.log("qLocId:", getQueueLocationId());
 await apiPut(`/items/${existing.id}`, {
   qty: combinedQty,
   location_id: qLocId,
