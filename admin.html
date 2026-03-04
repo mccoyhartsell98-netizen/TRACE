@@ -2113,7 +2113,7 @@ async function queueCurrentJob(){
       const loc = existing.machine ? `Machine: ${existing.machine}` : (existing.lane || "Unknown");
       const ok = await uiConfirm(
         "⚠️ Duplicate Job Detected",
-        `Item #${job} already exists in ${loc}\nQty: ${existing.qty} • Status: ${existing.status || "—"}\n\nAre you sure you want to add a duplicate to the queue?`,
+        `Item #${job} already exists in ${loc}\n\nQty: ${existing.qty} • Status: ${existing.status || "—"}\n\nAdd a duplicate to the queue anyway?`,
         "Yes, Add to Queue",
         "Cancel"
       );
