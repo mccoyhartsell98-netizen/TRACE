@@ -2469,12 +2469,6 @@ function renderLaneList(){
         <button class="ghost" data-send-queue="1" style="border-color:rgba(255,209,102,.35);color:rgba(255,230,140,.9);">⏸ Hold</button>
       </div>
     `;
-      <div class="meta" style="margin-top:4px;">${by}${at}</div>
-      <div class="btnRow" style="margin-top:10px;">
-        <button class="primary" data-move="1">Move</button>
-        <button class="ghost" data-send-queue="1" style="border-color:rgba(255,209,102,.35);color:rgba(255,230,140,.9);">⏸ Hold</button>
-      </div>
-    `;
     div.querySelector("[data-move]").addEventListener("click", (e) => { e.stopPropagation(); openMoveOverlay(item.id); });
 div.querySelector("[data-send-queue]").addEventListener("click", async (e) => {
   e.stopPropagation();
