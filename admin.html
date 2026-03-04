@@ -3348,7 +3348,7 @@ if(exists){
       msg.style.color = "var(--bad)";
       return;
     }
-    payload = { lane: n };
+    payload = { machine: `Lane ${n}`, area: "lane" };
   } else {
     const name = document.getElementById("addMachineName").value.trim();
     if(!name){
