@@ -2614,11 +2614,25 @@ async function upsertItem(){
   const moRaw  = cleanJob(els.mo.value).trim();
   if(!jobRaw){ await uiAlert("Validation Error", "Job # is required."); els.job.focus(); return; }
 
+  // DUPLICATE CHECK
+  if(!selectedId){
+    const existing = inventory.find(x => x.job === jobRaw);
+    if(existing){
+      const loc = existing.machine ? `Machine: ${existing.machine}` : (existing.lane || "Unknown");
+      const ok = await uiConfirm(
+        "⚠️ Duplicate Job Detected",
+        `Item #${jobRaw} already exists in ${loc}\nQty: ${existing.qty} • Status: ${existing.status || "—"}\n\nAre you sure you want to create a duplicate?`,
+        "Yes, Create Duplicate",
+        "Cancel"
+      );
+      if(!ok) return;
+    }
+  }
+
   const qty = Math.max(0, parseInt(els.qty.value || "0", 10));
   const status = (els.status.value || "").trim().slice(0, 40);
   const notes  = (els.notes.value  || "").trim().slice(0, 120);
   const updatedBy = (els.updatedBy.value || "").trim().slice(0, 10);
-
   const location_id = getSelectedLocationId();
   if(!location_id){
     await uiAlert("Location Error", `No DB mapping for selected ${selectedLocation.type}: ${selectedLocation.value}.`);
