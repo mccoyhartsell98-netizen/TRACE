@@ -2460,9 +2460,15 @@ function renderLaneList(){
     div.innerHTML = `
       <div class="big">Item #${escapeHtml(item.job)}</div>
       ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ``}
-      <div style="margin-top:6px;font-size:13px;font-weight:900;color:#4fc3f7;">📍 ${escapeHtml(item.lane)}</div>
+      <div style="margin-top:6px;font-size:13px;font-weight:900;color:#4fc3f7;">Location: <b>${escapeHtml(item.lane)}</b></div>
       <div class="qty" style="margin-top:4px;">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${item.status ? escapeHtml(item.status) : "—"}</div>
-      ${item.notes ? `<div class="meta" style="margin-top:4px;">📝 ${escapeHtml(item.notes)}</div>` : ""}
+      <div class="meta" style="margin-top:4px;">Notes: ${item.notes ? escapeHtml(item.notes) : "—"}</div>
+      <div class="meta" style="margin-top:4px;">${by}${at}</div>
+      <div class="btnRow" style="margin-top:10px;">
+        <button class="primary" data-move="1">Move</button>
+        <button class="ghost" data-send-queue="1" style="border-color:rgba(255,209,102,.35);color:rgba(255,230,140,.9);">⏸ Hold</button>
+      </div>
+    `;
       <div class="meta" style="margin-top:4px;">${by}${at}</div>
       <div class="btnRow" style="margin-top:10px;">
         <button class="primary" data-move="1">Move</button>
