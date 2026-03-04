@@ -2123,14 +2123,17 @@ async function queueCurrentJob(){
           "Cancel"
         );
         if(ok){
-          await apiPut(`/items/${existing.id}`, {
-            qty: combinedQty,
-            location_id: existing.location_id,
-            mo: existing.mo||"",
-            status: existing.status||"",
-            notes: existing.notes||"",
-            updated_by: (els.updatedBy?.value||"").trim()
-          });
+          const qLocId = getQueueLocationId();
+if(!qLocId){ await uiAlert("Queue Not Ready", "QUEUE location missing."); return; }
+await apiPut(`/items/${existing.id}`, {
+  qty: combinedQty,
+  location_id: qLocId,
+  mo: existing.mo||"",
+  status: existing.status||"",
+  notes: existing.notes||"",
+  updated_by: (els.updatedBy?.value||"").trim()
+});
+
           await loadLocations();
           await loadInventory();
           clearForm();
