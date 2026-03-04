@@ -2562,11 +2562,12 @@ function renderGlobalSearch(){
     const div = document.createElement("div");
     div.className = "resultItem";
     const location = item.machine ? `Machine: ${escapeHtml(item.machine)}` : (item.lane ? escapeHtml(item.lane) : "—");
-    div.innerHTML = `
+     div.innerHTML = `
       <div class="big">Item #${escapeHtml(item.job)}</div>
       ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ``}
-      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${item.status ? escapeHtml(item.status) : "—"}</div>
-      <div class="meta">${location} • Notes: ${item.notes ? escapeHtml(item.notes) : "—"}</div>
+      <div style="margin-top:6px;font-size:13px;font-weight:900;color:#4fc3f7;">Location: <b>${location}</b></div>
+      <div class="qty" style="margin-top:4px;">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${item.status ? escapeHtml(item.status) : "—"}</div>
+      <div class="meta" style="margin-top:4px;">Notes: ${item.notes ? escapeHtml(item.notes) : "—"}</div>
       <div class="btnRow" style="margin-top:10px;"><button class="primary" data-move="1">Move</button></div>
     `;
     div.querySelector('[data-move]').addEventListener("click", (e) => { e.stopPropagation(); openMoveOverlay(item.id); });
