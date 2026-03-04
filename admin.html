@@ -2383,9 +2383,7 @@ function renderHistory(){
 // ====== BUTTON BUILDERS ======
 function buildLaneButtons(){
   els.laneGrid.innerHTML = "";
-  console.log("All locations:", locations.map(l => ({ id: l.location_id, type: l.type, laneNum: l.laneNum, machine: l.machineName })));
-const laneNums = locations.filter(l => l.type === "lane").map(l => l.laneNum).sort(...)
-  const laneNums = locations.filter(l => l.type === "lane").map(l => l.laneNum).sort((a,b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
+  const laneNums = locations.filter(l => l.type === "lane" && l.laneNum).map(l => String(l.laneNum)).sort((a,b) => a.localeCompare(b, undefined, { numeric: true }));
   laneNums.forEach(i => {
     const lane = `Lane ${i}`;
     const count = inventory.filter(x => x.lane === lane).length;
