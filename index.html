@@ -879,9 +879,24 @@ function showWhichPicker(job, matches, onPick) {
     grid.appendChild(btn);
   });
 
+// Take Both button
+  const takeBtn = document.createElement("button");
+  takeBtn.className = "btn";
+  takeBtn.style.marginTop = "12px";
+  takeBtn.textContent = "✅ Take Both";
+  takeBtn.onclick = () => {
+    $("whichOverlay").classList.add("hide");
+    activePallets = [...matches];
+    const locs = matches.map(x => x.machine ? `Machine ${x.machine}` : x.lane).join(" + ");
+    $("scanLine").textContent = `Job #${job} • TAKING ALL • ${locs}`;
+    $("jobCardStatus").textContent = "TAKE ALL";
+    showToast(`✅ All ${matches.length} pallets loaded — Job #${job}`);
+  };
+  grid.appendChild(takeBtn);
+
   $("whichOverlay").classList.remove("hide");
 }
-
+  
   // Boot
   hintPayload();
   renderPinDots();
