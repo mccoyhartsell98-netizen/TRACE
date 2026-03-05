@@ -839,34 +839,47 @@ function showNotFoundHelp(job) {
 function checkDuplicateLanes(loadedItem) {
   if (!loadedItem) return;
   const job = String(loadedItem.job ?? loadedItem.job_number ?? "").trim().toUpperCase();
-  const currentId = loadedItem.id ?? loadedItem.item_id;
-  const dupes = inventory.filter(x =>
+
+  const allMatches = inventory.filter(x =>
     String(x.job).trim().toUpperCase() === job &&
-    x.id !== currentId &&
     (x.lane || x.machine)
   );
-  if (dupes.length === 0) return;
-  const dupe = dupes[0];
-  const dupeLoc = dupe.machine ? `Machine ${dupe.machine}` : dupe.lane;
-  const currentLoc = loadedItem.machine ? `Machine ${loadedItem.machine}` : (loadedItem.lane || "Unknown");
-  $("dupJobNum").textContent = `Job #${job}`;
-  $("dupWhere").textContent = `Also found in: ${dupeLoc} — Qty: ${dupe.qty ?? "—"}`;
-  $("dupBody").textContent = `You scanned from ${currentLoc}. Take both pallets to the machine?`;
-  $("dupOverlay").classList.remove("hide");
-  $("dupTakeBoth").onclick = () => {
-    $("dupOverlay").classList.add("hide");
-    activePallets = [loadedItem, dupe];
-    const loc1 = loadedItem.machine ? `Machine ${loadedItem.machine}` : (loadedItem.lane || "?");
-    const loc2 = dupe.machine ? `Machine ${dupe.machine}` : (dupe.lane || "?");
-    $("scanLine").textContent = `Job #${job} • TAKING BOTH • ${loc1} + ${loc2}`;
-    $("jobCardStatus").textContent = "TAKE BOTH";
-    showToast(`✅ Both pallets loaded — Job #${job}`);
-  };
-  $("dupIgnore").onclick = () => {
-    $("dupOverlay").classList.add("hide");
-    activePallets = [loadedItem];
-    showToast(`Continuing with single pallet`);
-  };
+
+  // Only 1 or 0 matches — nothing to do
+  if (allMatches.length <= 1) return;
+
+  // 2+ matches — show the picker, done
+  showWhichPicker(job, allMatches, (picked) => {
+    activeItem = picked;
+    activePallets = [picked];
+    const loc = picked.machine ? `Machine ${picked.machine}` : (picked.lane || "Unknown");
+    $("scanLine").textContent = `Job ${picked.job} • MO ${picked.mo || "-"} • QTY ${picked.qty ?? "-"} • ${loc}`;
+    $("jobCardStatus").textContent = picked.status || "—";
+    showToast(`✅ Loaded ${picked.job} from ${loc}`);
+  });
+}
+
+function showWhichPicker(job, matches, onPick) {
+  $("whichJobNum").textContent = `Job #${job}`;
+  const grid = $("whichGrid");
+  grid.innerHTML = "";
+
+  matches.forEach(item => {
+    const loc = item.machine ? `Machine ${item.machine}` : (item.lane || "Unknown");
+    const btn = document.createElement("button");
+    btn.className = "dup-which-btn";
+    btn.innerHTML = `
+      <div style="font-size:15px;margin-bottom:4px;">${loc}</div>
+      <div style="font-size:12px;opacity:.7;">Qty: ${item.qty ?? "—"}</div>
+    `;
+    btn.onclick = () => {
+      $("whichOverlay").classList.add("hide");
+      onPick(item);
+    };
+    grid.appendChild(btn);
+  });
+
+  $("whichOverlay").classList.remove("hide");
 }
 
   // Boot
