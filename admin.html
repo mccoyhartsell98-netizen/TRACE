@@ -2123,7 +2123,7 @@ async function queueCurrentJob(){
           "Cancel"
         );
         if(ok){
-          aconst qLocId = getQueueLocationId();
+          const qLocId = getQueueLocationId();
 if(!qLocId){ await uiAlert("Queue Not Ready", "QUEUE location missing."); return; }
 console.log("locIdByMachine contents:", [...locIdByMachine.entries()]);
 console.log("qLocId:", getQueueLocationId());
