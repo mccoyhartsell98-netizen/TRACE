@@ -1,931 +1,4239 @@
-<!doctype html>
+<!-- 
+  TRACE INVENTORY - ADMIN PANEL
+  © 2026 Mccoy Hartsell — All rights reserved.
+-->
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>TRACE — Kiosk</title>
+  <title>TRACE — Admin</title>
+  <link rel="icon" type="image/png" href="favicon - Copy.png?v=1">
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  
+  <!-- PWA / App support -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#0f1115">
+
+  <!-- iOS install support -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TRACE Admin">
+  <link rel="apple-touch-icon" href="./icon-192.png">
 
   <style>
+    /* LOGIN OVERLAY STYLES */
+    .loginOverlay{
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(10,12,16,.92);
+      z-index:100000;
+    }
+    .loginCard{
+      width: min(420px, 92vw);
+      background: rgba(22,26,34,.95);
+      border: 1px solid rgba(90,110,160,.25);
+      border-radius: 18px;
+      padding: 22px 20px;
+      box-shadow: 0 18px 60px rgba(0,0,0,.55);
+    }
+    .loginSub{
+      text-align: center;
+      margin-top: 6px;
+      margin-bottom: 18px;
+      opacity: .75;
+    }
+    .loginLabel{
+      display: block;
+      font-size: 12px;
+      opacity: .8;
+      margin: 10px 0 6px;
+    }
+    .loginInput{
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid rgba(110,130,190,.25);
+      background: rgba(10,12,16,.55);
+      color: #fff;
+      padding: 12px 12px;
+      outline: none;
+    }
+    .loginInput:focus{ border-color: rgba(140,170,255,.6); }
+    .loginBtn{
+      width: 100%;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border: 0;
+      border-radius: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      background: rgba(80,120,255,.9);
+      color: #fff;
+    }
+    .loginBtn:active{ transform: translateY(1px); }
+    .loginMsg{
+      margin-top: 12px;
+      font-size: 13px;
+      opacity: .85;
+      text-align: center;
+    }
+
+    /* DIALOG OVERLAY */
+    .overlay{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.62);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:100050;
+      padding:18px;
+    }
+    .overlay.show{display:flex;}
+
     :root{
-      --bg:#0b0f16;
-      --panel:#101a2a;
-      --panel2:#0f1522;
-      --text:#eaf2ff;
-      --muted:rgba(234,242,255,.7);
-      --border:rgba(255,255,255,.12);
-      --btn:#0f1b2e;
-      --btn2:#122547;
-      --accent:#2a7fff;
+      --bg:#0f1115;
+      --panel:rgba(22,26,34,.92);
+      --panel2:rgba(27,32,48,.92);
+      --text:#ffffff;
+      --muted:#b7c0d1;
+      --meta:#cfe0ff;
+      --good:#8aff8a;
+      --bad:#ff6b6b;
+      --warn:#ffd166;
+      --stroke:#2b3143;
+      --focus:#3a7afe;
     }
-    html,body{height:100%;margin:0;font-family:system-ui,Segoe UI,Arial;background:radial-gradient(1100px 700px at 25% 10%, rgba(42,127,255,.16), transparent 60%), var(--bg);color:var(--text);overflow-x:hidden;}
-    .wrap{min-height:100%;display:flex;align-items:center;justify-content:center;padding:18px;}
-    .card{width:min(520px, 95vw);background:linear-gradient(180deg, rgba(16,26,42,.96), rgba(10,14,22,.96));border:1px solid var(--border);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.45);overflow:hidden;}
-    .top{padding:16px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;}
-    .brand{font-weight:900;letter-spacing:.5px}
-    .sub{font-size:12px;color:var(--muted);margin-top:2px}
-    .pill{font-size:12px;border:1px solid var(--border);padding:6px 10px;border-radius:999px;color:var(--muted)}
-    .body{padding:14px 16px 16px;}
-    .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-    .btn{
-      width:100%;background:var(--btn);color:var(--text);
-      border:1px solid var(--border);border-radius:14px;
-      padding:14px 14px;font-weight:900;letter-spacing:.2px;cursor:pointer;
-      transition:.12s transform, .12s background;
+
+    *{box-sizing:border-box;}
+    .location-line{ color:var(--meta); font-weight:500; }
+
+    html, body{ height:100%; margin:0; }
+    body{
+      overflow:hidden;
+      font-family:Arial,Helvetica,sans-serif;
+      color:var(--text);
+      background:
+        linear-gradient(rgba(15,17,21,0.55), rgba(15,17,21,0.55)),
+        url("759c4386-0d9e-4dd1-9589-07ef1c92643b.png");
+      background-size:cover;
+      background-position:center;
+      background-repeat:no-repeat;
+      background-attachment:fixed;
     }
-    .btn:hover{background:var(--btn2)}
-    .btn:active{transform:scale(.985)}
-    .btn.secondary{background:transparent}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
-    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
-    .pinDots{font-size:22px;letter-spacing:6px;margin:10px 0 6px}
-    .msg{
-  font-size:12px;
-  color:var(--muted);
-  min-height:18px;
-  text-align:center;
-  padding:8px 12px;
-  display: none;
+
+    /* INTRO -> APP FADE SUPPORT */
+    .appRoot.isHidden{ opacity:0; pointer-events:none; }
+    .appRoot.isVisible{ opacity:1; pointer-events:auto; transition: opacity 700ms ease; }
+
+    /* TRACE INTRO OVERLAY */
+    .traceBoot{
+      position:fixed;
+      inset:0;
+      display:grid;
+      place-items:center;
+      background:#0b0f14;
+      z-index:9999;
+    }
+    .traceBoot::before{
+      content:"";
+      position:absolute;
+      inset:-20%;
+      background:
+        radial-gradient(1000px 700px at 50% 50%, rgba(58,122,254,.08), transparent 55%),
+        radial-gradient(900px 650px at 55% 60%, rgba(58,122,254,.06), transparent 55%),
+        radial-gradient(1200px 900px at 50% 50%, rgba(0,0,0,.0), rgba(0,0,0,.75) 70%);
+      pointer-events:none;
+    }
+    .traceBoot::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background-image:
+        radial-gradient(circle at 20% 30%, rgba(255,255,255,.03), transparent 28%),
+        radial-gradient(circle at 70% 60%, rgba(255,255,255,.02), transparent 30%),
+        radial-gradient(circle at 45% 80%, rgba(255,255,255,.02), transparent 25%);
+      opacity:.35;
+      mix-blend-mode: overlay;
+      animation: traceDrift 8s ease-in-out infinite;
+      pointer-events:none;
+    }
+    @keyframes traceDrift{
+      0%,100%{ transform: translate3d(0,0,0) scale(1); }
+      50%{ transform: translate3d(-1.5%, 1%, 0) scale(1.02); }
+    }
+
+    .traceBoot-inner{
+      position:relative;
+      width:min(900px, 92vw);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      transform: translateY(-8px);
+      text-align:center;
+      gap:18px;
+    }
+
+    .traceLogo-wrap{
+      display:flex;
+      justify-content:center;
+      transform: translateX(-18px);
+      will-change: transform;
+    }
+    .traceLogo{
+      width:750px;
+      max-width:92vw;
+      height:auto;
+      opacity:0;
+      transform: scale(.94);
+      filter:
+        drop-shadow(0 0 14px rgba(58,122,254,.28))
+        drop-shadow(0 0 40px rgba(58,122,254,.12));
+      animation:
+        traceLogoIn 1.4s cubic-bezier(.2,.9,.2,1) forwards,
+        traceGlowPulse 3.6s ease-in-out infinite;
+      animation-delay: .05s, 1.55s;
+      user-select:none;
+      -webkit-user-drag:none;
+    }
+    @keyframes traceLogoIn{ to{ opacity:1; transform: scale(1); } }
+    @keyframes traceGlowPulse{
+      0%,100%{
+        filter:
+          drop-shadow(0 0 12px rgba(58,122,254,.22))
+          drop-shadow(0 0 36px rgba(58,122,254,.10));
+      }
+      50%{
+        filter:
+          drop-shadow(0 0 18px rgba(58,122,254,.36))
+          drop-shadow(0 0 52px rgba(58,122,254,.16));
+      }
+    }
+
+    .traceTagline{
+      margin-top:2px;
+      font-size:12px;
+      letter-spacing:.38em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.70);
+      opacity:0;
+      transform: translateY(6px);
+      animation: traceTextUp .9s ease forwards;
+      animation-delay: 1.05s;
+    }
+    @keyframes traceTextUp{ to{ opacity:1; transform: translateY(0); } }
+
+    .traceHud{
+      width:min(520px, 92vw);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:10px;
+      opacity:0;
+      transform: translateY(8px);
+      animation: traceHudIn .9s ease forwards;
+      animation-delay: 1.35s;
+    }
+    @keyframes traceHudIn{ to{ opacity:1; transform: translateY(0); } }
+
+    .traceHud-pill{
+      position:relative;
+      width:100%;
+      max-width:440px;
+      height:34px;
+      border-radius:999px;
+      border:1px solid rgba(58,122,254,.35);
+      background: rgba(10,14,20,.55);
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.02),
+        0 0 28px rgba(58,122,254,.08);
+      overflow:hidden;
+    }
+    .traceHud-pill::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, transparent, rgba(58,122,254,.22), transparent);
+      transform: translateX(-120%);
+      animation: traceScan 2.2s ease-in-out infinite;
+      opacity:.9;
+    }
+    @keyframes traceScan{
+      0%{ transform: translateX(-120%); }
+      55%{ transform: translateX(120%); }
+      100%{ transform: translateX(120%); }
+    }
+    .traceHud-pill::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        repeating-linear-gradient(
+          135deg,
+          rgba(58,122,254,.06) 0px,
+          rgba(58,122,254,.06) 10px,
+          transparent 10px,
+          transparent 20px
+        );
+      opacity:.28;
+      pointer-events:none;
+    }
+    .traceHud-content{
+      position:relative;
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      padding:0 18px;
+      font-size:11px;
+      letter-spacing:.32em;
+      text-transform: uppercase;
+      color: rgba(180,205,255,.92);
+      text-shadow: 0 0 12px rgba(58,122,254,.18);
+      z-index:1;
+      white-space:nowrap;
+    }
+    .traceHud-left, .traceHud-right{
+      width:10px; height:10px;
+      border-radius:2px;
+      border:1px solid rgba(58,122,254,.5);
+      box-shadow: 0 0 12px rgba(58,122,254,.18);
+      opacity:.8;
+    }
+    .traceHud-left{
+      clip-path: polygon(30% 10%, 70% 10%, 70% 90%, 30% 90%, 10% 50%);
+    }
+    .traceHud-right{
+      clip-path: polygon(30% 10%, 70% 10%, 90% 50%, 70% 90%, 30% 90%);
+    }
+    .traceHud-sub{
+      font-size:10px;
+      letter-spacing:.28em;
+      color: rgba(255,255,255,.55);
+      text-transform: uppercase;
+    }
+    .traceDot{
+      display:inline-block;
+      width:6px;
+      height:6px;
+      border-radius:50%;
+      margin-left:8px;
+      background: rgba(58,122,254,.9);
+      box-shadow: 0 0 12px rgba(58,122,254,.45);
+      animation: traceDotPulse 1.15s ease-in-out infinite;
+      vertical-align: middle;
+    }
+    @keyframes traceDotPulse{
+      0%,100%{ transform: scale(.85); opacity:.55; }
+      50%{ transform: scale(1.15); opacity:1; }
+    }
+    .traceBoot.fade{ animation: traceBootOut .9s ease forwards; }
+    @keyframes traceBootOut{ to{ opacity:0; visibility:hidden; } }
+
+    /* MAIN APP STYLES */
+    .wrap{
+      max-width:1100px;
+      height:100vh;
+      margin:0 auto;
+      padding:18px 18px 16px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .top{
+      display:grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items:center;
+      gap:10px;
+      flex:0 0 auto;
+    }
+    .logo{
+      grid-column:2;
+      justify-self:center;
+      width:680px;
+      max-width:96vw;
+      height:auto;
+      display:block;
+      filter:
+        drop-shadow(0 0 12px rgba(58,122,254,0.35))
+        drop-shadow(0 0 28px rgba(58,122,254,0.15));
+    }
+    .status{
+      grid-column:3;
+      justify-self:end;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      text-align:right;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.2;
+    }
+    .pill{
+      padding:6px 10px;
+      border:1px solid var(--stroke);
+      border-radius:999px;
+      background:rgba(255,255,255,.03);
+      color:var(--muted);
+      white-space:nowrap;
+    }
+    .versionBadge{
+      position:fixed;
+      top:12px;
+      left:12px;
+      z-index:120;
+      padding:6px 10px;
+      border:1px solid var(--stroke);
+      border-radius:999px;
+      background:rgba(0,0,0,.35);
+      color:var(--muted);
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.3px;
+      backdrop-filter: blur(6px);
+    }
+    .rolebar{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      flex:0 0 auto;
+    }
+    .roleLeft{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    select, input[type="text"], input[type="number"], input[type="password"], input[type="email"]{
+      width:100%;
+      padding:14px 14px;
+      font-size:18px;
+      border-radius:10px;
+      border:1px solid var(--stroke);
+      background:var(--panel2);
+      color:var(--text);
+      outline:none;
+    }
+    input[type="text"]:focus, input[type="number"]:focus, input[type="password"]:focus, input[type="email"]:focus{
+      border-color: var(--focus);
+      box-shadow: 0 0 0 3px rgba(58,122,254,.18);
+    }
+    button{
+      border:none;
+      border-radius:10px;
+      padding:10px 12px;
+      font-size:14px;
+      font-weight:900;
+      color:var(--text);
+      background:rgba(255,255,255,.08);
+      cursor:pointer;
+      border:1px solid var(--stroke);
+      white-space:nowrap;
+    }
+    button:hover{background:rgba(255,255,255,.11)}
+    button:disabled{opacity:.4; cursor:not-allowed;}
+    .primary{background:rgba(58,122,254,.24); border-color:rgba(58,122,254,.55)}
+    .primary:hover:not(:disabled){background:rgba(58,122,254,.32)}
+    .danger{background:rgba(255,107,107,.16); border-color:rgba(255,107,107,.45)}
+    .danger:hover:not(:disabled){background:rgba(255,107,107,.22)}
+    .ghost{background:transparent}
+    .ghost:hover{background:rgba(255,255,255,.06)}
+
+    .grid{
+      flex:1 1 auto;
+      min-height:0;
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:14px;
+    }
+    .card{
+      background:var(--panel);
+      border:1px solid var(--stroke);
+      border-radius:12px;
+      padding:14px;
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+    }
+    .card h2{
+      margin:0 0 10px 0;
+      font-size:15px;
+      letter-spacing:.5px;
+      color:var(--muted);
+      font-weight:900;
+      text-transform:uppercase;
+    }
+
+    .scroll{
+      overflow:auto;
+      padding-right:4px;
+      min-height:0;
+      flex:1 1 auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,.18) transparent;
+    }
+    .scroll::-webkit-scrollbar{ width:8px; }
+    .scroll::-webkit-scrollbar-track{ background:transparent; }
+    .scroll::-webkit-scrollbar-thumb{
+      background: rgba(255,255,255,.14);
+      border-radius: 999px;
+      border: 2px solid transparent;
+      background-clip: content-box;
+    }
+    .scroll::-webkit-scrollbar-thumb:hover{
+      background: rgba(255,255,255,.22);
+      background-clip: content-box;
+    }
+
+    .laneGrid{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap:10px;
+      margin-top:10px;
+      margin-bottom:10px;
+      flex:0 0 auto;
+    }
+    .laneBtn{
+      background:var(--panel2);
+      border:1px solid var(--stroke);
+      border-radius:12px;
+      padding:12px 10px;
+      text-align:center;
+      font-weight:900;
+      letter-spacing:.4px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .laneBtn:hover{border-color:rgba(58,122,254,.45)}
+    .laneBtn.active{
+      border-color:rgba(58,122,254,.75);
+      box-shadow: 0 0 0 3px rgba(58,122,254,.18);
+    }
+     
+     .laneBtnBadge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:18px;
+  height:18px;
+  padding:0 5px;
+  border-radius:999px;
+  background:rgba(58,122,254,.22);
+  border:1px solid rgba(58,122,254,.35);
+  color:rgba(180,205,255,.9);
+  font-size:10px;
+  font-weight:900;
+  margin-left:4px;
 }
-.msg:not(:empty){display:block;}
-    input{
-      width:100%;background:var(--panel2);color:var(--text);
-      border:1px solid var(--border);border-radius:12px;
-      padding:12px 12px;font-weight:700;outline:none;
-      box-sizing:border-box;
+    .laneHeader{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin:10px 0 8px 0;
+      flex:0 0 auto;
     }
-    .section{margin-top:12px;border:1px solid var(--border);border-radius:14px;padding:12px;background:rgba(15,21,34,.55)}
-    .tiny{font-size:12px;color:var(--muted);word-break:break-all;margin-top:8px}
-    .hide{display:none!important}
+    .laneTitle{font-size:20px;font-weight:900;}
+    .laneCount{color:var(--muted);font-size:13px;font-weight:800;}
 
-.toast{
-      position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
-      background:#1a3a1a;border:1px solid #2d7a2d;color:#7fff7f;
-      padding:12px 24px;border-radius:999px;font-weight:900;font-size:14px;
-      z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;
+    .results{ display:flex; flex-direction:column; gap:10px; }
+    .resultItem{
+      background:var(--panel2);
+      border:1px solid var(--stroke);
+      border-radius:12px;
+      padding:12px 12px;
+      cursor:pointer;
     }
-    .toast.show{opacity:1;}
+    .resultItem:hover{border-color:rgba(58,122,254,.45)}
+    .resultItem.active{
+      border-color:rgba(58,122,254,.75);
+      box-shadow: 0 0 0 3px rgba(58,122,254,.18);
+    }
 
-    /* Modal overlay */
-    .modal-overlay{
-      position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);
-      display:flex;align-items:center;justify-content:center;z-index:100;padding:18px;
+    .big{font-size:18px;font-weight:900;}
+    .meta{color:var(--muted);margin-top:6px;font-size:13px;line-height:1.35;}
+    .qty{color:var(--good);font-weight:900;margin-top:6px;font-size:14px;}
+    .tiny{
+  font-size:13px;
+  font-weight:600;
+  color:#7fb3ff;              
+  letter-spacing:.3px;
+  word-break:break-all;
+  margin-top:8px;
+}
+    .btnRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+
+    .hint{
+      margin-top:12px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.35;
+      flex:0 0 auto;
     }
+    .kbd{
+      display:inline-block;
+      padding:2px 6px;
+      border:1px solid var(--stroke);
+      border-bottom-width:2px;
+      border-radius:6px;
+      background:rgba(255,255,255,.03);
+      font-weight:900;
+      font-size:12px;
+      color:var(--muted);
+      margin:0 2px;
+    }
+
+    .formGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    .formGrid .full{grid-column:1 / -1;}
+
     .modal{
-      background:linear-gradient(180deg, rgba(16,26,42,.98), rgba(10,14,22,.98));
-      border:1px solid var(--border);border-radius:18px;
-      box-shadow:0 20px 60px rgba(0,0,0,.6);
-      width:min(460px,95vw);padding:18px;
+      width:min(900px, 96vw);
+      max-height:min(80vh, 720px);
+      overflow:auto;
+      background:var(--panel);
+      border:1px solid var(--stroke);
+      border-radius:14px;
+      padding:14px;
+      box-shadow: 0 10px 40px rgba(0,0,0,.5);
     }
-    .modal-title{font-weight:900;font-size:15px;margin-bottom:14px}
-    .modal-back{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:0;margin-bottom:12px;display:flex;align-items:center;gap:5px}
-    .modal-back:hover{color:var(--text)}
+    .modalTop{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .modalTitle{
+      font-weight:900;
+      font-size:16px;
+      letter-spacing:.4px;
+      color:var(--muted);
+      text-transform:uppercase;
+    }
 
-    /* Lane/machine grids */
-    .lane-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:4px}
-    .machine-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
-    .sel-btn{
-      background:var(--btn);color:var(--text);border:1px solid var(--border);
-      border-radius:12px;padding:12px 6px;font-weight:700;font-size:13px;
-      cursor:pointer;transition:.12s background;text-align:center;
+/* ===== USER MANAGEMENT ===== */
+    .userTable{width:100%;border-collapse:collapse;margin-top:10px;}
+    .userTable th{text-align:left;padding:10px 12px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--stroke);font-weight:900;}
+    .userTable td{padding:12px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:14px;vertical-align:middle;}
+    .userTable tr:last-child td{border-bottom:none;}
+    .userTable tr:hover td{background:rgba(255,255,255,.02);}
+    .rolePill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:900;}
+    .rolePill.driver{background:rgba(58,122,254,.18);border:1px solid rgba(58,122,254,.35);color:rgba(180,205,255,.9);}
+    .rolePill.supervisor{background:rgba(255,209,102,.14);border:1px solid rgba(255,209,102,.35);color:rgba(255,230,140,.9);}
+    .rolePill.admin{background:rgba(138,255,138,.12);border:1px solid rgba(138,255,138,.30);color:rgba(138,255,138,.9);}
+    .rolePill.operator{background:rgba(255,167,38,.14);border:1px solid rgba(255,167,38,.35);color:rgba(255,210,120,.9);}
+    .userFormCard{background:var(--panel2);border:1px solid var(--stroke);border-radius:12px;padding:16px;margin-bottom:16px;}
+    .userFormCard h3{margin:0 0 14px 0;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:900;}
+    .pinGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;}
+    .pinKey{padding:16px 10px;font-size:20px;font-weight:900;border-radius:12px;border:1px solid var(--stroke);background:rgba(255,255,255,.04);color:var(--text);cursor:pointer;text-align:center;user-select:none;transition:background 100ms;}
+    .pinKey:hover{background:rgba(58,122,254,.18);border-color:rgba(58,122,254,.45);}
+    .pinKey:active{transform:scale(.96);}
+    .pinKey.del{font-size:16px;background:rgba(255,107,107,.08);}
+    .pinKey.del:hover{background:rgba(255,107,107,.18);}
+    .pinDisplay{display:flex;gap:12px;justify-content:center;margin:14px 0 4px;}
+    .pinDot{width:16px;height:16px;border-radius:50%;border:2px solid rgba(58,122,254,.45);background:transparent;transition:background 120ms;}
+    .pinDot.filled{background:rgba(58,122,254,.9);border-color:rgba(58,122,254,.9);box-shadow:0 0 10px rgba(58,122,254,.4);}
+    .userActionsRow{display:flex;gap:8px;flex-wrap:wrap;}
+
+
+    @media (max-width: 980px){
+      body{overflow:auto;}
+      .wrap{height:auto;}
+      .grid{grid-template-columns:1fr;}
+      .top{
+        grid-template-columns:1fr;
+        justify-items:center;
+        gap:10px;
+      }
+      .logo{
+        grid-column:1;
+        justify-self:center;
+        width:520px;
+        max-width:92vw;
+      }
+      .status{
+        display:flex;
+        grid-column:1;
+        justify-self:center;
+        justify-content:center;
+        text-align:center;
+        gap:8px;
+        font-size:12px;
+        flex-wrap:wrap;
+      }
+      .pill{ padding:5px 9px; font-size:12px; }
+      .laneGrid{ grid-template-columns: repeat(3,1fr); }
     }
-    .sel-btn:hover{background:var(--btn2)}
-    .fade-out{animation:fadeOut .2s ease forwards;}
-    .fade-in{animation:fadeIn .2s ease forwards;}
-    @keyframes fadeOut{from{opacity:1;}to{opacity:0;}}
-    @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
-    .dup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:200;padding:18px;}
-.dup-modal{background:linear-gradient(180deg,rgba(16,26,42,.99),rgba(10,14,22,.99));border:1px solid rgba(255,180,50,.35);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.7);width:min(440px,95vw);padding:20px;}
-.dup-title{font-weight:900;font-size:16px;color:#ffd166;margin-bottom:6px;}
-.dup-job{font-size:22px;font-weight:900;color:#fff;margin-bottom:4px;}
-.dup-where{font-size:13px;color:rgba(180,205,255,.85);margin-bottom:14px;}
-.dup-body{font-size:13px;color:rgba(234,242,255,.75);line-height:1.6;margin-bottom:16px;}
-.dup-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.dup-which-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;}
-.dup-which-btn{background:var(--btn);color:var(--text);border:1px solid rgba(42,127,255,.45);border-radius:12px;padding:14px 10px;font-weight:900;font-size:13px;cursor:pointer;text-align:center;}
-.dup-which-btn:hover{background:var(--btn2);}
+
+    .completedPanel{
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .completedHeader{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .completedTitle{
+      font-weight: 900;
+      letter-spacing: .06em;
+      color: var(--muted);
+    }
+    .completedCount{
+      padding: 6px 10px;
+      border: 1px solid var(--stroke);
+      border-radius: 999px;
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      font-weight: 900;
+    }
+
+    /* ===== SIDE MENU ===== */
+    .hidden { display: none !important; }
+
+    .sideMenuOverlay{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 99998;
+    }
+    .sideMenu{
+      position: fixed;
+      top: 0;
+      right: 0;
+      height: 100vh;
+      width: min(320px, 86vw);
+      background: rgba(12,14,18,.92);
+      border-left: 1px solid rgba(255,255,255,.10);
+      z-index: 99999;
+      box-shadow: -20px 0 60px rgba(0,0,0,.6);
+      backdrop-filter: blur(14px);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+    }
+    .sideMenuTop{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .sideMenuTitle{
+      font-weight: 900;
+      letter-spacing: .18em;
+      font-size: 12px;
+      color: rgba(255,255,255,.70);
+    }
+    .sideMenuBody{
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-top: 12px;
+    }
+
+    /* ===== TRACE Assistant ===== */
+    .chatFab{
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      width:58px;
+      height:58px;
+      border-radius:18px;
+      z-index:99999;
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+      border:1px solid rgba(58,122,254,.45);
+      background: linear-gradient(180deg, rgba(58,122,254,.22), rgba(22,26,34,.92));
+      box-shadow: 0 16px 50px rgba(0,0,0,.55);
+      backdrop-filter: blur(8px);
+    }
+    .chatFab:hover{ transform: translateY(-1px); }
+    .chatFab:active{ transform: translateY(0px); }
+    .chatFab-ico{ font-size:22px; filter: drop-shadow(0 6px 18px rgba(0,0,0,.45)); }
+
+    .chatDock{
+      position:fixed;
+      right:18px;
+      bottom:88px;
+      width:min(420px, calc(100vw - 36px));
+      height:min(540px, calc(100vh - 140px));
+      border-radius:18px;
+      z-index:99999;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(12,14,18,.72);
+      box-shadow: 0 28px 80px rgba(0,0,0,.65);
+      backdrop-filter: blur(14px);
+      transform: translateY(14px);
+      opacity:0;
+      pointer-events:none;
+      transition: transform 180ms ease, opacity 180ms ease;
+    }
+    .chatDock.open{
+      transform: translateY(0);
+      opacity:1;
+      pointer-events:auto;
+    }
+    .chatTop{
+      padding:14px 14px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      background: linear-gradient(180deg, rgba(0,0,0,.28), rgba(0,0,0,0));
+    }
+    .chatBrand{ display:flex; gap:10px; align-items:center; }
+    .chatMark{
+      width:36px; height:36px;
+      border-radius:12px;
+      display:grid; place-items:center;
+      font-weight:900;
+      letter-spacing:.06em;
+      color:#fff;
+      border:1px solid rgba(58,122,254,.45);
+      background: rgba(58,122,254,.18);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+    }
+    .chatTitle{ font-weight:900; letter-spacing:.08em; font-size:12px; text-transform:uppercase; }
+    .chatSub{ font-size:12px; color:rgba(255,255,255,.68); margin-top:2px; display:flex; align-items:center; gap:8px; }
+    .chatDot{
+      width:8px; height:8px; border-radius:50%;
+      background: rgba(138,255,138,.95);
+      box-shadow: 0 0 12px rgba(138,255,138,.45);
+      display:inline-block;
+    }
+    .chatX{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      color:#fff;
+      border-radius:12px;
+      width:40px;
+      height:40px;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .chatX:hover{ background: rgba(255,255,255,.10); }
+    .chatLog{
+      flex:1;
+      overflow:auto;
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,.18) transparent;
+    }
+    .chatLog::-webkit-scrollbar{ width:8px; }
+    .chatLog::-webkit-scrollbar-thumb{
+      background: rgba(255,255,255,.14);
+      border-radius: 999px;
+      border: 2px solid transparent;
+      background-clip: content-box;
+    }
+    .msg{ display:flex; gap:10px; align-items:flex-end; }
+    .msg.me{ flex-direction:row-reverse; }
+    .bub{
+      max-width: 78%;
+      padding:10px 12px;
+      border-radius:16px;
+      line-height:1.25;
+      font-size:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      white-space: pre-line;
+    }
+    .msg.me .bub{
+      border-color: rgba(58,122,254,.30);
+      background: rgba(58,122,254,.14);
+    }
+    .time{
+      font-size:11px;
+      color: rgba(255,255,255,.45);
+      margin: 0 6px;
+    }
+    .chatThinking{
+      display:none;
+      padding:10px 14px;
+      border-top:1px solid rgba(255,255,255,.08);
+      color: rgba(255,255,255,.72);
+      background: rgba(0,0,0,.18);
+      font-weight:700;
+      gap:10px;
+      align-items:center;
+    }
+    .chatThinking.show{ display:flex; }
+    .chatSpin{
+      width:12px; height:12px; border-radius:50%;
+      border:2px solid rgba(255,255,255,.22);
+      border-top-color: rgba(58,122,254,.9);
+      animation: spin 800ms linear infinite;
+    }
+    @keyframes spin{ to{ transform: rotate(360deg); } }
+    .chatComposer{
+      display:flex;
+      gap:10px;
+      padding:12px;
+      border-top:1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.18);
+    }
+    .chatComposer input{
+      flex:1;
+      padding:12px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(10,12,16,.65);
+      color:#fff;
+      outline:none;
+    }
+    .chatComposer input:focus{
+      border-color: rgba(58,122,254,.55);
+      box-shadow: 0 0 0 3px rgba(58,122,254,.18);
+    }
+    .chatSend{
+      padding:10px 14px;
+      border-radius:14px;
+      font-weight:900;
+      border:1px solid rgba(58,122,254,.45);
+      background: rgba(58,122,254,.22);
+    }
+    .chatSend:hover{ background: rgba(58,122,254,.30); }
+
+    @media (max-width: 520px){
+      .chatDock{ right:12px; left:12px; width:auto; }
+      .chatFab{ right:12px; bottom:12px; }
+    }
+
+    #scanBody b { color:#fff; }
+
+    /* ===== QR SCANNER ===== */
+    .scanBar{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      margin-bottom:10px;
+    }
+    .qrWrap{
+      margin-top:10px;
+      padding:12px;
+      border:1px solid var(--stroke);
+      border-radius:12px;
+      background: rgba(0,0,0,.18);
+    }
+    .qrReader{
+      width:100%;
+      max-width:420px;
+      margin:0 auto;
+    }
+    .qrWrap video{
+      width:100% !important;
+      border-radius:12px;
+    }
+
+/* ===== ACTIVITY FEED PAGE ===== */
+.feedItem{
+  background:var(--panel2);
+  border:1px solid var(--stroke);
+  border-radius:12px;
+  padding:12px;
+  margin-bottom:8px;
+  cursor:pointer;
+}
+.feedItem:hover{ border-color:rgba(58,122,254,.45); }
+.feedItem-job{
+  font-size:15px;
+  font-weight:900;
+  color:#fff;
+}
+.feedItem-loc{
+  font-size:13px;
+  color:rgba(180,205,255,.85);
+  margin-top:4px;
+}
+.feedItem-meta{
+  font-size:11px;
+  color:rgba(255,255,255,.40);
+  margin-top:6px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+/* ===== EMPTY STATES ===== */
+.emptyState{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:48px 24px;
+  text-align:center;
+  gap:12px;
+}
+.emptyState-icon{
+  font-size:52px;
+  opacity:.55;
+  line-height:1;
+}
+.emptyState-title{
+  font-size:16px;
+  font-weight:900;
+  color:var(--muted);
+}
+.emptyState-sub{
+  font-size:13px;
+  color:rgba(255,255,255,.35);
+  max-width:240px;
+  line-height:1.5;
+}
+
+/* ===== MOVE NOTIFICATION ===== */
+.moveNotif{
+  position:fixed;
+  top:18px;
+  right:18px;
+  z-index:999999;
+  width:min(300px, calc(100vw - 36px));
+  background:rgba(12,14,18,.95);
+  border:1px solid rgba(58,122,254,.45);
+  border-radius:16px;
+  padding:14px 16px;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);
+  backdrop-filter:blur(14px);
+  transform:translateX(calc(100% + 36px));
+  opacity:0;
+  transition:transform 320ms cubic-bezier(.2,.9,.2,1), opacity 320ms ease;
+  pointer-events:none;
+}
+.moveNotif.show{
+  transform:translateX(0);
+  opacity:1;
+}
+.moveNotif-top{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:6px;
+}
+.moveNotif-title{
+  font-weight:900;
+  font-size:11px;
+  letter-spacing:.12em;
+  color:rgba(180,205,255,.9);
+  text-transform:uppercase;
+}
+.moveNotif-job{
+  font-size:16px;
+  font-weight:900;
+  color:#fff;
+}
+.moveNotif-detail{
+  font-size:12px;
+  color:rgba(255,255,255,.55);
+  margin-top:3px;
+}
+.moveNotif-bar{
+  height:2px;
+  background:rgba(58,122,254,.25);
+  border-radius:999px;
+  margin-top:10px;
+  overflow:hidden;
+}
+.moveNotif-progress{
+  height:100%;
+  width:100%;
+  background:rgba(58,122,254,.8);
+  border-radius:999px;
+}
+.moveNotif-progress.drain{
+  transition:transform 3s linear;
+  transform:translateX(-100%);
+}
+
+    .appPage{
+  position:fixed;
+  inset:0;
+  background:
+    linear-gradient(rgba(15,17,21,0.55), rgba(15,17,21,0.55)),
+    url("759c4386-0d9e-4dd1-9589-07ef1c92643b.png");
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+  background-attachment:fixed;
+  z-index:500;
+  overflow-y:auto;
+  padding:18px;
+}
+.pageHeader{
+  display:grid;
+  grid-template-columns: auto 1fr auto;
+  align-items:center;
+  gap:10px;
+  margin-bottom:18px;
+  padding-bottom:14px;
+  border-bottom:1px solid var(--stroke);
+}
+
+.pageHeader > h2{
+  justify-self:center;
+  text-align:center;
+}
+    
+   /* ===== TABS ===== */
+.tabBar{
+  display:flex;
+  gap:6px;
+  margin-bottom:12px;
+  flex:0 0 auto;
+  border-bottom:1px solid var(--stroke);
+  padding-bottom:0;
+}
+.tabBtn{
+  padding:8px 14px;
+  border-radius:10px 10px 0 0;
+  border:1px solid transparent;
+  border-bottom:none;
+  background:transparent;
+  color:var(--muted);
+  font-weight:900;
+  font-size:13px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  position:relative;
+  bottom:-1px;
+}
+.tabBtn:hover{color:var(--text); background:rgba(255,255,255,.04);}
+.tabBtn.active{
+  color:var(--text);
+  background:var(--panel2);
+  border-color:var(--stroke);
+  border-bottom-color:var(--panel);
+}
+.tabBadge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:18px;
+  height:18px;
+  padding:0 5px;
+  border-radius:999px;
+  background:rgba(58,122,254,.22);
+  border:1px solid rgba(58,122,254,.35);
+  color:rgba(180,205,255,.9);
+  font-size:10px;
+  font-weight:900;
+}
+.tabPanel{ display:none; }
+.tabPanel.active{ display:block; }
+
+/* ===== TUTORIAL SPOTLIGHT ===== */
+.tutorialOverlay{position:fixed;inset:0;z-index:999990;display:none;pointer-events:none;}
+.tutorialOverlay.show{display:block;}
+.tutorialDim{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:999990;}
+.tutorialSpotlight{
+  position:fixed;
+  z-index:999991;
+  border-radius:14px;
+  box-shadow:0 0 0 9999px rgba(0,0,0,.72), 0 0 0 3px rgba(58,122,254,.8), 0 0 28px rgba(58,122,254,.4);
+  transition:all 350ms cubic-bezier(.2,.9,.2,1);
+  pointer-events:none;
+}
+.tutorialTooltip{
+  position:fixed;
+  z-index:999992;
+  width:min(320px,88vw);
+  background:rgba(12,16,22,.97);
+  border:1px solid rgba(58,122,254,.45);
+  border-radius:16px;
+  padding:18px 18px 14px;
+  box-shadow:0 20px 60px rgba(0,0,0,.7);
+  pointer-events:auto;
+  transition:all 350ms cubic-bezier(.2,.9,.2,1);
+}
+.tutorialTooltipArrow{
+  position:absolute;
+  width:12px;height:12px;
+  background:rgba(12,16,22,.97);
+  border:1px solid rgba(58,122,254,.45);
+  transform:rotate(45deg);
+}
+.tutorialStep-num{
+  font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:rgba(58,122,254,.8);font-weight:900;margin-bottom:6px;
+}
+.tutorialStep-title{font-size:16px;font-weight:900;color:#fff;margin-bottom:6px;}
+.tutorialStep-body{font-size:13px;color:rgba(255,255,255,.7);line-height:1.55;margin-bottom:14px;}
+.tutorialFooter{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.tutorialPips{display:flex;gap:5px;}
+.tutorialPip{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.18);transition:background 200ms;}
+.tutorialPip.active{background:rgba(58,122,254,.9);}
+.tutorialSkip{font-size:12px;color:rgba(255,255,255,.35);background:none;border:none;cursor:pointer;padding:4px;}
+.tutorialSkip:hover{color:rgba(255,255,255,.6);}
+.tutorialNext{padding:8px 18px;border-radius:10px;font-weight:900;font-size:13px;background:rgba(58,122,254,.28);border:1px solid rgba(58,122,254,.55);color:#fff;cursor:pointer;}
+.tutorialNext:hover{background:rgba(58,122,254,.4);}
   </style>
 </head>
 
 <body>
-  <div class="wrap">
-    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;width:min(520px,95vw)">
-      <img src="./trace-logo.png.png" style="height:350px;width:auto;" alt="TRACE" />
-      <div class="card" style="width:100%">
-        <div class="top">
-          <div>
-            <div class="sub">Kiosk Access</div>
+  <!-- LOGIN OVERLAY -->
+  <div id="loginOverlay" class="loginOverlay">
+    <div class="loginCard">
+      <div class="loginSub" style="margin-bottom:16px;">Admin Access</div>
+      <label class="loginLabel">Email</label>
+      <input id="loginEmail" class="loginInput" type="email" placeholder="you@trace.app" autocomplete="username"/>
+      <label class="loginLabel">Password</label>
+      <input id="loginPass" class="loginInput" type="password" placeholder="••••••••" autocomplete="current-password"/>
+      <button id="loginBtn" class="loginBtn" type="button">Login</button>
+      <div id="loginMsg" class="loginMsg"></div>
+    </div>
+  </div>
+
+  <!-- DIALOG OVERLAY -->
+  <div class="overlay" id="dialogOverlay">
+    <div class="modal" style="max-width:520px;">
+      <div class="modalTop">
+        <div class="modalTitle" id="dialogTitle">TRACE</div>
+        <button class="ghost" id="dialogCloseBtn">Close</button>
+      </div>
+      <div id="dialogMsg" style="color:var(--muted); font-weight:700; line-height:1.4;"></div>
+      <div id="dialogInputWrap" style="margin-top:12px; display:none;">
+        <input id="dialogInput" type="password" placeholder="Enter value..." autocomplete="off">
+        <div class="tiny" id="dialogHint" style="margin-top:8px;"></div>
+      </div>
+      <div class="btnRow" style="margin-top:14px; justify-content:flex-end;">
+        <button class="ghost" id="dialogCancelBtn">Cancel</button>
+        <button class="primary" id="dialogOkBtn">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRACE INTRO OVERLAY -->
+  <div class="traceBoot" id="traceBoot" aria-hidden="false">
+    <div class="traceBoot-inner">
+      <div class="traceLogo-wrap">
+        <img class="traceLogo" src="./trace-logo.png.png" alt="TRACE" />
+      </div>
+      <div class="traceTagline">WE TRACK. YOU IMPROVE.</div>
+      <div class="traceHud">
+        <div class="traceHud-pill">
+          <div class="traceHud-content">
+            <span class="traceHud-left"></span>
+            <span id="traceHudText">INITIALIZING SYSTEMS</span>
+            <span class="traceHud-right"></span>
           </div>
-          <div class="pill" id="pillStatus">LOCKED</div>
         </div>
-      <div class="body">
-
-        <!-- PIN GATE -->
-        <div id="viewPin">
-    <div style="font-weight:900;">Enter PIN</div>
-  <div class="pinDots" id="pinDots">______</div>
-          <div class="grid" id="pinPad">
-            <button class="btn" data-d="1">1</button>
-            <button class="btn" data-d="2">2</button>
-            <button class="btn" data-d="3">3</button>
-            <button class="btn" data-d="4">4</button>
-            <button class="btn" data-d="5">5</button>
-            <button class="btn" data-d="6">6</button>
-            <button class="btn" data-d="7">7</button>
-            <button class="btn" data-d="8">8</button>
-            <button class="btn" data-d="9">9</button>
-            <button class="btn secondary" id="pinBack">⌫</button>
-            <button class="btn" data-d="0">0</button>
-            <button class="btn secondary" id="pinClear">C</button>
-          </div>
-
-          <div class="grid2">
-            <button class="btn" id="pinSubmit">UNLOCK</button>
-            <button class="btn secondary" id="pinGoMain">Admin Login</button>
-          </div>
-
-          <div class="msg" id="pinMsg"></div>
-          <div class="tiny" id="qrPayloadHint"></div>
+        <div class="traceHud-sub">
+          CORE LINK ACTIVE <span class="traceDot"></span>
         </div>
+      </div>
+    </div>
+  </div>
 
-        <!-- HUB -->
-        <div id="viewHub" class="hide">
-          <div class="row">
-            <div style="font-weight:900;" id="hubUser">—</div>
-            <button class="btn secondary" style="width:auto;padding:10px 12px" id="hubLogout">Done / Logout</button>
-          </div>
+  <div class="versionBadge">TRACE Admin v0.9 BETA</div>
 
-          <div class="grid2" style="margin-top:12px">
-            <button class="btn" id="hubMove">MOVE</button>
-            <button class="btn" id="hubSearch">SEARCH</button>
-            <button class="btn" id="hubAdmin">ADMIN</button>
-          </div>
+  <!-- APP ROOT -->
+  <div id="appRoot" class="appRoot isHidden">
+    <div class="wrap">
 
-          <!-- Scanned Job Card -->
-          <div class="section" id="jobCard" style="margin-top:12px">
-            <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
-              <div style="font-weight:900">Scanned Job</div>
-              <div class="pill" id="jobCardStatus">—</div>
+      <div class="top">
+        <div></div>
+        <img src="./trace-logo.png.png" alt="TRACE" class="logo">
+        <div class="status"></div>
+      </div>
+
+      <div class="rolebar">
+        <div class="roleLeft">
+          <button id="undoBtn" class="ghost" disabled>Undo</button>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <button class="ghost" id="addLocationBtn" title="Add Lane or Machine">Add Location</button>
+          <button class="ghost" id="menuBtn" title="Menu">☰</button>
+          <button class="ghost" id="logoutBtn">Logout</button>
+        </div>
+      </div>
+
+      <!-- COMPLETED TODAY PANEL -->
+      <div id="completedPanel" class="completedPanel hidden">
+        <div class="completedHeader">
+          <div class="completedTitle">✓ Completed Today</div>
+          <div class="completedCount" id="completedCount">0</div>
+        </div>
+        <div id="completedResults" class="results"></div>
+      </div>
+
+      <!-- SIDE MENU OVERLAY + PANEL -->
+      <div id="sideMenuOverlay" class="sideMenuOverlay hidden"></div>
+      <aside id="sideMenu" class="sideMenu hidden">
+        <div class="sideMenuTop">
+          <div class="sideMenuTitle">MENU</div>
+          <button id="menuCloseBtn" class="ghost">✕</button>
+        </div>
+        <div class="sideMenuBody">
+  <div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#2A7FFF;text-shadow:0 0 8px rgba(42,127,255,0.6);padding:4px 2px;border-bottom:1px solid rgba(42,127,255,0.35);margin-bottom:4px;">Operations</div>
+  <button class="ghost" id="replayTutorialBtn">Tutorial</button>
+  <button class="ghost" id="openCompletedBtn">Completed Today</button>
+  <button class="ghost" id="openHistoryBtn">History</button>
+  <button class="ghost" id="openQueueBtn">Queue</button>
+  <button class="ghost" id="openFeedBtn">Activity Feed</button>
+  <div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#6C86A8;padding:4px 2px;margin-top:8px;border-bottom:1px solid rgba(42,127,255,0.15);margin-bottom:4px;">Administration</div>
+  <button class="ghost" id="openUsersBtn">User Management</button>
+</div>
+      </aside>
+
+      <div class="grid">
+        <!-- LEFT -->
+<div class="card">
+  <!-- TAB BAR -->
+  <div class="tabBar">
+    <button class="tabBtn active" data-tab="searchTab">Search</button>
+    <button class="tabBtn" data-tab="lanesTab">
+      Lanes <span class="tabBadge" id="lanesBadge">0</span>
+    </button>
+    <button class="tabBtn" data-tab="machinesTab">
+      Machines <span class="tabBadge" id="machinesBadge">0</span>
+    </button>
+  </div>
+
+  <!-- SEARCH TAB -->
+  <div class="tabPanel active scroll" id="searchTab">
+    <input id="globalSearch" type="text" placeholder="Search Item # or MO (example: 6910153 or MO-5048)">
+    <div class="results" id="globalResults" style="margin-top:10px;"></div>
+    <div class="hint" style="margin-top:12px;">
+      Flow: <b>Search Item or MO</b> → <b>Move</b> → choose <b>Lane</b> or <b>Machine</b>.
+      <br/>
+      Keys: <span class="kbd">1–9</span> quick lanes • <span class="kbd">F</span> fullscreen • <span class="kbd">ESC</span> close move box
+    </div>
+  </div>
+
+  <!-- LANES TAB -->
+  <div class="tabPanel scroll" id="lanesTab">
+    <div class="laneGrid" id="laneGrid"></div>
+    <div class="laneHeader">
+      <div class="laneTitle" id="laneTitle">Lane 1</div>
+      <div class="laneCount" id="laneCount">0 items</div>
+    </div>
+    <input id="laneSearch" type="text" placeholder="Filter within this lane (optional)">
+    <div class="results" id="laneResults" style="margin-top:10px;"></div>
+  </div>
+
+  <!-- MACHINES TAB -->
+  <div class="tabPanel scroll" id="machinesTab">
+    <div class="laneGrid" id="machineGrid"></div>
+    <div class="laneHeader">
+      <div class="laneTitle" id="machineTitle">Machine: S8</div>
+      <div class="laneCount" id="machineCount">0 jobs</div>
+    </div>
+    <input id="machineSearch" type="text" placeholder="Filter within this machine (optional)">
+    <div class="results" id="machineResults" style="margin-top:10px;"></div>
+  </div>
+</div>
+
+        <!-- RIGHT -->
+        <div class="card">
+          <h2>Job Update</h2>
+          <div class="scroll">
+            <div class="formGrid">
+              <div class="full">
+                <input id="mo" type="text" placeholder="MO # (numbers / letters / hyphen allowed)">
+              </div>
+              <div class="full">
+                <input id="job" type="text" placeholder="Item # (numbers / letters / hyphen allowed)" required>
+              </div>
+              <div>
+                <input id="qty" type="number" min="0" step="1" placeholder="Qty">
+              </div>
+              <div>
+                <input id="status" type="text" placeholder="Status (example: RUNNING)">
+              </div>
+              <div class="full">
+                <input id="notes" type="text" placeholder="Notes (optional)">
+              </div>
+              <div class="full">
+                <input id="updatedBy" type="text" placeholder="Updated by (initials)">
+              </div>
+              <div class="full btnRow">
+                <button class="primary" id="saveBtn">Send to Lane</button>
+                <button class="primary" id="queueJobBtn">Send to Queue</button>
+                <button class="danger" id="deleteBtn" disabled>Delete</button>
+              </div>
             </div>
-            <div class="tiny" id="scanLine" style="margin-top:8px">No job loaded</div>
+             
+            <!-- HISTORY PANEL -->
+            <div id="historyPanel" style="display:none; margin-top:12px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                <h2 style="margin:0;">Deleted Item History</h2>
+                <button id="clearHistoryBtn" type="button" class="danger" title="Deletes history older than 7 days">
+                  Clear (keep 7 days)
+                </button>
+              </div>
+              <input id="historySearch" type="text" placeholder="Search deleted jobs...">
+              <div class="results" id="historyResults" style="margin-top:10px;"></div>
+            </div>
           </div>
         </div>
-
       </div>
     </div>
-  </div>
- </div>
 
-
-<div class="dup-overlay hide" id="whichOverlay">
-  <div class="dup-modal">
-    <div class="dup-title">⚠️ Multiple Pallets Found</div>
-    <div class="dup-job" id="whichJobNum"></div>
-    <div class="dup-body" style="margin-bottom:10px;">Which pallet are you scanning?</div>
-    <div class="dup-which-grid" id="whichGrid"></div>
-  </div>
-</div>
-
-<div class="dup-overlay hide" id="dupOverlay">
-  <div class="dup-modal">
-    <div class="dup-title">⚠️ Job Found in Another Lane</div>
-    <div class="dup-job" id="dupJobNum"></div>
-    <div class="dup-where" id="dupWhere"></div>
-    <div class="dup-body" id="dupBody"></div>
-    <div class="dup-btns">
-      <button class="btn" id="dupTakeBoth">✅ Take Both</button>
-      <button class="btn secondary" id="dupIgnore">Ignore</button>
+     <!-- HISTORY PAGE -->
+<div id="historyPage" class="appPage hidden">
+  <div class="wrap">
+    <div class="pageHeader">
+      <button class="ghost" id="historyPageBack">← Back</button>
+      <h2 style="margin:0; font-size:18px;">Deleted History</h2>
+      <button id="clearHistoryBtn2" class="danger">Clear (keep 7 days)</button>
     </div>
+    <input type="text" id="historySearch2" placeholder="Search deleted jobs...">
+    <div class="results" id="historyResults2" style="margin-top:10px;"></div>
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<!-- QUEUE PAGE -->
+<div id="queuePage" class="appPage hidden">
+  <div class="wrap">
+    <div class="pageHeader">
+      <button class="ghost" id="queuePageBack">← Back</button>
+      <h2 style="margin:0; font-size:18px;">Queue</h2>
+      <div class="completedCount" id="queueCount2">0</div>
+    </div>
+    <input type="text" id="queueSearch2" placeholder="Filter queue (job, MO, status)">
+    <div id="queueResults2" class="results" style="margin-top:10px;"></div>
+  </div>
+</div>
 
-  <!-- MOVE MODAL — Step 1: Lane or Machine -->
-  <div class="modal-overlay hide" id="moveModal">
-    <div class="modal">
-      <div id="moveStep1">
-        <div class="modal-title">Move To — Select Type</div>
-        <div class="grid2" style="margin-top:0">
-          <button class="btn" id="moveLaneBtn">LANE</button>
-          <button class="btn" id="moveMachineBtn">MACHINE</button>
+<!-- ACTIVITY FEED PAGE -->
+<div id="feedPage" class="appPage hidden">
+  <div class="wrap">
+    <div class="pageHeader">
+      <button class="ghost" id="feedPageBack">← Back</button>
+      <h2 style="margin:0; font-size:18px;">Activity Feed</h2>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:8px;height:8px;border-radius:50%;background:rgba(138,255,138,.95);box-shadow:0 0 8px rgba(138,255,138,.45);animation:traceDotPulse 1.15s ease-in-out infinite;"></div>
+        <span style="font-size:12px;color:rgba(138,255,138,.85);font-weight:900;">LIVE</span>
+      </div>
+    </div>
+    <input type="text" id="feedSearch" placeholder="Search by item #, MO, or user...">
+    <div id="feedResults" style="margin-top:12px;"></div>
+  </div>
+</div>
+
+<!-- USERS PAGE -->
+<div id="usersPage" class="appPage hidden">
+  <div class="wrap" style="max-width:900px;">
+    <div class="pageHeader">
+      <button class="ghost" id="usersPageBack">← Back</button>
+      <h2 style="margin:0;font-size:18px;">👤 User Management</h2>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="userCount" class="completedCount">0</span>
+        <span style="font-size:12px;color:var(--muted);">accounts</span>
+      </div>
+    </div>
+
+    <!-- CREATE / EDIT FORM -->
+    <div class="userFormCard" id="userFormCard">
+      <h3 id="userFormTitle">Create New Account</h3>
+      <div class="formGrid">
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">Full Name *</label>
+          <input id="uName" type="text" placeholder="e.g. John Smith">
         </div>
-        <div style="margin-top:14px">
-          <button class="btn secondary" style="width:auto;padding:8px 14px;font-size:13px" id="moveCancel">Cancel</button>
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">Badge ID *</label>
+          <input id="uBadge" type="text" placeholder="e.g. FD-001">
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">Role *</label>
+          <select id="uRole" style="padding:14px;font-size:16px;border-radius:10px;border:1px solid var(--stroke);background:var(--panel2);color:var(--text);outline:none;width:100%;">
+            <option value="driver">Forklift Driver</option>
+            <option value="operator">Machine Operator</option>
+            <option value="supervisor">Supervisor</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">4-Digit PIN *</label>
+          <div class="pinDisplay" id="pinDisplay">
+            <div class="pinDot" id="pd0"></div>
+            <div class="pinDot" id="pd1"></div>
+            <div class="pinDot" id="pd2"></div>
+            <div class="pinDot" id="pd3"></div>
+          </div>
+          <div class="pinGrid">
+            <div class="pinKey" data-pin="1">1</div>
+            <div class="pinKey" data-pin="2">2</div>
+            <div class="pinKey" data-pin="3">3</div>
+            <div class="pinKey" data-pin="4">4</div>
+            <div class="pinKey" data-pin="5">5</div>
+            <div class="pinKey" data-pin="6">6</div>
+            <div class="pinKey" data-pin="7">7</div>
+            <div class="pinKey" data-pin="8">8</div>
+            <div class="pinKey" data-pin="9">9</div>
+            <div class="pinKey del" data-pin="clear">✕ Clear</div>
+            <div class="pinKey" data-pin="0">0</div>
+            <div class="pinKey del" data-pin="back">⌫</div>
+          </div>
         </div>
       </div>
-
-      <!-- Step 2a: Lane picker -->
-      <div id="moveStep2Lane" class="hide">
-        <button class="modal-back" id="backFromLane">← Back</button>
-        <div class="modal-title">Select Lane</div>
-        <div class="lane-grid" id="laneGrid"></div>
+      <div class="btnRow" style="margin-top:16px;">
+        <button class="primary" id="saveUserBtn">Save Account</button>
+        <button class="ghost" id="cancelUserEditBtn" style="display:none;">Cancel Edit</button>
       </div>
-
-      <!-- Step 2b: Machine picker -->
-      <div id="moveStep2Machine" class="hide">
-        <button class="modal-back" id="backFromMachine">← Back</button>
-        <div class="modal-title">Select Machine</div>
-        <div class="machine-grid" id="machineGrid"></div>
-      </div>
-    </div>
-  </div>
-
-<!-- SEARCH MODAL -->
-<div class="modal-overlay hide" id="searchModal">
-  <div class="modal">
-    <div class="modal-title">Search Job / MO</div>
-
-    <input id="searchInput" placeholder="Type job number or MO…" />
-
-    <div class="grid2" style="margin-top:10px">
-      <button class="btn" id="searchGoBtn">SEARCH</button>
-      <button class="btn secondary" id="searchCancelBtn">Cancel</button>
+      <div id="userFormMsg" style="margin-top:10px;font-size:13px;min-height:18px;color:var(--muted);"></div>
     </div>
 
-    <div class="msg" id="searchMsg" style="margin-top:10px"></div>
-
-    <div class="section" id="searchResultCard" style="margin-top:12px; display:none;">
-      <div style="font-weight:900" id="searchResultLine1">—</div>
-      <div class="tiny" id="searchResultLine2">—</div>
-      <div class="grid2" style="margin-top:10px">
-        <button class="btn" id="searchLoadBtn">LOAD THIS JOB</button>
-        <button class="btn secondary" id="searchClearBtn">Clear</button>
+    <!-- USER TABLE -->
+    <input type="text" id="userSearch" placeholder="Search by name, badge, or role..." style="margin-bottom:12px;">
+    <div style="background:var(--panel);border:1px solid var(--stroke);border-radius:12px;overflow:hidden;">
+      <table class="userTable" id="userTable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Badge ID</th>
+            <th>Role</th>
+            <th>PIN</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="userTableBody"></tbody>
+      </table>
+      <div id="userEmptyState" class="emptyState">
+        <div class="emptyState-icon">👤</div>
+        <div class="emptyState-title">No Accounts Yet</div>
+        <div class="emptyState-sub">Create your first forklift driver or supervisor account above.</div>
       </div>
     </div>
   </div>
 </div>
+
+<!-- QR PAGE -->
+<div id="qrPage" class="appPage hidden">
+  <div class="wrap" style="max-width:600px;">
+    <div class="pageHeader">
+      <button class="ghost" id="qrPageBack">← Back</button>
+      <h2 style="margin:0;font-size:18px;">Generate Job QR</h2>
+      <div></div>
+    </div>
+    <div class="card">
+      <div class="formGrid">
+        <div class="full">
+          <input id="qrJob" type="text" placeholder="Item # (e.g. 6910153)">
+        </div>
+      </div>
+      <div class="btnRow" style="margin-top:14px;">
+        <button class="primary" id="genQrBtn">Generate QR</button>
+        <button class="ghost" id="downloadQrBtn" disabled>Download PNG</button>
+      </div>
+      <div style="display:flex;justify-content:center;margin-top:18px;">
+        <div id="qrPageCanvas" style="background:#fff;padding:10px;border-radius:12px;display:none;"></div>
+      </div>
+      <div class="tiny" id="qrPageUrlPreview" style="margin-top:10px;color:var(--muted);word-break:break-all;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MOVE NOTIFICATION -->
+<div id="moveNotif" class="moveNotif">
+  <div class="moveNotif-top">
+    <span>📦</span>
+    <span class="moveNotif-title">Item Moved</span>
+  </div>
+  <div class="moveNotif-job" id="moveNotifJob"></div>
+  <div class="moveNotif-detail" id="moveNotifDetail"></div>
+  <div class="moveNotif-bar">
+    <div class="moveNotif-progress" id="moveNotifProgress"></div>
+  </div>
+</div>
+
+<!-- ADD LOCATION MODAL -->
+    <div class="overlay" id="addLocationOverlay">
+      <div class="modal" style="max-width:420px;">
+        <div class="modalTop">
+          <div class="modalTitle">Add Location</div>
+          <button class="ghost" id="addLocationCloseBtn">Close</button>
+        </div>
+        <div style="color:var(--muted);font-size:13px;margin-bottom:14px;">
+          Add a new lane or machine to the system. It will be available immediately.
+        </div>
+        <div class="formGrid">
+          <div class="full">
+            <select id="addLocationType" style="width:100%;padding:14px;font-size:16px;border-radius:10px;border:1px solid var(--stroke);background:var(--panel2);color:var(--text);outline:none;">
+              <option value="lane">Lane</option>
+              <option value="machine">Machine</option>
+            </select>
+          </div>
+          <div class="full" id="addLaneWrap">
+            <input id="addLaneNumber" type="text" placeholder="Lane (e.g. 1, 1A, 2B)">
+          </div>
+          <div class="full hide" id="addMachineWrap">
+            <input id="addMachineName" type="text" placeholder="Machine name (e.g. S10)">
+          </div>
+        </div>
+        <div class="btnRow" style="margin-top:14px;justify-content:flex-end;">
+  <button class="ghost" id="addLocationCancelBtn">Cancel</button>
+  <button class="danger" id="deleteLocationBtn">Delete Location</button>
+  <button class="primary" id="addLocationSaveBtn">Add Location</button>
+</div>
+        <div id="addLocationMsg" style="margin-top:10px;font-size:13px;color:var(--muted);min-height:18px;"></div>
+      </div>
+    </div>
+
+    <!-- MOVE OVERLAY -->
+    <div class="overlay" id="moveOverlay">
+      <div class="modal">
+        <div class="modalTop">
+          <div class="modalTitle" id="moveTitle">Move Job</div>
+          <button class="ghost" id="moveCloseBtn">Close</button>
+        </div>
+        <div style="color:var(--muted); font-weight:900; margin-bottom:8px;">Move to Lane</div>
+        <div class="laneGrid" id="moveLaneGrid"></div>
+        <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
+        <div style="color:var(--muted); font-weight:900; margin-bottom:8px;">Move to Machine</div>
+        <div class="laneGrid" id="moveMachineGrid"></div>
+        <div class="tiny" style="margin-top:12px;">
+          Rule: Moving to a <b>Machine</b> clears the lane. Moving to a <b>Lane</b> clears the machine.
+        </div>
+      </div>
+    </div>
+
+    <!-- SCAN RESULT OVERLAY -->
+    <div class="overlay" id="scanOverlay">
+      <div class="modal" style="max-width:560px;">
+        <div class="modalTop">
+          <div class="modalTitle" id="scanTitle">Scanned Job</div>
+          <button class="ghost" id="scanCloseBtn">Close</button>
+        </div>
+        <div id="scanBody" style="white-space:pre-line; color:var(--muted); font-weight:800; line-height:1.45;"></div>
+        <div class="btnRow" style="margin-top:14px; justify-content:flex-end;">
+          <button class="primary" id="scanMoveBtn">Move</button>
+        </div>
+      </div>
+    </div>
+
+<!-- TUTORIAL OVERLAY -->
+<div id="tutorialOverlay" class="tutorialOverlay">
+  <div class="tutorialSpotlight" id="tutorialSpotlight"></div>
+  <div class="tutorialTooltip" id="tutorialTooltip">
+    <div class="tutorialStep-num" id="tutorialStepNum">STEP 1 OF 7</div>
+    <div class="tutorialStep-title" id="tutorialStepTitle"></div>
+    <div class="tutorialStep-body" id="tutorialStepBody"></div>
+    <div class="tutorialFooter">
+      <div class="tutorialPips" id="tutorialPips"></div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="tutorialSkip" id="tutorialSkip">Skip</button>
+        <button class="tutorialNext" id="tutorialNext">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+    <!-- TRACE Assistant -->
+    <button id="chatFab" class="chatFab" aria-label="Open TRACE Assistant" title="TRACE Assistant">
+      <span class="chatFab-ico">🤖</span>
+    </button>
+    <section id="chatDock" class="chatDock" aria-label="TRACE Assistant">
+      <header class="chatTop">
+        <div class="chatBrand">
+          <div class="chatMark">T</div>
+          <div>
+            <div class="chatTitle">TRACE Assistant</div>
+            <div class="chatSub"><span class="chatDot"></span> Online • Ask lanes, machines, jobs</div>
+          </div>
+        </div>
+        <button id="chatClose" class="chatX" aria-label="Close">✕</button>
+      </header>
+      <div id="chatLog" class="chatLog"></div>
+      <div id="chatThinking" class="chatThinking">
+        <span class="chatSpin"></span> Thinking…
+      </div>
+      <form id="chatComposer" class="chatComposer" autocomplete="off">
+        <input id="chatInput" type="text" placeholder="Ask: "show lane 3", "find job 400848", "what's on S8?"" />
+        <button type="submit" class="chatSend">Send</button>
+      </form>
+    </section>
+  </div>
 
 <script>
-  const MAIN_TRACE_URL = "./index.html";
-  const ADMIN_URL = "./admin.html";
-  const API_BASE = "https://trace-api-sak3.onrender.com";
+/* ==========================================
+   TRACE INVENTORY - ADMIN PANEL JS
+========================================== */
 
-  let pinBuf = "";
-  let locations = [];
-  let locIdByLane = new Map();
-  let locIdByMachine = new Map();
-  let inventory = [];
+// ====== CONSTANTS & CONFIG ======
+const API_BASE = "https://trace-api-sak3.onrender.com";
+const MACHINES = ["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane"];
 
-  const qs = new URLSearchParams(location.search);
-  const payload = {
-    job: qs.get("job") || "",
-    mo:  qs.get("mo") || "",
-    qty: qs.get("qty") || ""
-  };
-  
-  const scannedJob = (qs.get("job") || "").trim();
-  const $ = (id) => document.getElementById(id);
-  const show = (a, b) => { $(a).classList.remove("hide"); $(b).classList.add("hide"); };
-  const setStatus = (t) => { $("pillStatus").textContent = t; };
-
-  // Build lane buttons 1–12
-  const laneGrid = $("laneGrid");
-  for (let i = 1; i <= 12; i++) {
-    const b = document.createElement("button");
-    b.className = "sel-btn";
-    b.textContent = `Lane ${i}`;
-    b.onclick = () => handleMoveSelection("lane", i);
-    laneGrid.appendChild(b);
-  }
-
-  // Build machine buttons
-  const machines = ["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane"];
-  const machineGrid = $("machineGrid");
-  machines.forEach(m => {
-    const b = document.createElement("button");
-    b.className = "sel-btn";
-    b.textContent = m;
-    b.onclick = () => handleMoveSelection("machine", m);
-    machineGrid.appendChild(b);
-  });
-
-function mapLocations(raw){
-    const arr = Array.isArray(raw) ? raw : [];
-    return arr.map(r => {
-      const location_id = Number(r.location_id ?? r.id);
-      const laneVal = r.lane ?? r.lane_number ?? r.laneNum;
-      const machVal = r.machine ?? r.machine_name ?? r.machineName ?? r.name ?? r.label;
-      const laneNum = (laneVal !== undefined && laneVal !== null && String(laneVal).trim() !== "")
-        ? Number(String(laneVal).replace(/\D/g,"")) : null;
-      const machineName = (machVal !== undefined && machVal !== null && String(machVal).trim() !== "")
-        ? String(machVal).trim() : "";
-      const type = machineName ? "machine" : (laneNum ? "lane" : "unknown");
-      return { location_id, type, laneNum, machineName };
-    }).filter(x => Number.isFinite(x.location_id));
-  }
-
-  function buildLocationIndexes(){
-    locIdByLane = new Map();
-    locIdByMachine = new Map();
-    locations.forEach(l => {
-      if(l.type==="lane"    && l.laneNum)     locIdByLane.set(`Lane ${l.laneNum}`, l.location_id);
-      if(l.type==="machine" && l.machineName) locIdByMachine.set(l.machineName, l.location_id);
-    });
-  }
-
-  async function loadLocations(){
-    try{
-      const r = await fetch(`${API_BASE}/locations`, { cache:"no-store" });
-      const data = await r.json().catch(() => ({}));
-      const raw = Array.isArray(data) ? data : (data.locations || data.rows || []);
-      locations = mapLocations(raw);
-      buildLocationIndexes();
-    }catch(e){ console.warn("Locations load failed:", e.message); }
-  }
-
-  async function loadInventory(){
-    try{
-      const r = await fetch(`${API_BASE}/items`, { cache:"no-store" });
-      const data = await r.json().catch(() => ({}));
-      const raw = Array.isArray(data) ? data : (data.items || data.rows || []);
-      inventory = raw.map(it => {
-        const id  = it.item_id ?? it.id;
-        const job = String(it.job_number ?? it.job ?? "").trim().toUpperCase();
-        const mo  = String(it.mo ?? "").trim().toUpperCase();
-        const qty = parseInt(it.qty ?? 0, 10);
-        const status = String(it.status ?? "").trim();
-        const loc_id = Number(it.location_id ?? it.locationId);
-        const locObj = locations.find(l => l.location_id === loc_id);
-        const lane    = (locObj && locObj.type==="lane")    ? `Lane ${locObj.laneNum}` : "";
-        const machine = (locObj && locObj.type==="machine") ? locObj.machineName : "";
-        return { id, job, mo, qty, status, lane, machine };
-      }).filter(x => x.job.length > 0 && x.status.toLowerCase() !== "deleted");
-    }catch(e){ console.warn("Inventory load failed:", e.message); }
-  }
-
-  function findItem(query){
-    const q = String(query||"").trim().toUpperCase();
-    if(!q) return null;
-    return inventory.find(x => x.job === q)
-        || inventory.find(x => x.mo  === q)
-        || inventory.find(x => x.job.includes(q))
-        || null;
-  }
-
-async function searchAny(query){
-  const q = String(query || "").trim();
-  if(!q) return null;
-
-  // 1) Try local cache first (fast)
-  const local = findItem(q);
-  if(local) return local;
-
-  // 2) Fallback to API lookup (works even if inventory list is stale)
-  try{
-    const item = await fetchJob(q);
-    return item; // API shape handled by setActiveItemFromAnyShape
-  }catch(e){
-    return null;
-  }
-}
-
-
-  function showMoveModal() {
-    $("moveModal").classList.remove("hide");
-    $("moveStep1").classList.remove("hide");
-    $("moveStep2Lane").classList.add("hide");
-    $("moveStep2Machine").classList.add("hide");
-  }
-
-  function hideMoveModal() {
-    $("moveModal").classList.add("hide");
-  }
-
-  function handleMoveSelection(type, value) {
-    hideMoveModal();
-    const palletsToMove = activePallets.length > 0 ? activePallets : (activeItem ? [activeItem] : []);
-  if (palletsToMove.length === 0) { showToast("No job loaded to move", true); return; }
-    const locId = type === "lane" ? locIdByLane.get(`Lane ${value}`) : locIdByMachine.get(value);
-    if(!locId){ showToast(`No DB location found for ${type === "lane" ? "Lane "+value : value}`, true); return; }
-    const { user } = getAuth();
-    const updatedBy = user?.display_name || user?.name || "kiosk";
-    const label = type === "lane" ? `Lane ${value}` : value;
-    Promise.all(palletsToMove.map(p => moveItemToLocation(p.id, locId, updatedBy)))
-    .then(async () => {
-      await loadLocations();
-      await loadInventory();
-      const updated = findItem(palletsToMove[0].job);
-      if(updated) activeItem = updated;
-      activePallets = [];
-      const loc = activeItem?.machine ? `Machine ${activeItem.machine}` : (activeItem?.lane || label);
-      $("scanLine").textContent = `Job ${palletsToMove[0].job} • MO ${palletsToMove[0].mo || "-"} • QTY ${palletsToMove[0].qty ?? "-"} • ${loc}`;
-      $("jobCardStatus").textContent = activeItem?.status || "—";
-       showToast(`✅ ${palletsToMove.length > 1 ? "Both pallets moved" : "Moved"} to ${label}`);
-      showScanAgain();
-    })
-    .catch(e => showToast(e.message || "Move failed", true));
-  }
-
-  function showToast(msg, isError = false) {
-    const t = $("toast");
-    t.textContent = msg;
-    t.style.background = isError ? "#3a1a1a" : "#1a3a1a";
-    t.style.borderColor = isError ? "#7a2d2d" : "#2d7a2d";
-    t.style.color = isError ? "#ff7f7f" : "#7fff7f";
-    t.classList.add("show");
-    setTimeout(() => t.classList.remove("show"), 3000);
-  }
-
-  $("moveLaneBtn").onclick = () => {
-    $("moveStep1").classList.add("hide");
-    $("moveStep2Lane").classList.remove("hide");
-  };
-
-  $("moveMachineBtn").onclick = () => {
-    $("moveStep1").classList.add("hide");
-    $("moveStep2Machine").classList.remove("hide");
-  };
-
-  $("backFromLane").onclick = () => {
-    $("moveStep2Lane").classList.add("hide");
-    $("moveStep1").classList.remove("hide");
-  };
-
-  $("backFromMachine").onclick = () => {
-    $("moveStep2Machine").classList.add("hide");
-    $("moveStep1").classList.remove("hide");
-  };
-
-  $("moveCancel").onclick = hideMoveModal;
-
-  // Close modal on overlay click
-  $("moveModal").addEventListener("click", (e) => {
-    if (e.target === $("moveModal")) hideMoveModal();
-  });
-
-
-$("searchCancelBtn").onclick = closeSearchModal;
-$("searchClearBtn").onclick = () => {
-  $("searchResultCard").style.display = "none";
-  $("searchMsg").textContent = "";
-  pendingSearchItem = null;
+// ====== AUTH STATE ======
+const AUTH = {
+  token: localStorage.getItem("trace_token") || null,
+  email: localStorage.getItem("trace_email") || ""
 };
 
-$("searchModal").addEventListener("click", (e) => {
-  if (e.target === $("searchModal")) closeSearchModal();
+function setAuth({ token, email }) {
+  AUTH.token = token || null;
+  AUTH.email = email || "";
+  if (AUTH.token) localStorage.setItem("trace_token", AUTH.token);
+  else localStorage.removeItem("trace_token");
+  localStorage.setItem("trace_email", AUTH.email);
+}
+
+function authHeaders(extra = {}) {
+  return {
+    ...extra,
+    ...(AUTH.token ? { "Authorization": `Bearer ${AUTH.token}` } : {})
+  };
+}
+
+async function apiFetch(path, opts = {}) {
+  const url = API_BASE + path;
+  const headers = authHeaders({
+    "Content-Type": "application/json",
+    ...(opts.headers || {})
+  });
+  const res = await fetch(url, { ...opts, headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+async function doLogin(email, password) {
+  return apiFetch("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, username: email, password })
+  });
+}
+
+// ====== LOGIN UI ======
+function showLogin() {
+  const el = document.getElementById("loginOverlay");
+  if (el) el.style.display = "flex";
+}
+function hideLogin() {
+  const el = document.getElementById("loginOverlay");
+  if (el) el.style.display = "none";
+}
+function wireLoginUI() {
+  const btn = document.getElementById("loginBtn");
+  const msg = document.getElementById("loginMsg");
+  const emailEl = document.getElementById("loginEmail");
+  const passEl  = document.getElementById("loginPass");
+  if (!btn || !msg || !emailEl || !passEl) return;
+
+  async function submit() {
+    msg.textContent = "";
+    btn.disabled = true;
+    const old = btn.textContent;
+    btn.textContent = "Logging in...";
+    try {
+      const r = await doLogin(emailEl.value.trim(), passEl.value);
+      if (!r || r.ok === false) throw new Error(r?.error || "Login failed");
+      setAuth({ token: r.token, email: r.user?.email || emailEl.value.trim() });
+      hideLogin();
+      await startAfterLogin();
+    } catch (e) {
+      console.error("Login error:", e);
+      msg.textContent = e.message || "Login failed";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = old || "Login";
+    }
+  }
+
+  btn.addEventListener("click", submit);
+  passEl.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+}
+
+// ====== INTRO ANIMATION ======
+function playTraceIntro() {
+  return new Promise((resolve) => {
+    const steps = ["INITIALIZING SYSTEMS","SYNCING LOCATIONS","VERIFYING INVENTORY","AUTH READY","SYSTEM ONLINE"];
+    const hudText = document.getElementById("traceHudText");
+    const boot = document.getElementById("traceBoot");
+    const appRoot = document.getElementById("appRoot");
+
+    if (!boot || !appRoot || !hudText) {
+      if (appRoot) { appRoot.classList.remove("isHidden"); appRoot.classList.add("isVisible"); }
+      if (boot) boot.remove();
+      return resolve();
+    }
+
+    const seen = sessionStorage.getItem("trace_intro_seen") === "1";
+    if (seen) {
+      boot.remove();
+      appRoot.classList.remove("isHidden");
+      appRoot.classList.add("isVisible");
+      return resolve();
+    }
+
+    let i = 0;
+    const timer = setInterval(() => {
+      i++;
+      if (i >= steps.length) {
+        clearInterval(timer);
+        sessionStorage.setItem("trace_intro_seen", "1");
+        appRoot.classList.remove("isHidden");
+        appRoot.classList.add("isVisible");
+        setTimeout(() => {
+          boot.classList.add("fade");
+          boot.setAttribute("aria-hidden", "true");
+          setTimeout(() => { boot.remove(); resolve(); }, 1100);
+        }, 650);
+        return;
+      }
+      hudText.textContent = steps[i];
+    }, 780);
+  });
+}
+
+async function startAfterLogin() {
+  await playTraceIntro();
+  if (typeof window.initApp === "function") await window.initApp();
+}
+
+// ====== DIALOG SYSTEM ======
+(function initDialog(){
+  const d = {
+    overlay: document.getElementById("dialogOverlay"),
+    title: document.getElementById("dialogTitle"),
+    msg: document.getElementById("dialogMsg"),
+    inputWrap: document.getElementById("dialogInputWrap"),
+    input: document.getElementById("dialogInput"),
+    hint: document.getElementById("dialogHint"),
+    ok: document.getElementById("dialogOkBtn"),
+    cancel: document.getElementById("dialogCancelBtn"),
+    close: document.getElementById("dialogCloseBtn"),
+  };
+  let resolver = null;
+
+  function close(result){
+    const capturedValue = d.input.value;
+    d.overlay.classList.remove("show");
+    d.input.value = "";
+    d.hint.textContent = "";
+    d.inputWrap.style.display = "none";
+    if(resolver){ resolver({ ...result, value: capturedValue }); resolver = null; }
+  }
+
+  d.ok.addEventListener("click", () => close({ ok:true, value:d.input.value }));
+  d.cancel.addEventListener("click", () => close({ ok:false }));
+  d.close.addEventListener("click", () => close({ ok:false }));
+  d.overlay.addEventListener("click", (e) => { if(e.target === d.overlay) close({ ok:false }); });
+
+  window.uiAlert = function(title, message){
+    d.title.textContent = title || "TRACE";
+    d.msg.textContent = message || "";
+    d.cancel.style.display = "none";
+    d.ok.textContent = "OK";
+    d.inputWrap.style.display = "none";
+    d.overlay.classList.add("show");
+    return new Promise(res => { resolver = () => res(true); });
+  };
+
+  window.uiConfirm = function(title, message, okText="OK", cancelText="Cancel"){
+    d.title.textContent = title || "TRACE";
+    d.msg.textContent = message || "";
+    d.cancel.style.display = "inline-block";
+    d.cancel.textContent = cancelText;
+    d.ok.textContent = okText;
+    d.inputWrap.style.display = "none";
+    d.overlay.classList.add("show");
+    return new Promise(res => { resolver = (r) => res(!!r.ok); });
+  };
+
+  window.uiPrompt = function(title, message, { placeholder="Enter value...", hint="", mask=true } = {}){
+    d.title.textContent = title || "TRACE";
+    d.msg.textContent = message || "";
+    d.cancel.style.display = "inline-block";
+    d.cancel.textContent = "Cancel";
+    d.ok.textContent = "OK";
+    d.inputWrap.style.display = "block";
+    d.input.type = mask ? "password" : "text";
+    d.input.placeholder = placeholder;
+    d.hint.textContent = hint || "";
+    d.overlay.classList.add("show");
+    setTimeout(() => d.input.focus(), 50);
+    return new Promise(res => { resolver = (r) => res(r.ok ? (r.value ?? "") : null); });
+  };
+})();
+
+// ====== API HELPERS ======
+async function apiGet(path){ return apiFetch(path, { method:"GET" }); }
+async function apiPost(path, body){ return apiFetch(path, { method:"POST", body: JSON.stringify(body) }); }
+async function apiPut(path, body){ return apiFetch(path, { method:"PUT", body: JSON.stringify(body) }); }
+async function apiDelete(path){ return apiFetch(path, { method:"DELETE" }); }
+async function apiPatch(path, body){
+  const opts = { method:"PATCH" };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  return apiFetch(path, opts);
+}
+
+apiGet("/health")
+  .then(d => console.log("✅ API CONNECTED", d))
+  .catch(e => console.warn("⚠️ API health check failed:", e.message));
+
+// ====== DOM ELEMENTS ======
+const els = {
+  globalSearch: document.getElementById("globalSearch"),
+  globalResults: document.getElementById("globalResults"),
+  laneGrid: document.getElementById("laneGrid"),
+  laneTitle: document.getElementById("laneTitle"),
+  laneCount: document.getElementById("laneCount"),
+  laneSearch: document.getElementById("laneSearch"),
+  laneResults: document.getElementById("laneResults"),
+  machineGrid: document.getElementById("machineGrid"),
+  machineTitle: document.getElementById("machineTitle"),
+  machineCount: document.getElementById("machineCount"),
+  machineSearch: document.getElementById("machineSearch"),
+  machineResults: document.getElementById("machineResults"),
+  moveOverlay: document.getElementById("moveOverlay"),
+  moveTitle: document.getElementById("moveTitle"),
+  moveCloseBtn: document.getElementById("moveCloseBtn"),
+  moveLaneGrid: document.getElementById("moveLaneGrid"),
+  moveMachineGrid: document.getElementById("moveMachineGrid"),
+  job: document.getElementById("job"),
+  mo: document.getElementById("mo"),
+  qty: document.getElementById("qty"),
+  status: document.getElementById("status"),
+  notes: document.getElementById("notes"),
+  updatedBy: document.getElementById("updatedBy"),
+  saveBtn: document.getElementById("saveBtn"),
+  newBtn: document.getElementById("newBtn"),
+  deleteBtn: document.getElementById("deleteBtn"),
+  clearHistoryBtn: document.getElementById("clearHistoryBtn"),
+  scanOverlay: document.getElementById("scanOverlay"),
+  scanTitle: document.getElementById("scanTitle"),
+  scanBody: document.getElementById("scanBody"),
+  scanCloseBtn: document.getElementById("scanCloseBtn"),
+  scanMoveBtn: document.getElementById("scanMoveBtn"),
+  genJobQrBtn: document.getElementById("genJobQrBtn"),
+  downloadJobQrBtn: document.getElementById("downloadJobQrBtn"),
+  queueJobBtn: document.getElementById("queueJobBtn"),
+  jobQrCanvas: document.getElementById("jobQrCanvas"),
+  jobQrUrlPreview: document.getElementById("jobQrUrlPreview"),
+};
+
+// ====== HELPERS ======
+function normalize(s){ return (s ?? "").trim().toLowerCase(); }
+function cleanJob(s){ return String(s ?? "").trim().toUpperCase().replace(/[^A-Z0-9-]/g, ""); }
+function escapeHtml(s){
+  return String(s ?? "")
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+function pick(obj, keys){
+  for(const k of keys){
+    if(obj && obj[k] !== undefined && obj[k] !== null) return obj[k];
+  }
+  return undefined;
+}
+function extractMoOrJob(raw){
+  const s = String(raw || "").trim().toUpperCase();
+  let m = s.match(/\bMO[-\s]*([A-Z0-9]{3,})\b/);
+  if (m) return "MO-" + m[1];
+  m = s.match(/\b([A-Z0-9-]{4,})\b/);
+  if (m) return m[1];
+  return "";
+}
+function formatTimestamp(ts){
+  if(!ts) return "";
+  const d = new Date(ts);
+  if (isNaN(d)) return "";
+  return d.toLocaleString(undefined, { month:"short", day:"numeric", hour:"numeric", minute:"2-digit" });
+}
+function formatLocation(item){
+  if (item.machine) return `Machine ${item.machine}`;
+  if (item.lane) return item.lane;
+  return "Unknown location";
+}
+// ===== QR GENERATOR + QUEUE (ADMIN) =====
+const QUEUE_MACHINE_NAME = "QUEUE"; // you will add this location in DB (see note below)
+
+function getQueueLocationId(){
+  return locIdByMachine.get(QUEUE_MACHINE_NAME) ?? null;
+}
+
+function buildJobUrl(jobNumber){
+  const job = cleanJob(jobNumber);
+  return `https://traceinventory.org/index.html?job=${encodeURIComponent(job)}`;
+}
+
+async function generateJobQr(){
+  const job = cleanJob(document.getElementById("qrJob")?.value || "");
+  if(!job){
+    await uiAlert("QR Generator", "Enter an Item # (Job) first.");
+    els.job?.focus();
+    return;
+  }
+
+  const url = buildJobUrl(job);
+
+// canvas QR
+const canvas = els.jobQrCanvas;
+if (!canvas) {
+  await uiAlert("QR Error", "Canvas not found. Make sure <canvas id='jobQrCanvas'></canvas> exists.");
+  return;
+}
+
+const container = els.jobQrCanvas;
+container.innerHTML = "";
+container.style.display = "inline-block";
+new QRCode(container, {
+  text: url,
+  width: 260,
+  height: 260,
+  correctLevel: QRCode.CorrectLevel.H
 });
 
-$("searchGoBtn").onclick = async () => {
-  const q = $("searchInput").value.trim();
-  if(!q){
-    $("searchMsg").textContent = "Type a job number or MO.";
-    return;
-  }
+  els.jobQrUrlPreview.textContent = url;
+  els.downloadJobQrBtn.disabled = false;
+}
 
-  $("searchMsg").textContent = "Searching…";
-  const found = await searchAny(q);
+function downloadJobQr(){
+  const container = els.jobQrCanvas;
+  if(!container) return;
+  const qrCanvas = container.querySelector("canvas");
+  if(!qrCanvas){ alert("Generate a QR first."); return; }
+  const job = cleanJob(els.job?.value || "JOB");
 
-  if(!found){
-    $("searchMsg").textContent = "Not found in TRACE.";
-    $("searchResultCard").style.display = "none";
-    pendingSearchItem = null;
-    return;
-  }
+  const logo = new Image();
+  logo.crossOrigin = "anonymous";
+  logo.src = "./trace-logo.png.png";
+  logo.onload = () => {
+    // Step 1: draw logo to a temp canvas to find actual content bounds
+    const tmp = document.createElement("canvas");
+    tmp.width = logo.naturalWidth;
+    tmp.height = logo.naturalHeight;
+    const tctx = tmp.getContext("2d");
+    tctx.drawImage(logo, 0, 0);
 
-  pendingSearchItem = found;
-  $("searchMsg").textContent = "";
-
-  // Build a nice preview
-  const job = (found.job ?? found.job_number ?? "—");
-  const mo  = (found.mo ?? "—");
-  const qty = (found.qty ?? "—");
-  const lane = found.lane ? (String(found.lane).includes("Lane") ? found.lane : `Lane ${found.lane}`) : "";
-  const machine = found.machine ? `Machine ${found.machine}` : "";
-  const where = [lane, machine].filter(Boolean).join(" • ") || "No location";
-
-  $("searchResultLine1").textContent = `Job ${job} • MO ${mo} • QTY ${qty}`;
-  $("searchResultLine2").textContent = where;
-  $("searchResultCard").style.display = "block";
-};
-
-$("searchLoadBtn").onclick = async () => {
-  if(!pendingSearchItem) return;
-  setActiveItemFromAnyShape(pendingSearchItem);
-
-  // refresh caches so move/location lookups stay accurate
-  await loadLocations();
-  await loadInventory();
-
-  closeSearchModal();
-  showToast("✓ Job loaded");
-  checkDuplicateLanes(pendingSearchItem);
-};
-
-  async function checkApi() {
-    try {
-      const r = await fetch(`${API_BASE}/health`, { cache: "no-store" });
-      if (!r.ok) throw new Error("bad status");
-      $("pillStatus").textContent = "LOCKED • API OK";
-    } catch(e) {
-      $("pillStatus").textContent = "LOCKED • API DOWN";
-    }
-  }
-
-  function renderPinDots() {
-    $("pinDots").textContent = (pinBuf + "____").slice(0,4).split("").map(ch => ch === "_" ? "_" : "•").join("");
-  }
-
-  function hintPayload() {
-    const has = payload.job || payload.mo || payload.qty;
-    $("qrPayloadHint").textContent = has
-      ? `Loaded from QR → Job: ${payload.job || "-"} • MO: ${payload.mo || "-"} • QTY: ${payload.qty || "-"}`
-      : "";
-  }
-
-  function saveAuth(token, user) {
-    localStorage.setItem("trace_pin_token", token);
-    localStorage.setItem("trace_pin_user", JSON.stringify(user));
-  }
-  function getAuth() {
-    return {
-      token: localStorage.getItem("trace_pin_token"),
-      user: JSON.parse(localStorage.getItem("trace_pin_user") || "null")
-    };
-  }
-  function clearAuth() {
-    localStorage.removeItem("trace_pin_token");
-    localStorage.removeItem("trace_pin_user");
-  }
-
-  async function pinLogin(pin) {
-    const r = await fetch(`${API_BASE}/auth/pin-login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pin })
-    });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok || data.ok === false) throw data;
-    return data;
-  }
-
-   function showHub() {
-    $("viewPin").classList.remove("fade-in");
-    $("viewPin").classList.add("fade-out");
-    setTimeout(() => {
-      $("viewPin").classList.add("hide");
-      $("viewPin").classList.remove("fade-out");
-      $("viewHub").classList.remove("hide");
-      $("viewHub").classList.add("fade-in");
-      setTimeout(() => $("viewHub").classList.remove("fade-in"), 200);
-    }, 200);
-  }
-
-  async function enterHub(user) {
-    const name = user.display_name || user.name || (user.role ? user.role.toUpperCase() : "USER");
-    const hour = new Date().getHours();
-    const greeting = hour < 12 ? "Good Morning" : hour < 17 ? "Good Afternoon" : "Good Evening";
-    $("hubUser").textContent = `${greeting}, ${name}!`;
-    $("hubAdmin").style.display = (user.role === "admin") ? "block" : "none";
-    setStatus("UNLOCKED");
-    showHub();
-    $("scanLine").textContent = "Loading job...";
-    await loadLocations();
-    await loadInventory();
-    if(scannedJob){
-      const item = findItem(scannedJob);
-      activeItem = item || null;
-      if(item){
-        const loc = item.machine ? `Machine ${item.machine}` : (item.lane || "Unknown");
-        $("scanLine").textContent = `Job ${item.job} • MO ${item.mo || "-"} • QTY ${item.qty ?? "-"} • ${loc}`;
-        $("jobCardStatus").textContent = item.status || "—";
-        checkDuplicateLanes(item);
-      } else {
-        $("scanLine").textContent = `Job #${scannedJob} not found in TRACE`;
-        $("jobCardStatus").textContent = "NOT FOUND";
-        showNotFoundHelp(scannedJob);
+    // Step 2: scan pixels to find tight bounding box of non-black content
+    const pixels = tctx.getImageData(0, 0, tmp.width, tmp.height).data;
+    let minX = tmp.width, minY = tmp.height, maxX = 0, maxY = 0;
+    for(let y = 0; y < tmp.height; y++){
+      for(let x = 0; x < tmp.width; x++){
+        const i = (y * tmp.width + x) * 4;
+        const r = pixels[i], g = pixels[i+1], b = pixels[i+2], a = pixels[i+3];
+        // Consider pixel "visible" if it's not near-black and not transparent
+        if(a > 30 && (r > 30 || g > 30 || b > 60)){
+          if(x < minX) minX = x;
+          if(x > maxX) maxX = x;
+          if(y < minY) minY = y;
+          if(y > maxY) maxY = y;
+        }
       }
-    } else {
-      $("scanLine").textContent = "No job loaded";
-      activeItem = null;
     }
-  }
 
-    function backToPin(msg = "") {
-    pinBuf = "";
-    renderPinDots();
-    $("pinMsg").textContent = msg;
-    setStatus("LOCKED");
-    $("viewPin").classList.remove("fade-out", "fade-in");
-    $("viewHub").classList.remove("fade-out", "fade-in");
-    show("viewPin", "viewHub");
-  }
+    const cropX = minX - 10;
+    const cropY = minY - 10;
+    const cropW = (maxX - minX) + 20;
+    const cropH = (maxY - minY) + 20;
 
-  function goToMain(extra = {}) {
-    const url = new URL(MAIN_TRACE_URL, location.href);
-    url.searchParams.set("from", "kiosk");
-    if (payload.job) url.searchParams.set("job", payload.job);
-    if (payload.mo)  url.searchParams.set("mo", payload.mo);
-    if (payload.qty) url.searchParams.set("qty", payload.qty);
-    for (const [k, v] of Object.entries(extra)) url.searchParams.set(k, v);
-    location.href = url.toString();
-  }
+    // Step 3: build final canvas
+    const padding = 28;
+    const gap = 14;
+    const logoDrawH = 60;
+    const logoDrawW = Math.round(logoDrawH * (cropW / cropH));
+    const labelHeight = 70;
 
-  // PIN pad
-  $("pinPad").addEventListener("click", (e) => {
-    const b = e.target.closest("button");
-    if (!b) return;
-    const d = b.getAttribute("data-d");
-    if (d !== null) {
-      if (pinBuf.length < 4) pinBuf += d;
-      renderPinDots();
-    }
-  });
+    const totalWidth = qrCanvas.width + padding * 2;
+    const totalHeight = padding + logoDrawH + gap + qrCanvas.height + gap + labelHeight + padding;
 
-  $("pinBack").onclick = () => { pinBuf = pinBuf.slice(0, -1); renderPinDots(); };
-  $("pinClear").onclick = () => { pinBuf = ""; renderPinDots(); };
+    const out = document.createElement("canvas");
+    out.width = totalWidth;
+    out.height = totalHeight;
+    const ctx = out.getContext("2d");
 
-  $("pinSubmit").onclick = async () => {
-  if (!/^\d{4}$/.test(pinBuf)) {
-    $("pinMsg").textContent = "PIN must be 4 digits";
+    // Transparent background
+    ctx.clearRect(0, 0, out.width, out.height);
+
+    // Draw cropped logo centered
+    const logoX = (totalWidth - logoDrawW) / 2;
+    ctx.drawImage(tmp, cropX, cropY, cropW, cropH, logoX, padding, logoDrawW, logoDrawH);
+
+    // Draw QR
+    const qrY = padding + logoDrawH + gap;
+    ctx.drawImage(qrCanvas, padding, qrY);
+
+    // Item number
+    ctx.fillStyle = "#111111";
+    ctx.font = "bold 48px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(`${job}`, totalWidth / 2, qrY + qrCanvas.height + gap + 26);
+
+    const a = document.createElement("a");
+    a.download = `TRACE_JOB_${job}.png`;
+    a.href = out.toDataURL("image/png");
+    a.click();
+  };
+  logo.onerror = () => {
+    const a = document.createElement("a");
+    a.download = `TRACE_JOB_${job}.png`;
+    a.href = out.toDataURL("image/png");
+    a.click();
+  };
+}
+async function queueCurrentJob(){
+  const admin = (role === "admin" && adminUnlocked);
+  if(!admin){
+    await uiAlert("Permission Denied", "Admin only. Unlock admin first.");
     return;
   }
-  $("pinMsg").textContent = "Checking...";
-  try {
-    const data = await pinLogin(pinBuf);
-    saveAuth(data.token, data.user);
-    pinBuf = ""; renderPinDots();
-    $("pinMsg").textContent = "";
-    enterHub(data.user);
-  } catch(err) {
-    $("pinMsg").textContent = err?.error || "Invalid PIN";
-    pinBuf = ""; renderPinDots();
-  }
-};
 
-  $("pinGoMain").onclick = () => {
-    location.href = new URL(ADMIN_URL, location.href).toString();
-  };
-
-  // Hub buttons
-  $("hubLogout").onclick = () => { clearAuth(); backToPin("Logged out."); };
-  $("hubMove").onclick = showMoveModal;
-  $("hubSearch").onclick = () => { openSearchModal(); };
-  $("hubAdmin").onclick = () => {
-    location.href = new URL(ADMIN_URL, location.href).toString();
-  };
-
-  // Scanned job helpers
-  let activeItem = null;
-  let activePallets = [];
-
-let pendingSearchItem = null;
-
-function openSearchModal(){
-  $("searchModal").classList.remove("hide");
-  $("searchMsg").textContent = "";
-  $("searchInput").value = "";
-  $("searchResultCard").style.display = "none";
-  pendingSearchItem = null;
-  setTimeout(() => $("searchInput").focus(), 50);
-}
-
-function closeSearchModal(){
-  $("searchModal").classList.add("hide");
-}
-
-function setActiveItemFromAnyShape(it){
-  // supports both shapes:
-  // - inventory-mapped: { id, job, mo, qty, status, lane, machine }
-  // - api lookup:       { id, job_number, mo, qty, status, lane, machine, position }
-  const job = String(it.job ?? it.job_number ?? "").trim().toUpperCase();
-  const mo  = String(it.mo ?? "").trim().toUpperCase();
-  const qty = (it.qty ?? "-");
-  const status = it.status ?? "—";
-
-  // Normalize lane/machine display if present
-  const lane = it.lane ? (String(it.lane).includes("Lane") ? String(it.lane) : `Lane ${it.lane}`) : "";
-  const machine = it.machine ? String(it.machine) : "";
-
-  activeItem = {
-    id: it.id ?? it.item_id ?? it.itemId,
-    job,
-    mo,
-    qty,
-    status,
-    lane,
-    machine
-  };
-
-  const loc = activeItem.machine ? `Machine ${activeItem.machine}` : (activeItem.lane || "Unknown");
-  $("scanLine").textContent = `Job ${activeItem.job} • MO ${activeItem.mo || "-"} • QTY ${activeItem.qty ?? "-"} • ${loc}`;
-  $("jobCardStatus").textContent = activeItem.status || "—";
-
-  // Persist into URL so refresh keeps it (no reload, no auth loss)
-  const url = new URL(location.href);
-  url.searchParams.set("job", activeItem.job);
-  history.replaceState({}, "", url.toString());
-}
-
-  function formatLoc(it) {
-    if (!it) return "Unknown";
-    if (it.lane) return `Lane ${it.lane}${it.position ? " • " + it.position : ""}`;
-    if (it.machine) return `Machine ${it.machine}${it.position ? " • " + it.position : ""}`;
-    return "Unassigned";
- 
- }
-async function fetchJob(job) {
-    const r = await fetch(`${API_BASE}/items/lookup?job=${encodeURIComponent(job)}`, { cache: "no-store" });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok || !data.ok) throw new Error(data.error || "Lookup failed");
-    return data.item;
+  const job = cleanJob(els.job?.value || "");
+  if(!job){
+    await uiAlert("Queue", "Enter/select a job first.");
+    return;
   }
 
- async function loadScannedJob() {
-    const job = scannedJob;
-    if (!job) {
-      $("scanLine").textContent = "No job loaded";
-      activeItem = null;
+// DUPLICATE CHECK
+  if(!selectedId){
+    const existing = inventory.find(x => x.job === job);
+    if(existing){
+      const isExtraLane = /^Lane [1-7]A$/i.test(existing.lane || "");
+      const loc = existing.machine ? `Machine: ${existing.machine}` : (existing.lane || "Unknown");
+
+      if(isExtraLane){
+        const newQty = Math.max(0, parseInt(els.qty?.value || "0", 10));
+        const combinedQty = (existing.qty ?? 0) + newQty;
+        const ok = await uiConfirm(
+          "⚠️ Job Found in Extra Lane",
+          `Item #${job} already exists in ${loc} with Qty: ${existing.qty}\n\nDo you want to add Qty ${newQty} to it? (New total: ${combinedQty})\n\nClick Cancel to create a separate queue entry instead.`,
+          "Yes, Combine Qty",
+          "Cancel"
+        );
+        if(ok){
+          const qLocId = getQueueLocationId();
+if(!qLocId){ await uiAlert("Queue Not Ready", "QUEUE location missing."); return; }
+console.log("locIdByMachine contents:", [...locIdByMachine.entries()]);
+console.log("qLocId:", getQueueLocationId());
+await apiPut(`/items/${existing.id}`, {
+  qty: combinedQty,
+  location_id: qLocId,
+  mo: existing.mo||"",
+  status: existing.status||"",
+  notes: existing.notes||"",
+  updated_by: (els.updatedBy?.value||"").trim()
+});
+
+          await loadLocations();
+          await loadInventory();
+          clearForm();
+          showMoveNotif(job, `✅ Qty updated in ${loc}`);
+          toast(`✅ ${job} qty updated to ${combinedQty} in ${loc}`);
+          return;
+        }
+        // if cancelled, fall through to create new queue entry
+      } else {
+        const ok = await uiConfirm(
+          "⚠️ Duplicate Job Detected",
+          `Item #${job} already exists in ${loc}\n\nQty: ${existing.qty} • Status: ${existing.status || "—"}\n\nAdd a duplicate to the queue anyway?`,
+          "Yes, Add to Queue",
+          "Cancel"
+        );
+        if(!ok) return;
+      }
+    }
+  }
+
+  const qLocId = getQueueLocationId();
+  if(!qLocId){
+    await uiAlert(
+      "Queue Not Ready",
+      `QUEUE location is missing in DB.\n\nFix: add a location with machine/name = "${QUEUE_MACHINE_NAME}".`
+    );
+    return;
+  }
+
+  // If selectedId exists, queue that item. If not, try to find job in inventory.
+  let item = selectedId ? inventory.find(x => x.id === selectedId) : inventory.find(x => x.job === job);
+
+  if(!item){
+    // Double check API before creating to avoid duplicates
+    try{
+      const found = await apiGet(`/items/lookup?job=${encodeURIComponent(job)}`);
+      if(found?.item){
+        const loc = locations.find(l => l.location_id === Number(found.item.location_id));
+        item = {
+          id: found.item.id,
+          job: found.item.job_number,
+          mo: found.item.mo || "",
+          qty: found.item.qty,
+          status: found.item.status,
+          lane: loc?.type === "lane" ? `Lane ${loc.laneNum}` : "",
+          machine: loc?.type === "machine" ? loc.machineName : "",
+          location_id: found.item.location_id
+        };
+      }
+    }catch(e){}
+  }
+
+  if(!item){
+    try{
+      const payload = {
+        job_number: job,
+        mo: cleanJob(els.mo?.value || ""),
+        qty: Math.max(0, parseInt(els.qty?.value || "0", 10)),
+        status: (els.status?.value || "").trim().slice(0, 40),
+        notes: (els.notes?.value || "").trim().slice(0, 120),
+        updated_by: (els.updatedBy?.value || "").trim().slice(0, 10),
+        location_id: qLocId
+      };
+      await apiPost(`/items`, payload);
+    }catch(e){
+      await uiAlert("Queue Failed", e.message || "Could not create + queue job.");
       return;
     }
-    $("scanLine").textContent = `Loading job ${job}...`;
-    try {
-      activeItem = await fetchJob(job);
-      const loc = formatLoc(activeItem);
-      $("scanLine").textContent = `Job ${activeItem.job_number} • MO ${activeItem.mo || "-"} • QTY ${activeItem.qty ?? "-"} • ${loc}`;
-    } catch(e) {
-      activeItem = null;
-      $("scanLine").textContent = `Job ${job} not found in TRACE`;
-    }
+  } else {
+    // job exists -> move it to QUEUE location
+    const payload = {
+      location_id: qLocId,
+      mo: cleanJob(els.mo?.value || ""),
+      qty: Math.max(0, parseInt(els.qty?.value || "0", 10)),
+      status: (els.status?.value || "").trim().slice(0, 40),
+      notes: (els.notes?.value || "").trim().slice(0, 120),
+      updated_by: (els.updatedBy?.value || "").trim().slice(0, 10),
+    };
+    await apiPut(`/items/${item.id}`, payload);
   }
-function renderScannedCard(item) {
-    const mo = item.mo || "-";
-    const qty = (item.qty ?? "-");
+  await loadLocations();
+  await loadInventory();
+  renderQueuePage();
+  clearForm();
+  showMoveNotif(job, `✅ Successfully added to Queue`);
+}
+// ====== SCAN POPUP ======
+let scannedItemId = null;
+
+function openScanPopup(item, scannedText = ""){
+  scannedItemId = item?.id ?? null;
+  const loc = item.machine ? `Machine ${item.machine}` : (item.lane || "Unknown");
+  els.scanTitle.textContent = `Item #${item.job || "—"}`;
+  els.scanBody.innerHTML =
+    `Location: <b>${escapeHtml(loc)}</b>\nMO: <b>${escapeHtml(item.mo || "—")}</b>\nQty: <b>${escapeHtml(Number.isFinite(item.qty) ? item.qty : 0)}</b>\nStatus: <b>${escapeHtml(item.status || "—")}</b>\nNotes: <b>${escapeHtml(item.notes || "—")}</b>` +
+    (scannedText ? `\n\nScanned: ${escapeHtml(scannedText)}` : "");
+  els.scanOverlay.classList.add("show");
+}
+
+function closeScanPopup(){
+  els.scanOverlay.classList.remove("show");
+  scannedItemId = null;
+}
+
+function buildScanDetails(item){
+  const loc = item.machine ? `Machine ${item.machine}` : (item.lane || "Unknown");
+  return [
+    `Location: ${loc}`,
+    `MO: ${item.mo || "—"}`,
+    `Item #: ${item.job || "—"}`,
+    `Qty: ${Number.isFinite(item.qty) ? item.qty : 0}`,
+    `Status: ${item.status || "—"}`,
+    `Notes: ${item.notes || "—"}`
+  ].join("\n");
+}
+
+// Wire scan overlay buttons
+els.scanCloseBtn.addEventListener("click", closeScanPopup);
+els.scanMoveBtn.addEventListener("click", () => {
+  if (!scannedItemId) return;
+  const id = scannedItemId;
+  closeScanPopup();
+  setTimeout(() => openMoveOverlay(id), 150);
+});
+els.scanOverlay.addEventListener("click", (e) => { if (e.target === els.scanOverlay) closeScanPopup(); });
+
+// ====== STATE ======
+let rawItems = [];
+let rawLocations = [];
+let locations = [];
+let locById = new Map();
+let locIdByLane = new Map();
+let locIdByMachine = new Map();
+let inventory = [];
+let selectedLane = "Lane 1";
+let selectedMachine = MACHINES[0];
+let selectedId = null;
+let selectedLocation = { type:"lane", value:"Lane 1" };
+let moveTargetId = null;
+
+// Admin is always unlocked on this page
+const role = "admin";
+const adminUnlocked = true;
+window.role = role;
+window.adminUnlocked = adminUnlocked;
+
+// ====== LOCATION MAPPING ======
+function mapLocations(raw){
+  const arr = Array.isArray(raw) ? raw : [];
+  return arr.map(r => {
+    const location_id = Number(pick(r, ["location_id","id","locationId"]));
+    const laneVal = pick(r, ["lane","lane_number","laneNum","lane_no","lane_id"]);
+    const machineVal = pick(r, ["machine","machine_name","machineName","name","label"]);
+    const laneNum = (laneVal !== undefined && laneVal !== null && String(laneVal).trim() !== "")
+  ? String(laneVal).trim() : null;
+    const machineName = (machineVal !== undefined && machineVal !== null && String(machineVal).trim() !== "")
+      ? String(machineVal).trim() : "";
+    const type = machineName ? "machine" : (laneNum ? "lane" : "unknown");
+    const label = type === "lane" ? `Lane ${laneNum}` : (type === "machine" ? machineName : "");
+    return { location_id, type, laneNum, machineName, label, raw:r };
+  }).filter(x => Number.isFinite(x.location_id));
+}
+
+function buildLocationIndexes(){
+  locById = new Map();
+  locIdByLane = new Map();
+  locIdByMachine = new Map();
+  locations.forEach(l => {
+    locById.set(l.location_id, l);
+    if(l.type === "lane" && l.laneNum) locIdByLane.set(`Lane ${l.laneNum}`, l.location_id);
+    if(l.type === "machine" && l.machineName) locIdByMachine.set(l.machineName, l.location_id);
+  });
+}
+
+function mapItemsToUI(raw){
+  const arr = Array.isArray(raw) ? raw : [];
+  return arr.map(it => {
+    const id = pick(it, ["item_id","id","itemId"]);
+    const job = cleanJob(pick(it, ["job_number","job","jobNumber","sku"]) ?? "");
+    const mo = cleanJob(pick(it, ["mo","mo_number","moNumber","mo_id","moId"]) ?? "");
+    const qty = parseInt(it.qty || "0", 10) || 0;
+    const status = (pick(it, ["status"]) ?? "").toString();
+    const notes  = (pick(it, ["notes"]) ?? "").toString();
+    const updatedBy = (pick(it, ["updated_by","updatedBy"]) ?? "").toString();
+    const createdAt = (pick(it, ["created_at","createdAt"]) ?? "").toString();
+    const updatedAt = (pick(it, ["updated_at","updatedAt"]) ?? "").toString();
+    const location_id = pick(it, ["location_id","locationId"]);
+    const loc = locById.get(Number(location_id));
+    const lane = (loc && loc.type === "lane") ? `Lane ${loc.laneNum}` : "";
+    const machine = (loc && loc.type === "machine") ? loc.machineName : "";
+    return {
+      id, job, mo, qty, status, notes, updatedBy, createdAt, updatedAt,
+      location_id: (location_id !== undefined && location_id !== null) ? Number(location_id) : null,
+      lane, machine
+    };
+  }).filter(x => String(x.job).length > 0 && normalize(x.status) !== "deleted");
+}
+
+// ====== LOADERS ======
+async function loadLocations(){
+  const data = await apiGet("/locations");
+  rawLocations = Array.isArray(data) ? data : (data.locations || data.rows || []);
+  locations = mapLocations(rawLocations);
+  buildLocationIndexes();
+}
+
+async function loadInventory(){
+  const data = await apiGet("/items");
+  rawItems = Array.isArray(data) ? data : (data.items || data.rows || []);
+  inventory = mapItemsToUI(rawItems);
+  window.inventory = inventory;
+  updateTabBadges();
+}
+
+function applyScanParams(){
+  const p = new URLSearchParams(window.location.search);
+  const mo  = (p.get("mo")  || "").trim().toUpperCase();
+  const job = (p.get("job") || "").trim().toUpperCase();
+  const qty = (p.get("qty") || "").trim();
+  if(!mo && !job && !qty) return;
+  if(els.mo)  els.mo.value  = mo;
+  if(els.job) els.job.value = job;
+  if(els.qty) els.qty.value = qty;
+  history.replaceState({}, "", window.location.pathname);
+}
+
+// ====== FORM UI (admin always unlocked) ======
+function updateFormUI(){
+  els.deleteBtn.disabled = !selectedId;
+  els.job.disabled = !!selectedId; // locked once created
+}
+
+// ====== HISTORY (DB-backed) ======
+let deletedDbCache = [];
+
+async function refreshHistoryFromDb(){
+  try{
+    const d = await apiGet("/deleted-items");
+    deletedDbCache = Array.isArray(d.deleted) ? d.deleted : [];
+  }catch(e){
+    console.error("HISTORY LOAD FAILED", e);
+    deletedDbCache = [];
+    await uiAlert("History Failed", "Could not load deleted history from API.");
+  }
+}
+
+function renderHistory(){
+  const q = normalize(els.historySearch?.value || "");
+  let list = deletedDbCache;
+  if(q){
+    list = list.filter(x =>
+      normalize(x.job_number).includes(q) ||
+      normalize(x.description).includes(q) ||
+      normalize(x.deleted_by).includes(q) ||
+      normalize(x.delete_reason).includes(q)
+    );
+  }
+  if(!els.historyResults) return;
+  els.historyResults.innerHTML = "";
+  if(list.length === 0) return;
+  list.slice(0, 120).forEach(item => {
     const lane = item.lane ? `Lane ${item.lane}` : "";
-    const machine = item.machine ? `Machine ${item.machine}` : "";
-    const where = [lane, machine].filter(Boolean).join(" • ") || "No location";
-    document.getElementById("scannedCard").style.display = "block";
-    document.getElementById("scannedLine").textContent = `Job ${item.job_number} • MO ${mo} • QTY ${qty}`;
-    document.getElementById("scannedLoc").textContent = `Current: ${where}`;
-  }
-
-  async function moveItemToLocation(itemId, locationId, updatedBy) {
-  const { token } = getAuth();
-  const r = await fetch(`${API_BASE}/items/${itemId}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`
-    },
-    body: JSON.stringify({
-      location_id: locationId,
-      updated_by:  updatedBy,
-      mo:          activeItem?.mo     || "",
-      qty:         activeItem?.qty    ?? 0,
-      status:      activeItem?.status || "",
-      notes:       activeItem?.notes  || ""
-    })
+    const mach = item.machine ? `Machine ${item.machine}` : "";
+    const from = mach || lane || "—";
+    const div = document.createElement("div");
+    div.className = "resultItem";
+    div.innerHTML = `
+      <div class="big">Job #${escapeHtml(item.job_number || "")}</div>
+      <div class="meta">${escapeHtml(item.description || "—")}</div>
+      <div class="meta">
+        Deleted: ${escapeHtml(item.deleted_at || "")}
+        ${item.deleted_by ? ` • By: ${escapeHtml(item.deleted_by)}` : ""}
+        ${item.delete_reason ? ` • Reason: ${escapeHtml(item.delete_reason)}` : ""}
+        • From: ${escapeHtml(from)}
+      </div>
+    `;
+    els.historyResults.appendChild(div);
   });
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok || !data.ok) throw new Error(data.error || "Move failed");
-  return data.item;
 }
-
-  function renderScannedError(msg) {
-    document.getElementById("scannedCard").style.display = "block";
-    document.getElementById("scannedLine").textContent = `Could not load job: ${msg}`;
-    document.getElementById("scannedLoc").textContent = "";
-  }
-
-
-function showScanAgain() {
-  const existing = $("scanAgainBtn");
-  if (existing) existing.remove();
-
-  const btn = document.createElement("button");
-  btn.className = "btn";
-  btn.id = "scanAgainBtn";
-  btn.style.marginTop = "12px";
-  btn.textContent = "Scan Next Job";
-  btn.onclick = () => {
-    activeItem = null;
-    $("scanLine").textContent = "No job loaded";
-    $("jobCardStatus").textContent = "—";
-    const url = new URL(location.href);
-    url.searchParams.delete("job");
-    url.searchParams.delete("mo");
-    url.searchParams.delete("qty");
-    history.replaceState({}, "", url.toString());
-    btn.remove();
-    showToast("Ready to scan next job!");
-  };
-  $("jobCard").appendChild(btn);
-}
-
-
-function showNotFoundHelp(job) {
-  const existing = $("notFoundHelp");
-  if (existing) existing.remove();
-
-  const div = document.createElement("div");
-  div.id = "notFoundHelp";
-  div.style.marginTop = "12px";
-  div.innerHTML = `
-    <div style="font-size:13px;color:rgba(255,107,107,.9);font-weight:700;margin-bottom:10px;">
-      ⚠️ Contact your supervisor to add Job #${job} to the system.
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <button class="btn" id="notFoundTryAgain">Try Again</button>
-      <button class="btn secondary" id="notFoundSearch">Search Manually</button>
-    </div>
-  `;
-
-  $("jobCard").appendChild(div);
-
-  $("notFoundTryAgain").onclick = () => {
-    activeItem = null;
-    $("scanLine").textContent = "No job loaded";
-    $("jobCardStatus").textContent = "—";
-    const url = new URL(location.href);
-    url.searchParams.delete("job");
-    history.replaceState({}, "", url.toString());
-    div.remove();
-  };
-
-  $("notFoundSearch").onclick = () => {
-    div.remove();
-    openSearchModal();
-  };
-}
-
-
-// ====== DUPLICATE LANE CHECK ======
-function checkDuplicateLanes(loadedItem) {
-  if (!loadedItem) return;
-  const job = String(loadedItem.job ?? loadedItem.job_number ?? "").trim().toUpperCase();
-
-  const allMatches = inventory.filter(x =>
-    String(x.job).trim().toUpperCase() === job &&
-    (x.lane || x.machine)
-  );
-
-  // Only 1 or 0 matches — nothing to do
-  if (allMatches.length <= 1) return;
-
-  // 2+ matches — show the picker, done
-  showWhichPicker(job, allMatches, (picked) => {
-    activeItem = picked;
-    activePallets = [picked];
-    const loc = picked.machine ? `Machine ${picked.machine}` : (picked.lane || "Unknown");
-    $("scanLine").textContent = `Job ${picked.job} • MO ${picked.mo || "-"} • QTY ${picked.qty ?? "-"} • ${loc}`;
-    $("jobCardStatus").textContent = picked.status || "—";
-    showToast(`✅ Loaded ${picked.job} from ${loc}`);
+// ====== BUTTON BUILDERS ======
+function buildLaneButtons(){
+  els.laneGrid.innerHTML = "";
+  const laneNums = locations.filter(l => l.type === "lane" && l.laneNum).map(l => String(l.laneNum)).sort((a,b) => a.localeCompare(b, undefined, { numeric: true }));
+  laneNums.forEach(i => {
+    const lane = `Lane ${i}`;
+    const count = inventory.filter(x => x.lane === lane).length;
+    const btn = document.createElement("div");
+    btn.className = "laneBtn" + (lane===selectedLane ? " active" : "");
+    btn.innerHTML = `${lane} ${count > 0 ? `<span class="laneBtnBadge">${count}</span>` : ""}`;
+    btn.addEventListener("click", () => selectLane(lane));
+    els.laneGrid.appendChild(btn);
   });
 }
 
-function showWhichPicker(job, matches, onPick) {
-  $("whichJobNum").textContent = `Job #${job}`;
-  const grid = $("whichGrid");
-  grid.innerHTML = "";
+
+function buildMachineButtons(){
+  els.machineGrid.innerHTML = "";
+  MACHINES.forEach(m => {
+    const count = inventory.filter(x => x.machine === m).length;
+    const btn = document.createElement("div");
+    btn.className = "laneBtn" + (m===selectedMachine ? " active" : "");
+    btn.innerHTML = `${m} ${count > 0 ? `<span class="laneBtnBadge">${count}</span>` : ""}`;
+    btn.addEventListener("click", () => selectMachine(m));
+    els.machineGrid.appendChild(btn);
+  });
+}
+
+// ====== SELECTORS ======
+function selectLane(lane){
+  selectedLane = lane;
+  selectedLocation = { type:"lane", value: lane };
+  selectedId = null;
+  buildLaneButtons();
+  els.laneTitle.textContent = lane;
+  els.laneSearch.value = "";
+  clearForm();
+  renderLaneList();
+  renderGlobalSearch();
+}
+
+function selectMachine(m){
+  selectedMachine = m;
+  selectedLocation = { type:"machine", value: m };
+  selectedId = null;
+  buildMachineButtons();
+  els.machineTitle.textContent = `Machine: ${m}`;
+  els.machineSearch.value = "";
+  clearForm();
+  renderMachineList();
+  renderGlobalSearch();
+}
+
+function getSelectedLocationId(){
+  if(selectedLocation.type === "lane") return locIdByLane.get(selectedLocation.value) ?? null;
+  if(selectedLocation.type === "machine") return locIdByMachine.get(selectedLocation.value) ?? null;
+  return null;
+}
+
+// ====== RENDER LISTS ======
+function renderLaneList(){
+  const q = normalize(els.laneSearch.value);
+  const laneItemsAll = inventory.filter(x => String(x.lane ?? "") === selectedLane);
+  let laneItems = q ? laneItemsAll.filter(x => normalize(x.job).includes(q) || normalize(x.status).includes(q)) : laneItemsAll;
+
+  els.laneCount.textContent = `${laneItemsAll.length} items`;
+  els.laneResults.innerHTML = "";
+
+  if(laneItemsAll.length === 0){
+    els.laneResults.innerHTML = `
+      <div class="emptyState">
+        <div class="emptyState-title">Lane is Empty</div>
+        <div class="emptyState-sub">No jobs currently in ${selectedLane}.</div>
+      </div>`;
+    return;
+  }
+  if(laneItems.length === 0){
+    els.laneResults.innerHTML = `
+      <div class="emptyState">
+        <div class="emptyState-icon">🔍</div>
+        <div class="emptyState-title">No Match</div>
+        <div class="emptyState-sub">No jobs match your search in ${selectedLane}.</div>
+      </div>`;
+    return;
+  }
+
+  laneItems.sort((a,b) => (parseInt(a.job,10)||0) - (parseInt(b.job,10)||0));
+  laneItems.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "resultItem" + (item.id===selectedId ? " active" : "");
+    const by = item.updatedBy ? ` • By: ${escapeHtml(item.updatedBy)}` : "";
+    const at = item.updatedAt ? ` • Updated ${escapeHtml(formatTimestamp(item.updatedAt))}` : "";
+    div.innerHTML = `
+      <div class="big">Item #${escapeHtml(item.job)}</div>
+      ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ``}
+      <div style="margin-top:6px;font-size:15px;font-weight:900;color:#8aff8a;">Location: <b>${escapeHtml(item.lane)}</b></div>
+      <div class="qty" style="margin-top:4px;color:#4fc3f7;">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${item.status ? escapeHtml(item.status) : "—"}</div>      
+<div class="meta" style="margin-top:4px;">Notes: ${item.notes ? escapeHtml(item.notes) : "—"}</div>
+      <div class="meta" style="margin-top:4px;">${by}${at}</div>
+      <div class="btnRow" style="margin-top:10px;">
+        <button class="primary" data-move="1">Move</button>
+        <button class="ghost" data-send-queue="1" style="border-color:rgba(255,209,102,.35);color:rgba(255,230,140,.9);">⏸ Hold</button>
+      </div>
+    `;
+    div.querySelector("[data-move]").addEventListener("click", (e) => { e.stopPropagation(); openMoveOverlay(item.id); });
+div.querySelector("[data-send-queue]").addEventListener("click", async (e) => {
+  e.stopPropagation();
+  const qLocId = getQueueLocationId();
+  if(!qLocId){ await uiAlert("Queue Not Ready", `QUEUE location missing in DB.`); return; }
+  await apiPut(`/items/${item.id}`, { location_id: qLocId, mo: item.mo||"", qty: item.qty??0, status: item.status||"", notes: item.notes||"", updated_by: item.updatedBy||"" });
+  await loadLocations();
+  await loadInventory();
+  renderLaneList();
+  renderMachineList();
+  showMoveNotif(item.job, `⏸ Sent back to Queue`);
+  toast(`⏸ ${item.job} sent to Queue`);
+});
+    div.addEventListener("click", ()=> loadToForm(item.id));
+    els.laneResults.appendChild(div);
+  });
+}
+
+function renderMachineList(){
+  const q = normalize(els.machineSearch.value);
+  const machineItemsAll = inventory.filter(x => String(x.machine ?? "") === selectedMachine);
+  let machineItems = q ? machineItemsAll.filter(x => normalize(x.job).includes(q) || normalize(x.status).includes(q)) : machineItemsAll;
+
+  els.machineCount.textContent = `${machineItemsAll.length} jobs`;
+  els.machineResults.innerHTML = "";
+
+  if(machineItemsAll.length === 0){
+    els.machineResults.innerHTML = `
+      <div class="emptyState">
+        <div class="emptyState-icon">⚙️</div>
+        <div class="emptyState-title">Machine is Empty</div>
+        <div class="emptyState-sub">No jobs currently on ${selectedMachine}.</div>
+      </div>`;
+    return;
+  }
+  if(machineItems.length === 0){
+    els.machineResults.innerHTML = `
+      <div class="emptyState">
+        <div class="emptyState-icon">🔍</div>
+        <div class="emptyState-title">No Match</div>
+        <div class="emptyState-sub">No jobs match your search on ${selectedMachine}.</div>
+      </div>`;
+    return;
+  }
+
+  machineItems.sort((a,b) => (parseInt(a.job,10)||0) - (parseInt(b.job,10)||0));
+  machineItems.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "resultItem" + (item.id===selectedId ? " active" : "");
+    const by = item.updatedBy ? ` • By: ${escapeHtml(item.updatedBy)}` : "";
+    const at = item.updatedAt ? ` • Updated ${escapeHtml(formatTimestamp(item.updatedAt))}` : "";
+    div.innerHTML = `
+      <div class="big">Item #${escapeHtml(item.job)}</div>
+      ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ``}
+      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${item.status ? escapeHtml(item.status) : "—"}</div>
+      <div class="meta">Machine: ${escapeHtml(item.machine)} • Notes: ${item.notes ? escapeHtml(item.notes) : "—"}${by}${at}</div>
+      <div class="btnRow" style="margin-top:10px;">
+        <button class="primary" data-move="1">Move</button>
+        <button class="ghost" data-send-queue="1" style="border-color:rgba(255,209,102,.35);color:rgba(255,230,140,.9);">⏸ Hold</button>
+      </div>
+    `;
+    div.querySelector("[data-move]").addEventListener("click", (e) => { e.stopPropagation(); openMoveOverlay(item.id); });
+div.querySelector("[data-send-queue]").addEventListener("click", async (e) => {
+  e.stopPropagation();
+  const qLocId = getQueueLocationId();
+  if(!qLocId){ await uiAlert("Queue Not Ready", `QUEUE location missing in DB.`); return; }
+  await apiPut(`/items/${item.id}`, { location_id: qLocId, mo: item.mo||"", qty: item.qty??0, status: item.status||"", notes: item.notes||"", updated_by: item.updatedBy||"" });
+  await loadLocations();
+  await loadInventory();
+  renderLaneList();
+  renderMachineList();
+  showMoveNotif(item.job, `⏸ Sent back to Queue`);
+  toast(`⏸ ${item.job} sent to Queue`);
+});
+div.addEventListener("click", ()=> loadToForm(item.id));
+    els.machineResults.appendChild(div);
+  });
+}
+
+function renderGlobalSearch(){
+  const q = normalize(els.globalSearch.value);
+  els.globalResults.innerHTML = "";
+  if(!q){
+    els.globalResults.innerHTML = `<div style="color:var(--muted)">Type an Item # or MO to search all lanes/machines.</div>`;
+    return;
+  }
+  const matches = inventory.filter(x => normalize(x.job).includes(q) || normalize(x.mo).includes(q)).slice(0, 15);
+  if(matches.length === 0){ els.globalResults.innerHTML = `<div style="color:var(--muted)">No match found.</div>`; return; }
 
   matches.forEach(item => {
-    const loc = item.machine ? `Machine ${item.machine}` : (item.lane || "Unknown");
-    const btn = document.createElement("button");
-    btn.className = "dup-which-btn";
-    btn.innerHTML = `
-      <div style="font-size:15px;margin-bottom:4px;">${loc}</div>
-      <div style="font-size:12px;opacity:.7;">Qty: ${item.qty ?? "—"}</div>
+    const div = document.createElement("div");
+    div.className = "resultItem";
+    const location = item.machine ? `Machine: ${escapeHtml(item.machine)}` : (item.lane ? escapeHtml(item.lane) : "—");
+     div.innerHTML = `
+      <div class="big">Item #${escapeHtml(item.job)}</div>
+      ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ``}
+      <div style="margin-top:6px;font-size:13px;font-weight:900;color:#4fc3f7;">Location: <b>${location}</b></div>
+      <div class="qty" style="margin-top:4px;">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${item.status ? escapeHtml(item.status) : "—"}</div>
+      <div class="meta" style="margin-top:4px;">Notes: ${item.notes ? escapeHtml(item.notes) : "—"}</div>
+      <div class="btnRow" style="margin-top:10px;"><button class="primary" data-move="1">Move</button></div>
     `;
-    btn.onclick = () => {
-      $("whichOverlay").classList.add("hide");
-      onPick(item);
-    };
-    grid.appendChild(btn);
+    div.querySelector('[data-move]').addEventListener("click", (e) => { e.stopPropagation(); openMoveOverlay(item.id); });
+    div.addEventListener("click", () => {
+      if(item.machine) selectMachine(item.machine);
+      else if(item.lane) selectLane(item.lane);
+      loadToForm(item.id);
+    });
+    els.globalResults.appendChild(div);
   });
-
-// Take Both button
-  const takeBtn = document.createElement("button");
-  takeBtn.className = "btn";
-  takeBtn.style.marginTop = "12px";
-  takeBtn.textContent = "Take Both";
-  takeBtn.onclick = () => {
-    $("whichOverlay").classList.add("hide");
-    activePallets = [...matches];
-    const locs = matches.map(x => x.machine ? `Machine ${x.machine}` : x.lane).join(" + ");
-    $("scanLine").textContent = `Job #${job} • TAKING ALL • ${locs}`;
-    $("jobCardStatus").textContent = "TAKE ALL";
-    showToast(`✅ All ${matches.length} pallets loaded — Job #${job}`);
-  };
-  grid.appendChild(takeBtn);
-
-  $("whichOverlay").classList.remove("hide");
 }
-  
-  // Boot
-  hintPayload();
-  renderPinDots();
-  checkApi();
 
-  (async function boot() {
+// ====== FORM ======
+function clearForm(){
+  selectedId = null;
+  els.mo.value = "";
+  els.job.value = "";
+  els.qty.value = "";
+  els.status.value = "";
+  els.notes.value = "";
+  els.updatedBy.value = "";
+  els.job.disabled = false;
+  updateFormUI();
+}
+
+function loadToForm(id){
+  const item = inventory.find(x => x.id === id);
+  if(!item) return;
+  selectedId = id;
+  els.mo.value = item.mo ?? "";
+  els.job.value = item.job ?? "";
+  els.qty.value = String(item.qty ?? 0);
+  els.status.value = item.status ?? "";
+  els.notes.value = item.notes ?? "";
+  els.updatedBy.value = item.updatedBy ?? "";
+  updateFormUI();
+  renderLaneList();
+  renderMachineList();
+}
+
+// ====== CRUD ======
+async function upsertItem(){
+  const jobRaw = cleanJob(els.job.value).trim();
+  const moRaw  = cleanJob(els.mo.value).trim();
+  if(!jobRaw){ await uiAlert("Validation Error", "Job # is required."); els.job.focus(); return; }
+
+  const qty = Math.max(0, parseInt(els.qty.value || "0", 10));
+  const status = (els.status.value || "").trim().slice(0, 40);
+  const notes  = (els.notes.value  || "").trim().slice(0, 120);
+  const updatedBy = (els.updatedBy.value || "").trim().slice(0, 10);
+  const location_id = getSelectedLocationId();
+  if(!location_id){
+    await uiAlert("Location Error", `No DB mapping for selected ${selectedLocation.type}: ${selectedLocation.value}.`);
+    return;
+  }
+
+  const payload = { job_number: jobRaw, mo: moRaw, qty, status, notes, updated_by: updatedBy, location_id };
+
+
+  try{
+    if(selectedId) await apiPut(`/items/${selectedId}`, payload);
+    else await apiPost(`/items`, payload);
     await loadLocations();
     await loadInventory();
-    loadScannedJob();
-    const { token, user } = getAuth();
-    if (token && user) {
-      enterHub(user);
-    } else {
-      backToPin("");
+    renderLaneList();
+    renderMachineList();
+    renderGlobalSearch();
+    clearForm();
+    const dest = selectedLocation.type === "lane" ? selectedLocation.value : `Machine: ${selectedLocation.value}`;
+    showMoveNotif(jobRaw, `✅ Successfully added to ${dest}`);
+  }catch(err){
+    console.error("SAVE FAILED", err);
+    let msg = "Save failed. ";
+    if (err.message.includes("Failed to fetch")) msg += "Network connection lost.";
+    else if (err.message.includes("401")) msg += "Session expired. Please log in again.";
+    else if (err.message.includes("400")) msg += "Invalid data. Check required fields.";
+    else if (err.message.includes("500")) msg += "Server error. Try again in a moment.";
+    else msg += err.message || "Unknown error.";
+    await uiAlert("Save Failed", msg);
+  }
+}
+
+async function deleteSelected(){
+  if(!selectedId){ await uiAlert("No Selection", "Select a job first."); return; }
+  const item = inventory.find(x => x.id === selectedId);
+  if(!item){ await uiAlert("Error", "Could not find selected job."); return; }
+
+  const ok = await uiConfirm("Confirm Delete", `Delete Item #${item.job}?`, "Delete", "Cancel");
+  if (!ok) return;
+
+  try{
+    await apiDelete(`/items/${selectedId}`);
+    await loadLocations();
+    await loadInventory();
+    clearForm();
+    renderLaneList();
+    renderMachineList();
+    renderGlobalSearch();
+    await refreshHistoryFromDb();
+  }catch(err){
+    console.error("DELETE FAILED", err);
+    let msg = "Delete failed. ";
+    if (err.message.includes("Failed to fetch")) msg += "Network connection lost. The job was NOT deleted.";
+    else if (err.message.includes("403")) msg += "Permission denied.";
+    else msg += err.message || "Unknown error.";
+    await uiAlert("Delete Failed", msg);
+  }
+}
+
+// ====== MOVE ======
+function openMoveOverlay(id){
+  const item = inventory.find(x => x.id === id);
+  if(!item) return;
+  moveTargetId = id;
+  els.moveTitle.textContent = `Move Item #${item.job}`;
+
+  els.moveLaneGrid.innerHTML = "";
+  locations.filter(l => l.type === "lane").sort((a,b) => a.laneNum - b.laneNum).forEach(loc => {
+    const lane = `Lane ${loc.laneNum}`;
+    const btn = document.createElement("div");
+    btn.className = "laneBtn";
+    btn.textContent = lane;
+    btn.addEventListener("click", async () => { await moveToLane(moveTargetId, lane); closeMoveOverlay(); });
+    els.moveLaneGrid.appendChild(btn);
+  });
+
+  els.moveMachineGrid.innerHTML = "";
+  MACHINES.forEach(m => {
+    const btn = document.createElement("div");
+    btn.className = "laneBtn";
+    btn.textContent = m;
+    btn.addEventListener("click", async () => { await moveToMachine(moveTargetId, m); closeMoveOverlay(); });
+    els.moveMachineGrid.appendChild(btn);
+  });
+
+  els.moveOverlay.classList.add("show");
+}
+
+function closeMoveOverlay(){
+  els.moveOverlay.classList.remove("show");
+  moveTargetId = null;
+}
+
+async function moveToLane(id, lane){
+  const location_id = locIdByLane.get(lane) ?? null;
+  if(!location_id){ await uiAlert("Location Error", `No DB mapping for ${lane}.`); return; }
+  const item = inventory.find(x => x.id === id);
+  const originalLocationId = item?.location_id;
+  const originalLocation = item?.lane || item?.machine || "Unknown";
+  try{
+    showLoading(`Moving to ${lane}...`);
+    await apiPut(`/items/${id}`, {
+      location_id,
+      mo:         item?.mo         || "",
+      qty:        item?.qty        ?? 0,
+      status:     item?.status     || "",
+      notes:      item?.notes      || "",
+      updated_by: item?.updatedBy  || ""
+    });
+    await loadLocations();
+    await loadInventory();
+    hideLoading();
+    toast(`✅ Moved to ${lane}`);
+    showMoveNotif(item?.job || id, `→ ${lane} • by ${item?.updatedBy || "—"}`);
+    pushUndo({ type:"move", itemId:id, originalLocationId, originalLocation, newLocation:lane });
+    selectLane(lane);
+    renderLaneList();
+    renderMachineList();
+    renderGlobalSearch();
+    loadToForm(id);
+  }catch(err){
+    hideLoading();
+    let msg = "Move failed. ";
+    if (err.message.includes("Failed to fetch")) msg += "Network connection lost. Job was NOT moved.";
+    else if (err.message.includes("404")) msg += "Job not found.";
+    else msg += err.message || "Unknown error.";
+    await uiAlert("Move Failed", msg);
+  }
+}
+
+async function moveToMachine(id, machine){
+  const location_id = locIdByMachine.get(machine) ?? null;
+  if(!location_id){ await uiAlert("Location Error", `No DB mapping for machine ${machine}.`); return; }
+  const item = inventory.find(x => x.id === id);
+  const originalLocationId = item?.location_id;
+  const originalLocation = item?.lane || item?.machine || "Unknown";
+  try{
+    showLoading(`Moving to ${machine}...`);
+    await apiPut(`/items/${id}`, {
+      location_id,
+      mo:         item?.mo         || "",
+      qty:        item?.qty        ?? 0,
+      status:     item?.status     || "",
+      notes:      item?.notes      || "",
+      updated_by: item?.updatedBy  || ""
+    });
+    await loadLocations();
+    await loadInventory();
+    hideLoading();
+    toast(`✅ Moved to ${machine}`);
+    showMoveNotif(item?.job || id, `→ ${machine} • by ${item?.updatedBy || "—"}`);
+    pushUndo({ type:"move", itemId:id, originalLocationId, originalLocation, newLocation:machine });
+    selectMachine(machine);
+    renderLaneList();
+    renderMachineList();
+    renderGlobalSearch();
+    loadToForm(id);
+  }catch(err){
+    hideLoading();
+    let msg = "Move failed. ";
+    if (err.message.includes("Failed to fetch")) msg += "Network connection lost. Job was NOT moved.";
+    else if (err.message.includes("404")) msg += "Job not found.";
+    else msg += err.message || "Unknown error.";
+    await uiAlert("Move Failed", msg);
+  }
+}
+
+window.moveToLane = moveToLane;
+window.moveToMachine = moveToMachine;
+
+// ====== UNDO SYSTEM ======
+let undoStack = [];
+const MAX_UNDO_HISTORY = 10;
+
+function pushUndo(action) {
+  undoStack.push(action);
+  if (undoStack.length > MAX_UNDO_HISTORY) undoStack.shift();
+  updateUndoButton();
+}
+
+function updateUndoButton() {
+  const btn = document.getElementById("undoBtn");
+  if (btn) {
+    btn.disabled = undoStack.length === 0;
+    btn.textContent = undoStack.length > 0 ? `Undo (${undoStack.length})` : "Undo";
+  }
+}
+
+async function performUndo() {
+  if (undoStack.length === 0) return;
+  const lastAction = undoStack.pop();
+  updateUndoButton();
+  try {
+    showLoading("Undoing...");
+    if (lastAction.type === "move") {
+      await apiPut(`/items/${lastAction.itemId}`, { location_id: lastAction.originalLocationId });
+      await loadLocations();
+      await loadInventory();
+      hideLoading();
+      toast(`✅ Undid move to ${lastAction.newLocation}`);
+      renderLaneList();
+      renderMachineList();
+      renderGlobalSearch();
     }
-  })();
+  } catch (err) {
+    hideLoading();
+    await uiAlert("Undo Failed", "Could not undo the last action.");
+  }
+}
+
+// ====== FULLSCREEN ======
+function toggleFullscreen(){
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+  else document.exitFullscreen().catch(()=>{});
+}
+
+// ====== TOAST ======
+function toast(msg){
+  let el = document.getElementById("traceToast");
+  if(!el){
+    el = document.createElement("div");
+    el.id = "traceToast";
+    Object.assign(el.style, {
+      position:"fixed", left:"50%", bottom:"26px",
+      transform:"translateX(-50%)", zIndex:"999999",
+      padding:"12px 14px", borderRadius:"14px",
+      border:"1px solid rgba(58,122,254,.45)",
+      background:"rgba(12,14,18,.88)", backdropFilter:"blur(10px)",
+      boxShadow:"0 20px 60px rgba(0,0,0,.55)", color:"#fff",
+      fontWeight:"900", letterSpacing:".02em", opacity:"0",
+      pointerEvents:"none", transition:"opacity 180ms ease, transform 180ms ease"
+    });
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = "1";
+  el.style.transform = "translateX(-50%) translateY(-2px)";
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => {
+    el.style.opacity = "0";
+    el.style.transform = "translateX(-50%) translateY(6px)";
+  }, 2200);
+}
+
+// ====== LOADING ======
+function showLoading(message = "Loading...") {
+  const overlay = document.getElementById("loadingOverlay");
+  const text = document.getElementById("loadingText");
+  if (overlay && text) { text.textContent = message; overlay.classList.add("show"); }
+}
+function hideLoading() {
+  const overlay = document.getElementById("loadingOverlay");
+  if (overlay) overlay.classList.remove("show");
+}
+
+// ====== EVENTS ======
+document.getElementById("logoutBtn").addEventListener("click", () => {
+  localStorage.removeItem("trace_token");
+  localStorage.removeItem("trace_email");
+  sessionStorage.removeItem("trace_intro_seen");
+  location.reload();
+});
+
+// Side menu
+const menuBtn = document.getElementById("menuBtn");
+const sideMenu = document.getElementById("sideMenu");
+const menuOverlay = document.getElementById("sideMenuOverlay");
+const menuCloseBtn = document.getElementById("menuCloseBtn");
+
+function closeSideMenu(){ sideMenu.classList.add("hidden"); menuOverlay.classList.add("hidden"); }
+
+menuBtn.addEventListener("click", () => { sideMenu.classList.remove("hidden"); menuOverlay.classList.remove("hidden"); });
+menuCloseBtn.addEventListener("click", closeSideMenu);
+menuOverlay.addEventListener("click", closeSideMenu);
+
+// Search inputs
+els.globalSearch.addEventListener("input", renderGlobalSearch);
+els.laneSearch.addEventListener("input", renderLaneList);
+els.machineSearch.addEventListener("input", renderMachineList);
+
+// Form buttons
+els.saveBtn.addEventListener("click", upsertItem);
+els.deleteBtn.addEventListener("click", deleteSelected);
+
+// ===== QR + QUEUE EVENTS =====
+if (els.genJobQrBtn) els.genJobQrBtn.addEventListener("click", generateJobQr);
+if (els.downloadJobQrBtn) els.downloadJobQrBtn.addEventListener("click", downloadJobQr);
+if (els.queueJobBtn) els.queueJobBtn.addEventListener("click", queueCurrentJob);
+
+// Undo
+document.getElementById("undoBtn").addEventListener("click", performUndo);
+
+// Move overlay
+els.moveCloseBtn.addEventListener("click", closeMoveOverlay);
+els.moveOverlay.addEventListener("click", (e) => { if(e.target === els.moveOverlay) closeMoveOverlay(); });
+
+// Side menu actions
+const openCompletedBtn = document.getElementById("openCompletedBtn");
+const openHistoryBtn = document.getElementById("openHistoryBtn");
+const completedPanel = document.getElementById("completedPanel");
+
+if (openCompletedBtn) {
+  openCompletedBtn.addEventListener("click", () => { closeSideMenu(); completedPanel.classList.toggle("hidden"); });
+}
+if (openHistoryBtn) {
+  openHistoryBtn.addEventListener("click", async () => {
+    closeSideMenu();
+    showPage("historyPage");
+    await refreshHistoryFromDb();
+    renderHistoryPage();
+  });
+}
+
+const openQueueBtn = document.getElementById("openQueueBtn");
+if(openQueueBtn){
+  openQueueBtn.addEventListener("click", () => {
+    closeSideMenu();
+    showPage("queuePage");
+    renderQueuePage();
+  });
+}
+
+// Input cleanup
+els.job.addEventListener("input", () => { els.job.value = cleanJob(els.job.value); });
+els.mo.addEventListener("input", () => { els.mo.value = cleanJob(els.mo.value); });
+
+// Keyboard shortcuts
+document.addEventListener("keydown", (e) => {
+  const tag = document.activeElement?.tagName?.toLowerCase();
+  if (tag === "input" || tag === "textarea") return;
+  if (e.key.toLowerCase() === "f") toggleFullscreen();
+  if (e.key === "Escape") closeMoveOverlay();
+  if (/^[1-9]$/.test(e.key)) selectLane(`Lane ${parseInt(e.key, 10)}`);
+});
+
+// ====== INIT ======
+window.initApp = async function initApp() {
+  try {
+    buildLaneButtons();
+    buildMachineButtons();
+    els.laneTitle.textContent = selectedLane;
+    els.machineTitle.textContent = `Machine: ${selectedMachine}`;
+    selectedLocation = { type:"lane", value:selectedLane };
+
+    els.globalResults.innerHTML = `<div style="color:var(--muted)">Loading...</div>`;
+
+    await loadLocations();
+    await loadInventory();
+    applyScanParams();
+
+initTabs();
+updateFormUI();
+renderLaneList();
+renderMachineList();
+renderGlobalSearch();
+updateTabBadges();
+
+    console.log("✅ ADMIN INIT COMPLETE");
+    runAutoCleanupIfNeeded();
+    setInterval(async () => {
+      await loadLocations();
+      await loadInventory();
+      renderLaneList();
+      renderMachineList();
+      renderGlobalSearch();
+      updateTabBadges();
+    }, 60000);
+  } catch (err) { 
+    console.error("❌ Init failed:", err);
+    els.globalResults.innerHTML = `
+      <div style="color:var(--bad); font-weight:900;">API / INIT ERROR</div>
+      <div style="color:var(--muted); margin-top:6px;">Check DevTools → Console + Network for /locations and /items.</div>
+    `;
+  }
+};
+
+// ====== TABS ======
+function initTabs(){
+  document.querySelectorAll(".tabBtn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tabBtn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tabPanel").forEach(p => p.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById(btn.dataset.tab).classList.add("active");
+    });
+  });
+}
+
+function updateTabBadges(){
+  const lanesBadge = document.getElementById("lanesBadge");
+  const machinesBadge = document.getElementById("machinesBadge");
+  if(lanesBadge) lanesBadge.textContent = inventory.filter(x => x.lane).length;
+  if(machinesBadge) machinesBadge.textContent = inventory.filter(x => x.machine && x.machine.toUpperCase() !== "QUEUE").length;
+  buildLaneButtons();
+  buildMachineButtons();
+}
+
+// ====== PAGE NAVIGATION ======
+function showPage(pageId){
+  document.getElementById("appRoot").classList.add("isHidden");
+  document.getElementById(pageId).classList.remove("hidden");
+}
+function hidePage(pageId){
+  document.getElementById(pageId).classList.add("hidden");
+  document.getElementById("appRoot").classList.remove("isHidden");
+  document.getElementById("appRoot").classList.add("isVisible");
+  clearForm();
+}
+
+// History page
+document.getElementById("historyPageBack").addEventListener("click", () => hidePage("historyPage"));
+document.getElementById("clearHistoryBtn2").addEventListener("click", async () => {
+  const ok = await uiConfirm("Clear History", "This will permanently delete deleted jobs older than 7 days.", "Clear", "Cancel");
+  if(!ok) return;
+  try{
+    await apiDelete("/deleted-items/cleanup?days=7");
+    await refreshHistoryFromDb();
+    renderHistoryPage();
+    await uiAlert("History Cleaned", "Old deleted jobs were removed.");
+  }catch(e){
+    await uiAlert("Error", "Failed to clear history.");
+  }
+});
+document.getElementById("historySearch2").addEventListener("input", renderHistoryPage);
+
+function renderHistoryPage(){
+  const q = normalize(document.getElementById("historySearch2")?.value || "");
+  let list = deletedDbCache;
+  if(q){
+    list = list.filter(x =>
+      normalize(x.job_number).includes(q) ||
+      normalize(x.description).includes(q) ||
+      normalize(x.deleted_by).includes(q) ||
+      normalize(x.delete_reason).includes(q)
+    );
+  }
+  const container = document.getElementById("historyResults2");
+  container.innerHTML = "";
+  if(list.length === 0){
+    container.innerHTML = `<div style="color:var(--muted)">No deleted jobs yet.</div>`;
+    return;
+  }
+  list.slice(0, 120).forEach(item => {
+    const lane = item.lane ? `Lane ${item.lane}` : "";
+    const mach = item.machine ? `Machine ${item.machine}` : "";
+    const from = mach || lane || "—";
+    const div = document.createElement("div");
+    div.className = "resultItem";
+    div.innerHTML = `
+      <div class="big">Job #${escapeHtml(item.job_number || "")}</div>
+      <div class="meta">${escapeHtml(item.description || "—")}</div>
+      <div class="meta">
+        Deleted: ${escapeHtml(item.deleted_at || "")}
+        ${item.deleted_by ? ` • By: ${escapeHtml(item.deleted_by)}` : ""}
+        ${item.delete_reason ? ` • Reason: ${escapeHtml(item.delete_reason)}` : ""}
+        • From: ${escapeHtml(from)}
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// Queue page
+document.getElementById("queuePageBack").addEventListener("click", () => hidePage("queuePage"));
+document.getElementById("queueSearch2").addEventListener("input", renderQueuePage);
+
+function renderQueuePage(){
+  const q = normalize(document.getElementById("queueSearch2")?.value || "");
+  const listAll = inventory.filter(x => String(x.machine || "").toUpperCase() === QUEUE_MACHINE_NAME);
+  let list = listAll;
+  if(q){
+    list = listAll.filter(x =>
+      normalize(x.job).includes(q) ||
+      normalize(x.mo).includes(q) ||
+      normalize(x.status).includes(q)
+    );
+  }
+  document.getElementById("queueCount2").textContent = String(listAll.length);
+  const container = document.getElementById("queueResults2");
+  container.innerHTML = "";
+  if(listAll.length === 0){
+    container.innerHTML = `
+      <div class="emptyState">
+        <div class="emptyState-title">Queue is Empty</div>
+        <div class="emptyState-sub">Jobs added to the queue will appear here ready to be moved to a lane.</div>
+      </div>`;
+    return;
+  }
+  list.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "resultItem";
+    div.innerHTML = `
+      <div class="big">Item #${escapeHtml(item.job)}</div>
+      ${item.mo ? `<div class="meta">MO: <b>${escapeHtml(item.mo)}</b></div>` : ``}
+      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${escapeHtml(item.status||"—")}</div>
+      <div class="btnRow" style="margin-top:10px;">
+        <button class="primary" data-move-lane="1">Move to Lane…</button>
+        <button class="ghost" data-gen-qr="1">Generate QR</button>
+        <button class="danger" data-remove-queue="1">Remove from Queue</button>
+      </div>
+    `;
+    const btn = div.querySelector("[data-move-lane]");
+    btn.addEventListener("click", async () => {
+      const lane = await uiPrompt("Move From Queue", `Move Item #${item.job} to which lane?`, {
+        placeholder: "Lane # (1-12)", hint: "Example: 7", mask: false
+      });
+      if(lane === null) return;
+      const n = parseInt(String(lane).trim(), 10);
+      if(!Number.isFinite(n) || n < 1 || n > 12){
+        await uiAlert("Invalid Lane", "Lane must be 1–12.");
+        return;
+      }
+      await moveToLane(item.id, `Lane ${n}`);
+      await loadInventory();
+      renderQueuePage();
+    });
+
+    div.querySelector("[data-remove-queue]").addEventListener("click", async () => {
+  const ok = await uiConfirm(
+    "Remove from Queue",
+    `Delete Item #${item.job} completely?\n\nThis cannot be undone.`,
+    "Delete", "Cancel"
+  );
+  if(!ok) return;
+  try{
+    await apiDelete(`/items/${item.id}`);
+    await loadInventory();
+    renderQueuePage();
+    toast(`🗑 Deleted ${item.job} from queue`);
+  }catch(e){
+    await uiAlert("Delete Failed", e.message || "Could not delete job.");
+  }
+});
+
+    div.querySelector("[data-gen-qr]").addEventListener("click", () => {
+      document.getElementById("qrJob").value = item.job;
+      hidePage("queuePage");
+      showPage("qrPage");
+    });
+    container.appendChild(div);
+  });
+}
+
+// ====== ACTIVITY FEED PAGE ======
+function timeAgo(ts){
+  if(!ts) return "";
+  const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
+  if(diff < 60) return `${diff}s ago`;
+  if(diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  if(diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+  return `${Math.floor(diff/86400)}d ago`;
+}
+
+function renderFeedPage(){
+  const q = normalize(document.getElementById("feedSearch")?.value || "");
+  const container = document.getElementById("feedResults");
+  if(!container) return;
+
+  let sorted = [...inventory]
+    .filter(x => x.updatedAt && x.updatedBy && (x.lane || x.machine))
+    .sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+  if(q){
+    sorted = sorted.filter(x =>
+      normalize(x.job).includes(q) ||
+      normalize(x.mo).includes(q) ||
+      normalize(x.updatedBy).includes(q)
+    );
+  }
+
+  container.innerHTML = "";
+  if(sorted.length === 0){
+    container.innerHTML = `
+      <div class="emptyState">
+        <div class="emptyState-icon">⚡</div>
+        <div class="emptyState-title">No Activity Yet</div>
+        <div class="emptyState-sub">Move events will appear here as jobs are updated across lanes and machines.</div>
+      </div>`;
+    return;
+  }
+
+  sorted.slice(0, 80).forEach(item => {
+    const loc = item.machine ? `Machine ${item.machine}` : (item.lane || "Unknown");
+    const by = item.updatedBy || "—";
+    const when = timeAgo(item.updatedAt);
+    const div = document.createElement("div");
+    div.className = "feedItem";
+    div.innerHTML = `
+      <div class="feedItem-job">
+        Item #${escapeHtml(item.job)}
+        ${item.mo ? `<span style="font-weight:400;color:var(--muted);font-size:12px;margin-left:8px;">MO: ${escapeHtml(item.mo)}</span>` : ""}
+      </div>
+      <div class="feedItem-loc">📍 ${escapeHtml(loc)} • <span style="color:var(--good)">${escapeHtml(item.status||"—")}</span></div>
+      <div class="feedItem-meta">
+        <span>👤 ${escapeHtml(by)}</span>
+        <span>${escapeHtml(when)}</span>
+      </div>
+    `;
+    div.addEventListener("click", () => {
+      hidePage("feedPage");
+      if(item.machine) selectMachine(item.machine);
+      else if(item.lane) selectLane(item.lane);
+      loadToForm(item.id);
+    });
+    container.appendChild(div);
+  });
+}
+
+document.getElementById("feedPageBack").addEventListener("click", () => hidePage("feedPage"));
+document.getElementById("feedSearch").addEventListener("input", renderFeedPage);
+
+const openFeedBtn = document.getElementById("openFeedBtn");
+if(openFeedBtn){
+  openFeedBtn.addEventListener("click", () => {
+    closeSideMenu();
+    showPage("feedPage");
+    renderFeedPage();
+  });
+}
+
+// ====== MOVE NOTIFICATION ======
+let notifTimer = null;
+
+function showMoveNotif(job, detail){
+  const notif = document.getElementById("moveNotif");
+  const jobEl = document.getElementById("moveNotifJob");
+  const detailEl = document.getElementById("moveNotifDetail");
+  const progress = document.getElementById("moveNotifProgress");
+  if(!notif || !jobEl || !detailEl || !progress) return;
+
+  jobEl.textContent = `Item #${job}`;
+  detailEl.textContent = detail;
+
+  progress.classList.remove("drain");
+  progress.style.transition = "none";
+  progress.style.transform = "translateX(0)";
+
+  notif.classList.add("show");
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      progress.style.transition = "transform 3s linear";
+      progress.classList.add("drain");
+    });
+  });
+
+  clearTimeout(notifTimer);
+  notifTimer = setTimeout(() => {
+    notif.classList.remove("show");
+  }, 3200);
+}
+
+// ====== AUTO CLEANUP ======
+async function runAutoCleanupIfNeeded(){
+  const key = "trace_last_cleanup";
+  const last = localStorage.getItem(key);
+  const now = Date.now();
+  const oneDayMs = 24 * 60 * 60 * 1000;
+
+  if(last && (now - parseInt(last, 10)) < oneDayMs) return;
+
+  try{
+    await apiDelete("/deleted-items/cleanup?days=30");
+    localStorage.setItem(key, String(now));
+    console.log("✅ Auto cleanup ran — deleted items older than 30 days removed.");
+  }catch(e){
+    console.warn("⚠️ Auto cleanup failed:", e.message);
+  }
+}
+
+// ====== ADD LOCATION ======
+document.getElementById("addLocationBtn").addEventListener("click", () => {
+  document.getElementById("addLocationOverlay").classList.add("show");
+  document.getElementById("addLocationMsg").textContent = "";
+  document.getElementById("addLaneNumber").value = "";
+  document.getElementById("addMachineName").value = "";
+  document.getElementById("addLocationType").value = "lane";
+  document.getElementById("addLaneWrap").classList.remove("hide");
+  document.getElementById("addMachineWrap").classList.add("hide");
+});
+
+document.getElementById("addLocationType").addEventListener("change", (e) => {
+  const isLane = e.target.value === "lane";
+  document.getElementById("addLaneWrap").classList.toggle("hide", !isLane);
+  document.getElementById("addMachineWrap").classList.toggle("hide", isLane);
+});
+
+function closeAddLocation(){
+  document.getElementById("addLocationOverlay").classList.remove("show");
+}
+document.getElementById("addLocationCloseBtn").addEventListener("click", closeAddLocation);
+document.getElementById("addLocationCancelBtn").addEventListener("click", closeAddLocation);
+document.getElementById("addLocationOverlay").addEventListener("click", (e) => {
+  if(e.target === document.getElementById("addLocationOverlay")) closeAddLocation();
+});
+
+document.getElementById("addLocationSaveBtn").addEventListener("click", async () => {
+  const type = document.getElementById("addLocationType").value;
+  const msg  = document.getElementById("addLocationMsg");
+  const btn  = document.getElementById("addLocationSaveBtn");
+
+  let payload = {};
+  if(type === "lane"){
+    const n = document.getElementById("addLaneNumber").value.trim().toUpperCase();
+if(!n || n.length > 6){
+  msg.textContent = "Enter a valid lane (e.g. 1, 1A, 2B).";
+      msg.style.color = "var(--bad)";
+      return;
+    }
+    const exists = locations.some(l => l.type === "lane" && String(l.laneNum) === n);
+if(exists){
+  msg.textContent = `Lane ${n} already exists.`;
+      msg.style.color = "var(--bad)";
+      return;
+    }
+    payload = { machine: `Lane ${n}`, area: "lane" };
+  } else {
+    const name = document.getElementById("addMachineName").value.trim();
+    if(!name){
+      msg.textContent = "Enter a machine name.";
+      msg.style.color = "var(--bad)";
+      return;
+    }
+    const exists = locations.some(l => l.type === "machine" && l.machineName.toLowerCase() === name.toLowerCase());
+    if(exists){
+      msg.textContent = `Machine "${name}" already exists.`;
+      msg.style.color = "var(--bad)";
+      return;
+    }
+    payload = { machine: name };
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Adding...";
+  msg.textContent = "";
+  try{
+await apiPost("/locations", payload);
+await loadLocations();
+await loadInventory();
+buildLaneButtons();
+buildMachineButtons();
+updateTabBadges();
+renderLaneList();
+renderMachineList();
+closeAddLocation();
+toast(`✅ ${type === "lane" ? `Lane ${payload.lane}` : payload.machine} added`);
+  }catch(e){
+    msg.textContent = e.message || "Failed to add location.";
+    msg.style.color = "var(--bad)";
+  }finally{
+    btn.disabled = false;
+    btn.textContent = "Add Location";
+  }
+});
+
+document.getElementById("deleteLocationBtn").addEventListener("click", async () => {
+  const type = document.getElementById("addLocationType").value;
+  const msg  = document.getElementById("addLocationMsg");
+    closeAddLocation();
+
+  // Build list of deletable locations
+  const list = type === "lane"
+    ? locations.filter(l => l.type === "lane").sort((a,b) => a.laneNum - b.laneNum)
+    : locations.filter(l => l.type === "machine");
+
+  if(list.length === 0){
+    msg.textContent = `No ${type}s to delete.`;
+    msg.style.color = "var(--bad)";
+    return;
+  }
+
+  const options = list.map(l => l.label).join(", ");
+  const input = await uiPrompt(
+    `Delete ${type === "lane" ? "Lane" : "Machine"}`,
+    `Which ${type} do you want to delete?\n\nAvailable: ${options}`,
+    { placeholder: type === "lane" ? "e.g. Lane 5" : "e.g. S10", mask: false }
+  );
+
+  if(!input) return;
+
+  const match = list.find(l => 
+  l.label.toLowerCase() === input.trim().toLowerCase() ||
+  l.label.toLowerCase() === `lane ${input.trim().toLowerCase()}`
+);
+  if(!match){
+    msg.textContent = `"${input}" not found.`;
+    msg.style.color = "var(--bad)";
+    return;
+  }
+
+  const ok = await uiConfirm(
+    "Confirm Delete",
+    `Delete ${match.label}? This cannot be undone.\n\nMake sure it has no items in it first.`,
+    "Delete", "Cancel"
+  );
+  if(!ok) return;
+
+  try{
+    console.log("Deleting location:", match.location_id, match.label);
+    await apiDelete(`/locations/${match.location_id}`);
+    await loadLocations();
+    await loadInventory();
+    buildLaneButtons();
+    buildMachineButtons();
+    updateTabBadges();
+    closeAddLocation();
+    toast(`Deleted ${match.label}`);
+  } catch(e) {
+    msg.textContent = e.message || "Delete failed.";
+    msg.style.color = "var(--bad)";
+  }
+});
+
+// ====== USER MANAGEMENT ======
+let usersList = [];
+let editingUserId = null;
+let currentPin = "";
+const USERS_STORAGE_KEY = "trace_users_v1";
+
+function loadUsersFromStorage(){
+  try{ const r = localStorage.getItem(USERS_STORAGE_KEY); return r ? JSON.parse(r) : []; }
+  catch(e){ return []; }
+}
+function saveUsersToStorage(list){
+  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(list));
+}
+
+async function loadUsers(){
+  try{
+    const data = await apiGet("/kiosk-users");
+    usersList = (Array.isArray(data) ? data : (data.users || data.rows || [])).map(u => ({
+      id: String(u.id || u.user_id || Math.random()),
+      name: u.name || u.full_name || "",
+      badge: u.badge || u.badge_id || "",
+      role: u.role || "driver",
+      pin: u.pin || ""
+    }));
+  } catch(e){
+    usersList = loadUsersFromStorage();
+    console.warn("Using localStorage for users:", e.message);
+  }
+}
+
+function rolePillHtml(role){
+  const labels = { 
+    driver: "Forklift Driver", 
+    operator: "Machine Operator",   
+    supervisor: "Supervisor", 
+    admin: "Admin" 
+  };
+  return `<span class="rolePill ${role}">${labels[role] || role}</span>`;
+}
+
+function renderUsersPage(){
+  const q = (document.getElementById("userSearch")?.value || "").toLowerCase();
+  const tbody = document.getElementById("userTableBody");
+  const empty = document.getElementById("userEmptyState");
+  const countEl = document.getElementById("userCount");
+  if(!tbody) return;
+
+  let list = usersList;
+  if(q) list = list.filter(u =>
+    u.name.toLowerCase().includes(q) ||
+    u.badge.toLowerCase().includes(q) ||
+    u.role.toLowerCase().includes(q)
+  );
+
+  if(countEl) countEl.textContent = String(usersList.length);
+  tbody.innerHTML = "";
+
+  if(usersList.length === 0){
+    if(empty) empty.style.display = "flex";
+    return;
+  }
+  if(empty) empty.style.display = "none";
+
+  list.forEach(u => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><b>${escapeHtml(u.name)}</b></td>
+      <td style="color:var(--muted);font-weight:700;">${escapeHtml(u.badge)}</td>
+      <td>${rolePillHtml(u.role)}</td>
+      <td><span style="letter-spacing:4px;font-size:18px;color:var(--muted);">••••</span></td>
+      <td>
+        <div class="userActionsRow">
+          <button class="ghost" style="font-size:12px;padding:6px 10px;" data-edit="${escapeHtml(u.id)}">Edit</button>
+          <button class="danger" style="font-size:12px;padding:6px 10px;" data-del="${escapeHtml(u.id)}">Delete</button>
+        </div>
+      </td>`;
+    tr.querySelector("[data-edit]").addEventListener("click", () => startEditUser(u.id));
+    tr.querySelector("[data-del]").addEventListener("click", () => deleteUser(u.id));
+    tbody.appendChild(tr);
+  });
+}
+
+function startEditUser(id){
+  const u = usersList.find(x => x.id === id);
+  if(!u) return;
+  editingUserId = id;
+  currentPin = "";
+  document.getElementById("uName").value = u.name;
+  document.getElementById("uBadge").value = u.badge;
+  document.getElementById("uRole").value = u.role;
+  document.getElementById("userFormTitle").textContent = `Edit: ${u.name}`;
+  document.getElementById("cancelUserEditBtn").style.display = "inline-block";
+  document.getElementById("saveUserBtn").textContent = "💾 Update Account";
+  document.getElementById("userFormMsg").textContent = "Leave PIN blank to keep current PIN.";
+  document.getElementById("userFormMsg").style.color = "var(--warn)";
+  updatePinDisplay();
+  document.getElementById("userFormCard").scrollIntoView({ behavior:"smooth" });
+}
+
+function cancelUserEdit(){
+  editingUserId = null;
+  currentPin = "";
+  document.getElementById("uName").value = "";
+  document.getElementById("uBadge").value = "";
+  document.getElementById("uRole").value = "driver";
+  document.getElementById("userFormTitle").textContent = "Create New Account";
+  document.getElementById("cancelUserEditBtn").style.display = "none";
+  document.getElementById("saveUserBtn").textContent = "💾 Save Account";
+  document.getElementById("userFormMsg").textContent = "";
+  updatePinDisplay();
+}
+
+function updatePinDisplay(){
+  for(let i=0;i<4;i++){
+    const dot = document.getElementById(`pd${i}`);
+    if(dot) dot.classList.toggle("filled", i < currentPin.length);
+  }
+}
+
+function handlePinKey(key){
+  if(key === "clear"){ currentPin = ""; }
+  else if(key === "back"){ currentPin = currentPin.slice(0,-1); }
+  else if(currentPin.length < 4){ currentPin += key; }
+  updatePinDisplay();
+}
+
+async function saveUser(){
+  const name  = (document.getElementById("uName")?.value || "").trim();
+  const badge = (document.getElementById("uBadge")?.value || "").trim();
+  const role  = document.getElementById("uRole")?.value || "driver";
+  const msgEl = document.getElementById("userFormMsg");
+
+  if(!name){  msgEl.textContent = "⚠️ Full name is required."; msgEl.style.color="var(--bad)"; return; }
+  if(!badge){ msgEl.textContent = "⚠️ Badge ID is required.";  msgEl.style.color="var(--bad)"; return; }
+
+  const dupBadge = usersList.find(u => u.badge.toLowerCase() === badge.toLowerCase() && u.id !== editingUserId);
+  if(dupBadge){ msgEl.textContent = `⚠️ Badge ID "${badge}" already belongs to ${dupBadge.name}.`; msgEl.style.color="var(--bad)"; return; }
+
+  if(!editingUserId && currentPin.length !== 4){
+    msgEl.textContent = "⚠️ Please enter a full 4-digit PIN."; msgEl.style.color="var(--bad)"; return;
+  }
+  if(editingUserId && currentPin.length > 0 && currentPin.length < 4){
+    msgEl.textContent = "⚠️ PIN must be exactly 4 digits."; msgEl.style.color="var(--bad)"; return;
+  }
+
+  const btn = document.getElementById("saveUserBtn");
+  btn.disabled = true;
+
+  const existingPin = usersList.find(u => u.id === editingUserId)?.pin || "";
+  const finalPin = currentPin.length === 4 ? currentPin : existingPin;
+
+  const newUser = {
+    id: editingUserId || ("u_" + Date.now()),
+    name, badge, role, pin: finalPin
+  };
+
+  // Try API, fall back to localStorage
+  try{
+  if(editingUserId) await apiPut(`/kiosk-users/${editingUserId}`, { name, badge_id:badge, role, pin:finalPin });
+  else await apiPost("/kiosk-users", { name, badge_id:badge, role, pin:finalPin });
+
+  if(editingUserId){
+    const idx = usersList.findIndex(u => u.id === editingUserId);
+    if(idx >= 0) usersList[idx] = newUser;
+  } else {
+    usersList.push(newUser);
+  }
+  saveUsersToStorage(usersList);
+
+  msgEl.textContent = editingUserId ? "✅ Account updated!" : "✅ Account created!";
+  msgEl.style.color = "var(--good)";
+  setTimeout(() => { msgEl.textContent = ""; }, 2500);
+
+  const wasEditing = editingUserId;
+  cancelUserEdit();
+  renderUsersPage();
+  btn.disabled = false;
+  toast(wasEditing ? `✅ Updated ${name}` : `✅ Created ${name}`);
+   } catch(e) {
+    msgEl.textContent = `⚠️ ${e.message || "Save failed"}`;
+    msgEl.style.color = "var(--bad)";
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function deleteUser(id){
+  const u = usersList.find(x => x.id === id);
+  if(!u) return;
+  const ok = await uiConfirm("Delete Account", `Delete account for ${u.name} (Badge: ${u.badge})?\n\nThis cannot be undone.`, "Delete", "Cancel");
+  if(!ok) return;
+  try{ await apiDelete(`/kiosk-users/${id}`); }catch(e){}
+  usersList = usersList.filter(x => x.id !== id);
+  saveUsersToStorage(usersList);
+  renderUsersPage();
+  toast(`🗑 Deleted ${u.name}`);
+}
+
+// Wire PIN keypad
+document.querySelectorAll(".pinKey").forEach(btn => {
+  btn.addEventListener("click", () => handlePinKey(btn.dataset.pin));
+});
+
+// Wire user form buttons
+document.getElementById("saveUserBtn").addEventListener("click", saveUser);
+document.getElementById("cancelUserEditBtn").addEventListener("click", cancelUserEdit);
+document.getElementById("userSearch").addEventListener("input", renderUsersPage);
+
+// Wire page navigation
+document.getElementById("usersPageBack").addEventListener("click", () => hidePage("usersPage"));
+document.getElementById("openUsersBtn").addEventListener("click", async () => {
+  closeSideMenu();
+  showPage("usersPage");
+  await loadUsers();
+  renderUsersPage();
+});
+
+const openQrBtn = document.getElementById("openQrBtn");
+if(openQrBtn){
+  openQrBtn.addEventListener("click", () => {
+    closeSideMenu();
+    showPage("qrPage");
+  });
+}
+
+document.getElementById("replayTutorialBtn").addEventListener("click", () => {
+  closeSideMenu();
+  window.showTutorial();
+});
+
+document.getElementById("qrPageBack").addEventListener("click", () => hidePage("qrPage"));
+
+document.getElementById("qrJob").addEventListener("input", (e) => {
+  e.target.value = cleanJob(e.target.value);
+});
+
+document.getElementById("genQrBtn").addEventListener("click", () => {
+  const job = cleanJob(document.getElementById("qrJob").value);
+  if(!job){ uiAlert("QR Generator", "Enter an Item # first."); return; }
+
+  const url = buildJobUrl(job);
+  const container = document.getElementById("qrPageCanvas");
+  container.innerHTML = "";
+  container.style.display = "inline-block";
+  new QRCode(container, { text: url, width: 260, height: 260, correctLevel: QRCode.CorrectLevel.H });
+  document.getElementById("qrPageUrlPreview").textContent = url;
+  document.getElementById("downloadQrBtn").disabled = false;
+});
+
+document.getElementById("downloadQrBtn").addEventListener("click", () => {
+  const container = document.getElementById("qrPageCanvas");
+  const qrCanvas = container.querySelector("canvas");
+  if(!qrCanvas){ uiAlert("Error", "Generate a QR first."); return; }
+  const job = cleanJob(document.getElementById("qrJob").value || "JOB");
+
+  const logo = new Image();
+  logo.crossOrigin = "anonymous";
+  logo.src = "./trace-logo.png.png";
+  logo.onload = () => {
+    const tmp = document.createElement("canvas");
+    tmp.width = logo.naturalWidth;
+    tmp.height = logo.naturalHeight;
+    const tctx = tmp.getContext("2d");
+    tctx.drawImage(logo, 0, 0);
+    const pixels = tctx.getImageData(0, 0, tmp.width, tmp.height).data;
+    let minX = tmp.width, minY = tmp.height, maxX = 0, maxY = 0;
+    for(let y=0;y<tmp.height;y++) for(let x=0;x<tmp.width;x++){
+      const i=(y*tmp.width+x)*4;
+      if(pixels[i+3]>30&&(pixels[i]>30||pixels[i+1]>30||pixels[i+2]>60)){
+        if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y;
+      }
+    }
+    const cropX=minX-10,cropY=minY-10,cropW=(maxX-minX)+20,cropH=(maxY-minY)+20;
+    const padding=28,gap=14,logoDrawH=60,logoDrawW=Math.round(logoDrawH*(cropW/cropH)),labelHeight=70;
+    const totalWidth=qrCanvas.width+padding*2;
+    const totalHeight=padding+logoDrawH+gap+qrCanvas.height+gap+labelHeight+padding;
+    const out=document.createElement("canvas");
+    out.width=totalWidth; out.height=totalHeight;
+    const ctx=out.getContext("2d");
+    ctx.clearRect(0,0,out.width,out.height);
+    ctx.drawImage(tmp,cropX,cropY,cropW,cropH,(totalWidth-logoDrawW)/2,padding,logoDrawW,logoDrawH);
+    ctx.drawImage(qrCanvas,padding,padding+logoDrawH+gap);
+    ctx.fillStyle="#111"; ctx.font="bold 48px Arial"; ctx.textAlign="center";
+    ctx.fillText(job,totalWidth/2,padding+logoDrawH+gap+qrCanvas.height+gap+26);
+    const a=document.createElement("a");
+    a.download=`TRACE_JOB_${job}.png`;
+    a.href=out.toDataURL("image/png");
+    a.click();
+  };
+});
+
+
+
+// ====== BOOT ======
+window.addEventListener("DOMContentLoaded", async () => {
+  wireLoginUI();
+  if (AUTH.token) { hideLogin(); await startAfterLogin(); }
+  else showLogin();
+});
+
+// ====== TRACE ASSISTANT ======
+(() => {
+  try {
+    const fab = document.getElementById("chatFab");
+    const dock = document.getElementById("chatDock");
+    const closeBtn = document.getElementById("chatClose");
+    const form = document.getElementById("chatComposer");
+    const input = document.getElementById("chatInput");
+    const log = document.getElementById("chatLog");
+    const thinking = document.getElementById("chatThinking");
+    if (!fab || !dock || !closeBtn || !form || !input || !log || !thinking) return;
+
+    const time = () => new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
+
+    function add(who, text) {
+      const row = document.createElement("div");
+      row.className = "msg " + (who === "me" ? "me" : "bot");
+      const bubble = document.createElement("div");
+      bubble.className = "bub";
+      bubble.textContent = String(text ?? "");
+      const tm = document.createElement("div");
+      tm.className = "time";
+      tm.textContent = time();
+      row.appendChild(bubble);
+      row.appendChild(tm);
+      log.appendChild(row);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    fab.addEventListener("click", () => { dock.classList.add("open"); setTimeout(() => input.focus(), 50); });
+    closeBtn.addEventListener("click", () => dock.classList.remove("open"));
+
+    function findItem(keyRaw){
+      const inv = Array.isArray(window.inventory) ? window.inventory : [];
+      const key = String(keyRaw || "").trim().toUpperCase();
+      if (!key) return null;
+      return inv.find(x => String(x.job||"").toUpperCase() === key)
+          || inv.find(x => String(x.mo||"").toUpperCase() === key)
+          || inv.find(x => String(x.job||"").toUpperCase().includes(key))
+          || inv.find(x => String(x.mo||"").toUpperCase().includes(key))
+          || null;
+    }
+
+    async function handleChatCommand(rawText){
+      const t = String(rawText||"").trim().toLowerCase();
+
+      if (t === "help" || t === "?"){
+        return ["Commands:",
+          "• move 16900 to lane 2",
+          "• move 16900 to s8",
+          "• where is 16900",
+          "• whats in lane 3",
+          "• whats on s8",
+          "• status"].join("\n");
+      }
+
+      if (t === "status") return `SYSTEM ONLINE. Role: ADMIN.`;
+
+      // WHERE IS
+      let m = t.match(/^(where\s+is|where'?s)\s+(.+)$/i);
+      if (m){
+        const item = findItem(m[2].trim());
+        if (!item) return `I couldn't find ${m[2].trim()}.`;
+        return `Item ${item.job} is in ${formatLocation(item)}.`;
+      }
+
+      // WHAT'S IN LANE
+      m = t.match(/^what'?s?\s+in\s+lane\s+(\d{1,2})$/i) || t.match(/^what\s+is\s+in\s+lane\s+(\d{1,2})$/i);
+      if (m){
+        const laneLabel = `Lane ${Math.max(1, Math.min(12, parseInt(m[1],10)))}`;
+        const inv = Array.isArray(window.inventory) ? window.inventory : [];
+        const list = inv.filter(x => String(x.lane||"") === laneLabel);
+        if (list.length === 0) return `${laneLabel} is empty.`;
+        const shown = list.slice(0,25).map(x => `• ${x.job} (${x.status||"—"})`).join("\n");
+        return `${laneLabel} has ${list.length} item(s):\n${shown}${list.length > 25 ? `\n…and ${list.length-25} more.` : ""}`;
+      }
+
+      // WHAT'S ON MACHINE
+      m = t.match(/^what'?s?\s+on\s+(?:machine\s+)?(.+)$/i);
+      if (m){
+        const machine = m[1].trim().toUpperCase();
+        const inv = Array.isArray(window.inventory) ? window.inventory : [];
+        const list = inv.filter(x => String(x.machine||"").toUpperCase() === machine);
+        if (list.length === 0) return `${machine} is empty.`;
+        const shown = list.slice(0,25).map(x => `• ${x.job} (${x.status||"—"})`).join("\n");
+        return `${machine} has ${list.length} item(s):\n${shown}${list.length > 25 ? `\n…and ${list.length-25} more.` : ""}`;
+      }
+
+      // MOVE
+      m = t.match(/^(move|send|put)\s+(.+?)\s+(?:to|in)\s+lane\s+(\d{1,2})$/i)
+       || t.match(/^(move|send|put)\s+(.+?)\s+to\s+(?:machine\s+)?(.+)$/i);
+      if (m){
+        const item = findItem(m[2].trim());
+        if (!item) return `I couldn't find ${m[2].trim()}.`;
+        if (String(m[3]||"").match(/^\d{1,2}$/)){
+          const laneLabel = `Lane ${Math.max(1, Math.min(12, parseInt(m[3],10)))}`;
+          await moveToLane(item.id, laneLabel);
+          return `Moved ${item.job} to ${laneLabel}.`;
+        }
+        const machine = String(m[3]||"").trim().toUpperCase();
+        await moveToMachine(item.id, machine);
+        return `Moved ${item.job} to ${machine}.`;
+      }
+
+      return 'I didn\'t understand that. Type "help" for commands.';
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = "";
+      add("me", text);
+      thinking.classList.add("show");
+      try {
+        const reply = await handleChatCommand(text);
+        thinking.classList.remove("show");
+        add("bot", reply);
+      } catch (err) {
+        thinking.classList.remove("show");
+        add("bot", "I hit an error. Check console.");
+      }
+    });
+
+    add("bot", 'ADMIN PANEL ONLINE. Try asking:\n• Where is 78011\n• What\'s in Lane 3\n• Move 78011 to Lane 2\n• What\'s on S8');
+  } catch (err) {
+    console.error("TRACE Assistant failed:", err);
+  }
+})();
+
+// ====== QR SCANNER ======
+let qrScanner = null;
+
+function findItemByQR(code){
+  const raw = String(code || "").trim();
+  if(!raw) return null;
+  const cleaned = cleanJob(raw);
+  const noPrefix = cleaned.replace(/^MO-/, "");
+  return inventory.find(x => String(x.mo||"").toUpperCase() === cleaned)
+      || inventory.find(x => String(x.job||"").toUpperCase() === cleaned)
+      || inventory.find(x => String(x.mo||"").toUpperCase().replace(/^MO-/,"") === noPrefix)
+      || inventory.find(x => String(x.job||"").toUpperCase() === noPrefix)
+      || null;
+}
+
+async function startQRScan(){
+  const wrap = document.getElementById("qrWrap");
+  const stopBtn = document.getElementById("scanStopBtn");
+  const startBtnEl = document.getElementById("scanBtn");
+  if(!wrap || !stopBtn || !startBtnEl) return;
+
+  wrap.classList.remove("hidden");
+  stopBtn.classList.remove("hidden");
+  startBtnEl.disabled = true;
+
+  try{
+    qrScanner = new Html5Qrcode("qr-reader");
+    await qrScanner.start(
+      { facingMode: "environment" },
+      { fps: 12, qrbox: { width:250, height:250 } },
+      async (decodedText) => {
+        await stopQRScan(true);
+        const raw = String(decodedText || "").trim();
+        if (!raw){ await uiAlert("SCAN FAILED", "QR was empty."); return; }
+
+        const looksLikeUrl = /^https?:\/\//i.test(raw) || raw.includes("traceinventory.org") || raw.includes("qr-codes.io");
+
+        if (looksLikeUrl) {
+          let fixed = raw;
+          if (!/^https?:\/\//i.test(fixed)) fixed = "https://" + fixed;
+          try {
+            const u = new URL(fixed);
+            const mo  = (u.searchParams.get("mo")  || "").trim().toUpperCase();
+            const job = (u.searchParams.get("job") || "").trim().toUpperCase();
+            const qty = (u.searchParams.get("qty") || "").trim();
+
+            if (mo || job || qty) {
+              const setField = (el, val) => {
+                if (!el) return;
+                el.value = val ?? "";
+                el.dispatchEvent(new Event("input", { bubbles:true }));
+                el.dispatchEvent(new Event("change", { bubbles:true }));
+              };
+              setField(els.mo, mo);
+              setField(els.job, job);
+              setField(els.qty, qty);
+
+              const key = (job || mo || "").trim().toUpperCase();
+              const item = key ? findItemByQR(key) : null;
+              if (item) {
+                loadToForm(item.id);
+                const ok = await uiConfirm("Pallet Scanned ✅", buildScanDetails(item) + "\n\nOpen Move Panel?", "Move", "Cancel");
+                if (ok){ openMoveOverlay(item.id); toast("Ready to move: " + item.job); }
+              } else {
+                await uiAlert("SCAN OK", `Loaded from QR:\nMO: ${mo}\nJob: ${job}\nQty: ${qty}\n\nNot found in inventory yet.`);
+              }
+              return;
+            }
+            window.location.href = fixed;
+            return;
+          } catch (e) { /* fall through */ }
+        }
+
+        const code = extractMoOrJob(raw);
+        if (!code){ await uiAlert("SCAN FAILED", `QR was invalid.\n\nRaw scan:\n${raw}`); return; }
+
+        const item = findItemByQR(code);
+        if (item) {
+          loadToForm(item.id);
+          const msg = `Scanned ✅\n\nItem: ${item.job}\n${item.mo ? `MO: ${item.mo}\n` : ""}Current: ${item.machine ? "Machine "+item.machine : (item.lane||"Unknown")}\n\nEnter lane number (1–12) to move it.`;
+          const lane = await uiPrompt("Scan Result", msg, { placeholder:"Lane # (1-12)", hint:"Example: 7", mask:false });
+          if (lane === null) return;
+          const laneNum = parseInt(String(lane).trim(), 10);
+          if (!Number.isFinite(laneNum) || laneNum < 1 || laneNum > 12){ await uiAlert("Invalid Lane", "Lane must be a number 1–12."); return; }
+          await moveToLane(item.id, `Lane ${laneNum}`);
+          toast("Moved " + item.job + " -> Lane " + laneNum);
+          return;
+        }
+
+        if (code.startsWith("MO-")) { els.mo.value = code; els.job.value = ""; }
+        else els.job.value = code;
+        await uiAlert("SCAN OK", `Loaded code (not found in inventory):\n${code}`);
+      }
+    );
+  } catch (e) {
+    console.error("QR start error:", e);
+    startBtnEl.disabled = false;
+    await uiAlert("Camera Error", "Could not start camera. Make sure browser permissions allow camera.");
+  }
+}
+
+async function stopQRScan(silent=false){
+  const wrap = document.getElementById("qrWrap");
+  const stopBtn = document.getElementById("scanStopBtn");
+  const startBtnEl = document.getElementById("scanBtn");
+  try{ if(qrScanner){ await qrScanner.stop(); await qrScanner.clear(); qrScanner = null; } }catch(e){}
+  if(wrap) wrap.classList.add("hidden");
+  if(stopBtn) stopBtn.classList.add("hidden");
+  if(startBtnEl) startBtnEl.disabled = false;
+  if(!silent) toast("Scanner stopped");
+}
+
+// ====== TUTORIAL SPOTLIGHT ======
+(function initTutorial(){
+  const STORAGE_KEY = "trace_tutorial_seen";
+
+ const STEPS = [
+    {
+      target: null,
+      title: "Welcome to TRACE Admin",
+      body: "This is the admin panel for managing inventory across all lanes and machines. Let's walk through the key parts in under a minute.",
+    },
+    {
+      target: "#globalSearch",
+      title: "Search",
+      body: "Type any Item # or MO number here to find a job instantly across all lanes and machines.",
+    },
+    {
+      target: ".tabBar",
+      title: "Lanes & Machines Tabs",
+      body: "Switch between Search, Lanes, and Machines here. The badges show how many jobs are in each area.",
+    },
+    {
+      target: "#appRoot .card:last-child",
+      title: "Job Update Form",
+      body: "Click any job to load it here. Edit qty, status, or notes then hit Send to Lane to save changes.",
+    },
+    {
+      target: "#saveBtn",
+      title: "Send to Lane",
+      body: "Saves the current job to whichever lane is selected in the Lanes tab.",
+    },
+    {
+      target: "#queueJobBtn",
+      title: "Send to Queue",
+      body: "Moves the job to the Queue — a holding area for jobs waiting to be assigned a lane.",
+    },
+    {
+      target: "#menuBtn",
+      title: "The Menu",
+      body: "Everything else lives here. Click it to open — the tutorial will walk you through each option.",
+      onEnter: () => {
+        sideMenu.classList.remove("hidden");
+        menuOverlay.classList.remove("hidden");
+      }
+    },
+    {
+      target: "#openQueueBtn",
+      title: "Queue",
+      body: "Jobs waiting to be assigned a lane. Open this to move queued jobs to a lane or generate their QR label.",
+    },
+    {
+      target: "#openCompletedBtn",
+      title: "Completed Today",
+      body: "Shows a panel of jobs that were completed today. Quick reference without leaving the main screen.",
+    },
+    {
+      target: "#openHistoryBtn",
+      title: "History",
+      body: "Full log of deleted jobs. Useful for auditing or recovering information about removed items.",
+    },
+    {
+      target: "#openFeedBtn",
+      title: "Activity Feed",
+      body: "Live feed of every job movement across lanes and machines. Shows who moved what and when.",
+    },
+    {
+      target: "#openUsersBtn",
+      title: "User Management",
+      body: "Create and manage forklift driver, operator, and supervisor accounts with PINs for the kiosk.",
+    },
+    {
+      target: null,
+      title: "You're all set! 🎉",
+      body: "That's everything you need to run TRACE. When you're ready, just dive in — and if you ever need a refresher, hit the Tutorial button in the menu.\n\nTRACE — WE TRACK. YOU IMPROVE.",
+    },
+  ];
+
+  const overlay = document.getElementById("tutorialOverlay");
+  const spotlight = document.getElementById("tutorialSpotlight");
+  const tooltip = document.getElementById("tutorialTooltip");
+  const stepNum = document.getElementById("tutorialStepNum");
+  const stepTitle = document.getElementById("tutorialStepTitle");
+  const stepBody = document.getElementById("tutorialStepBody");
+  const pipsContainer = document.getElementById("tutorialPips");
+  const nextBtn = document.getElementById("tutorialNext");
+  const skipBtn = document.getElementById("tutorialSkip");
+  if(!overlay || !nextBtn || !skipBtn) return;
+
+  let current = 0;
+
+  // Build pips
+  STEPS.forEach((_, i) => {
+    const pip = document.createElement("div");
+    pip.className = "tutorialPip" + (i === 0 ? " active" : "");
+    pipsContainer.appendChild(pip);
+  });
+
+  function positionTooltip(rect){
+    const TW = Math.min(320, window.innerWidth * 0.88);
+    const TH = 180;
+    const pad = 16;
+    let top, left;
+
+    if(!rect){
+      top = window.innerHeight / 2 - TH / 2;
+      left = window.innerWidth / 2 - TW / 2;
+    } else {
+      // Scroll element into view on mobile if needed
+      const step = STEPS[current];
+      if(step?.target){
+        const el = document.querySelector(step.target);
+        if(el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+
+      // Try below
+      if(rect.bottom + TH + pad < window.innerHeight){
+        top = rect.bottom + pad;
+        left = Math.min(Math.max(pad, rect.left + rect.width/2 - TW/2), window.innerWidth - TW - pad);
+      }
+      // Try above
+      else if(rect.top - TH - pad > 0){
+        top = rect.top - TH - pad;
+        left = Math.min(Math.max(pad, rect.left + rect.width/2 - TW/2), window.innerWidth - TW - pad);
+      }
+      // Try right
+      else if(rect.right + TW + pad < window.innerWidth){
+        top = Math.min(Math.max(pad, rect.top + rect.height/2 - TH/2), window.innerHeight - TH - pad);
+        left = rect.right + pad;
+      }
+      // Fallback left
+      else {
+        top = Math.min(Math.max(pad, rect.top + rect.height/2 - TH/2), window.innerHeight - TH - pad);
+        left = Math.max(pad, rect.left - TW - pad);
+      }
+    }
+
+    // Hard clamp — never go off screen
+    top = Math.max(pad, Math.min(top, window.innerHeight - TH - pad));
+    left = Math.max(pad, Math.min(left, window.innerWidth - TW - pad));
+
+    tooltip.style.top = top + "px";
+    tooltip.style.left = left + "px";
+    tooltip.style.width = TW + "px";
+  }
+       
+
+  function goTo(idx, skipHooks = false){
+    const step = STEPS[idx];
+
+    if(!skipHooks){
+      if(STEPS[current]?.onLeave) STEPS[current].onLeave();
+      if(step.onEnter){
+        current = idx;
+        step.onEnter();
+        setTimeout(() => goTo(idx, true), 350);
+        return;
+      }
+    }
+
+    stepNum.textContent = `STEP ${idx + 1} OF ${STEPS.length}`;
+    stepTitle.textContent = step.title;
+    stepBody.textContent = step.body;
+    nextBtn.textContent = idx === STEPS.length - 1 ? "Got it ✓" : "Next →";
+
+    current = idx;
+    document.querySelectorAll(".tutorialPip").forEach((p, i) => p.classList.toggle("active", i === idx));
+
+    if(!step.target){
+      spotlight.style.display = "none";
+      positionTooltip(null);
+    } else {
+      const el = document.querySelector(step.target);
+      if(!el){
+        spotlight.style.display = "none";
+        positionTooltip(null);
+      } else {
+        const r = el.getBoundingClientRect();
+        const pad = 8;
+        spotlight.style.display = "block";
+        spotlight.style.top = (r.top - pad) + "px";
+        spotlight.style.left = (r.left - pad) + "px";
+        spotlight.style.width = (r.width + pad * 2) + "px";
+        spotlight.style.height = (r.height + pad * 2) + "px";
+        positionTooltip(r);
+      }
+    }
+  }
+
+  function closeTutorial(){
+    overlay.classList.remove("show");
+    localStorage.setItem(STORAGE_KEY, "1");
+    closeSideMenu();
+  }
+
+  nextBtn.addEventListener("click", () => {
+    if(current < STEPS.length - 1) goTo(current + 1);
+    else closeTutorial();
+  });
+
+  skipBtn.addEventListener("click", closeTutorial);
+
+  window.showTutorial = function(){
+    current = 0;
+    overlay.classList.add("show");
+    setTimeout(() => goTo(0), 50);
+  };
+
+  if(!localStorage.getItem(STORAGE_KEY)){
+    setTimeout(() => window.showTutorial(), 1400);
+  }
+})();
+
 </script>
 </body>
 </html>
