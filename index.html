@@ -397,11 +397,13 @@ async function searchAny(query){
       const loc = activeItem?.machine ? `Machine ${activeItem.machine}` : (activeItem?.lane || label);
       $("scanLine").textContent = `Job ${palletsToMove[0].job} • MO ${palletsToMove[0].mo || "-"} • QTY ${palletsToMove[0].qty ?? "-"} • ${loc}`;
       $("jobCardStatus").textContent = activeItem?.status || "—";
-      showToast(`✅ ${palletsToMove.length > 1 ? "Both pallets moved" : "Moved"} to ${label}`);
+       showToast(`✅ ${palletsToMove.length > 1 ? "Both pallets moved" : "Moved"} to ${label}`);
       showScanAgain();
     })
     .catch(e => showToast(e.message || "Move failed", true));
+  }
 
+  function showToast(msg, isError = false) {
   function showToast(msg, isError = false) {
     const t = $("toast");
     t.textContent = msg;
