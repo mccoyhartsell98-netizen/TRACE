@@ -93,6 +93,13 @@
     .fade-in{animation:fadeIn .2s ease forwards;}
     @keyframes fadeOut{from{opacity:1;}to{opacity:0;}}
     @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+    .dup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:200;padding:18px;}
+.dup-modal{background:linear-gradient(180deg,rgba(16,26,42,.99),rgba(10,14,22,.99));border:1px solid rgba(255,180,50,.35);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.7);width:min(440px,95vw);padding:20px;}
+.dup-title{font-weight:900;font-size:16px;color:#ffd166;margin-bottom:6px;}
+.dup-job{font-size:22px;font-weight:900;color:#fff;margin-bottom:4px;}
+.dup-where{font-size:13px;color:rgba(180,205,255,.85);margin-bottom:14px;}
+.dup-body{font-size:13px;color:rgba(234,242,255,.75);line-height:1.6;margin-bottom:16px;}
+.dup-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
   </style>
 </head>
 
@@ -164,6 +171,19 @@
     </div>
   </div>
  </div>
+
+<div class="dup-overlay hide" id="dupOverlay">
+  <div class="dup-modal">
+    <div class="dup-title">⚠️ Job Found in Another Lane</div>
+    <div class="dup-job" id="dupJobNum"></div>
+    <div class="dup-where" id="dupWhere"></div>
+    <div class="dup-body" id="dupBody"></div>
+    <div class="dup-btns">
+      <button class="btn" id="dupTakeBoth">✅ Take Both</button>
+      <button class="btn secondary" id="dupIgnore">Ignore</button>
+    </div>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -360,26 +380,27 @@ async function searchAny(query){
 
   function handleMoveSelection(type, value) {
     hideMoveModal();
-    if (!activeItem) { showToast("No job loaded to move", true); return; }
+    const palletsToMove = activePallets.length > 0 ? activePallets : (activeItem ? [activeItem] : []);
+  if (palletsToMove.length === 0) { showToast("No job loaded to move", true); return; }
     const locId = type === "lane" ? locIdByLane.get(`Lane ${value}`) : locIdByMachine.get(value);
     if(!locId){ showToast(`No DB location found for ${type === "lane" ? "Lane "+value : value}`, true); return; }
     const { user } = getAuth();
     const updatedBy = user?.display_name || user?.name || "kiosk";
     const label = type === "lane" ? `Lane ${value}` : value;
-    moveItemToLocation(activeItem.id, locId, updatedBy)
-      .then(async () => {
-        await loadLocations();
-        await loadInventory();
-        const updated = findItem(activeItem.job);
-        if(updated) activeItem = updated;
-        const loc = activeItem.machine ? `Machine ${activeItem.machine}` : (activeItem.lane || label);
-        $("scanLine").textContent = `Job ${activeItem.job} • MO ${activeItem.mo || "-"} • QTY ${activeItem.qty ?? "-"} • ${loc}`;
-        $("jobCardStatus").textContent = activeItem.status || "—";
-        showToast(`✓ Moved to ${label}`);
-        showScanAgain();
-      })
-      .catch(e => showToast(e.message || "Move failed", true));
-  }
+    Promise.all(palletsToMove.map(p => moveItemToLocation(p.id, locId, updatedBy)))
+    .then(async () => {
+      await loadLocations();
+      await loadInventory();
+      const updated = findItem(palletsToMove[0].job);
+      if(updated) activeItem = updated;
+      activePallets = [];
+      const loc = activeItem?.machine ? `Machine ${activeItem.machine}` : (activeItem?.lane || label);
+      $("scanLine").textContent = `Job ${palletsToMove[0].job} • MO ${palletsToMove[0].mo || "-"} • QTY ${palletsToMove[0].qty ?? "-"} • ${loc}`;
+      $("jobCardStatus").textContent = activeItem?.status || "—";
+      showToast(`✅ ${palletsToMove.length > 1 ? "Both pallets moved" : "Moved"} to ${label}`);
+      showScanAgain();
+    })
+    .catch(e => showToast(e.message || "Move failed", true));
 
   function showToast(msg, isError = false) {
     const t = $("toast");
@@ -473,6 +494,7 @@ $("searchLoadBtn").onclick = async () => {
 
   closeSearchModal();
   showToast("✓ Job loaded");
+  checkDuplicateLanes(pendingSearchItem);
 };
 
   async function checkApi() {
@@ -552,6 +574,7 @@ $("searchLoadBtn").onclick = async () => {
         const loc = item.machine ? `Machine ${item.machine}` : (item.lane || "Unknown");
         $("scanLine").textContent = `Job ${item.job} • MO ${item.mo || "-"} • QTY ${item.qty ?? "-"} • ${loc}`;
         $("jobCardStatus").textContent = item.status || "—";
+        checkDuplicateLanes(item);
       } else {
         $("scanLine").textContent = `Job #${scannedJob} not found in TRACE`;
         $("jobCardStatus").textContent = "NOT FOUND";
@@ -629,6 +652,7 @@ $("searchLoadBtn").onclick = async () => {
 
   // Scanned job helpers
   let activeItem = null;
+  let activePallets = [];
 
 let pendingSearchItem = null;
 
@@ -806,6 +830,41 @@ function showNotFoundHelp(job) {
   $("notFoundSearch").onclick = () => {
     div.remove();
     openSearchModal();
+  };
+}
+
+
+// ====== DUPLICATE LANE CHECK ======
+function checkDuplicateLanes(loadedItem) {
+  if (!loadedItem) return;
+  const job = String(loadedItem.job ?? loadedItem.job_number ?? "").trim().toUpperCase();
+  const currentId = loadedItem.id ?? loadedItem.item_id;
+  const dupes = inventory.filter(x =>
+    String(x.job).trim().toUpperCase() === job &&
+    x.id !== currentId &&
+    (x.lane || x.machine)
+  );
+  if (dupes.length === 0) return;
+  const dupe = dupes[0];
+  const dupeLoc = dupe.machine ? `Machine ${dupe.machine}` : dupe.lane;
+  const currentLoc = loadedItem.machine ? `Machine ${loadedItem.machine}` : (loadedItem.lane || "Unknown");
+  $("dupJobNum").textContent = `Job #${job}`;
+  $("dupWhere").textContent = `Also found in: ${dupeLoc} — Qty: ${dupe.qty ?? "—"}`;
+  $("dupBody").textContent = `You scanned from ${currentLoc}. Take both pallets to the machine?`;
+  $("dupOverlay").classList.remove("hide");
+  $("dupTakeBoth").onclick = () => {
+    $("dupOverlay").classList.add("hide");
+    activePallets = [loadedItem, dupe];
+    const loc1 = loadedItem.machine ? `Machine ${loadedItem.machine}` : (loadedItem.lane || "?");
+    const loc2 = dupe.machine ? `Machine ${dupe.machine}` : (dupe.lane || "?");
+    $("scanLine").textContent = `Job #${job} • TAKING BOTH • ${loc1} + ${loc2}`;
+    $("jobCardStatus").textContent = "TAKE BOTH";
+    showToast(`✅ Both pallets loaded — Job #${job}`);
+  };
+  $("dupIgnore").onclick = () => {
+    $("dupOverlay").classList.add("hide");
+    activePallets = [loadedItem];
+    showToast(`Continuing with single pallet`);
   };
 }
 
