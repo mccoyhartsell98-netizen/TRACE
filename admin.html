@@ -1665,6 +1665,7 @@
         <button id="chatClose" class="chatX" aria-label="Close">✕</button>
       </header>
       <div id="chatLog" class="chatLog"></div>
+      <img id="skiCrashImg" src="./FR39lKPWYAAKvuq.jpg" style="display:none;width:100%;border-radius:12px;margin:8px 0;">
       <div id="chatThinking" class="chatThinking">
         <span class="chatSpin"></span> Thinking…
       </div>
@@ -3838,6 +3839,13 @@ window.addEventListener("DOMContentLoaded", async () => {
       }
 
       if (t === "status") return `SYSTEM ONLINE. Role: ADMIN.`;
+
+if (t === "/skicrash") {
+        const img = document.getElementById("skiCrashImg");
+        if(img) img.style.display = "block";
+        setTimeout(() => { if(img) img.style.display = "none"; }, 5000);
+        return "Loading diagnostics...";
+      }
 
      if (t === "/about") {
   return `TRACE Inventory System
