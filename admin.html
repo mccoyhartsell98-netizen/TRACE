@@ -3839,6 +3839,23 @@ window.addEventListener("DOMContentLoaded", async () => {
 
       if (t === "status") return `SYSTEM ONLINE. Role: ADMIN.`;
 
+     if (msg === "/about") {
+  return `TRACE Inventory System
+
+Architect & Creator
+McCoy Hartsell
+
+TRACE was built with a commitment to discipline, clarity, and strong design.
+
+In loving memory of
+Betty Bracey
+Graphic Designer
+
+Her creativity and passion for design continue to inspire the spirit behind this system.
+
+We Track. You Improve.`;
+}
+   
       // WHERE IS
       let m = t.match(/^(where\s+is|where'?s)\s+(.+)$/i);
       if (m){
