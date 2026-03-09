@@ -659,7 +659,14 @@ $("searchLoadBtn").onclick = async () => {
 
   // Hub buttons
   $("hubLogout").onclick = () => { clearAuth(); backToPin("Logged out."); };
-  $("hubMove").onclick = showMoveModal;
+  $("hubMove").onclick = () => {
+  const { user } = getAuth();
+  if (user?.role === "operator") {
+    handleMoveSelection("lane", 1);
+  } else {
+    showMoveModal();
+  }
+};
   $("hubSearch").onclick = () => { openSearchModal(); };
   $("hubAdmin").onclick = () => {
     location.href = new URL(ADMIN_URL, location.href).toString();
