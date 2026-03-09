@@ -575,7 +575,7 @@ $("searchLoadBtn").onclick = async () => {
     const name = user.display_name || user.name || (user.role ? user.role.toUpperCase() : "USER");
     const hour = new Date().getHours();
     const greeting = hour < 12 ? "Good Morning" : hour < 17 ? "Good Afternoon" : "Good Evening";
-    $("hubUser").textContent = `${greeting}, ${name}!`;
+    $("hubUser").innerHTML = `${greeting}, ${name}!<div style="font-size:12px;font-weight:600;color:rgba(255,255,255,.45);margin-top:3px;letter-spacing:.05em;">${(user.role || "").toUpperCase()}</div>`;
     $("hubAdmin").style.display = (user.role === "admin") ? "block" : "none";
     setStatus("UNLOCKED");
     showHub();
