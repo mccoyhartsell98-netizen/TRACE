@@ -2114,7 +2114,7 @@ if(!selectedId){
     const loc = existing.machine ? `Machine: ${existing.machine}` : (existing.lane || "Unknown");
     const ok = await uiConfirm(
       "Heads Up",
-      `Item #${job} already exists in ${loc} with Qty: ${existing.qty}.\n\nJust a reminder — continuing will add it to the queue with the qty you entered.`,
+      `Item #${job} already exists in ${loc} with Qty: ${existing.qty}.\n\nContinuing will add a new queue entry with the qty you entered.`,
       "Continue",
       "Cancel"
     );
