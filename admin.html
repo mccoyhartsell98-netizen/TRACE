@@ -2114,35 +2114,33 @@ async function queueCurrentJob(){
       const isExtraLane = /^Lane [1-7]A$/i.test(existing.lane || "");
       const loc = existing.machine ? `Machine: ${existing.machine}` : (existing.lane || "Unknown");
 
-      if(isExtraLane){
-        const newQty = Math.max(0, parseInt(els.qty?.value || "0", 10));
-        const combinedQty = (existing.qty ?? 0) + newQty;
-        const ok = await uiConfirm(
-          "⚠️ Job Found in Extra Lane",
-          `Item #${job} already exists in ${loc} with Qty: ${existing.qty}\n\nDo you want to add Qty ${newQty} to it? (New total: ${combinedQty})\n\nClick Cancel to create a separate queue entry instead.`,
-          "Yes, Combine Qty",
-          "Cancel"
-        );
-        if(ok){
-  const qLocId = getQueueLocationId();
-  if(!qLocId){ await uiAlert("Queue Not Ready", "QUEUE location missing."); return; }
-  await apiPost(`/items`, {
-    job_number: job,
-    mo: cleanJob(els.mo?.value || ""),
-    qty: combinedQty,
-    status: (els.status?.value || "").trim().slice(0, 40),
-    notes: (els.notes?.value || "").trim().slice(0, 120),
-    updated_by: (els.updatedBy?.value || "").trim().slice(0, 10),
-    location_id: qLocId
-  });
-  await loadLocations();
-  await loadInventory();
-  renderQueuePage();
-  clearForm();
-  showMoveNotif(job, `✅ Added to queue with combined qty ${combinedQty}`);
-  toast(`✅ ${job} queued with combined qty ${combinedQty}`);
-  return;
-}
+const newQty = Math.max(0, parseInt(els.qty?.value || "0", 10));
+const combinedQty = (existing.qty ?? 0) + newQty;
+const ok = await uiConfirm(
+  "⚠️ Job Already in System",
+  `Item #${job} already exists in ${loc} with Qty: ${existing.qty}\n\nCombine qty? New total: ${combinedQty}\n\nThe job in ${loc} stays untouched. A new queue entry will be created with the combined qty.`,
+  "Yes, Combine Qty",
+  "Cancel"
+);
+if(!ok) return;
+const qLocId = getQueueLocationId();
+if(!qLocId){ await uiAlert("Queue Not Ready", "QUEUE location missing."); return; }
+await apiPost(`/items`, {
+  job_number: job,
+  mo: cleanJob(els.mo?.value || ""),
+  qty: combinedQty,
+  status: (els.status?.value || "").trim().slice(0, 40),
+  notes: (els.notes?.value || "").trim().slice(0, 120),
+  updated_by: (els.updatedBy?.value || "").trim().slice(0, 10),
+  location_id: qLocId
+});
+await loadLocations();
+await loadInventory();
+renderQueuePage();
+clearForm();
+showMoveNotif(job, `✅ Added to queue with combined qty ${combinedQty}`);
+toast(`✅ ${job} queued with combined qty ${combinedQty}`);
+return;
 
         // if cancelled, fall through to create new queue entry
       } else {
