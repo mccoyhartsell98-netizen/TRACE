@@ -2144,19 +2144,6 @@ return;
   }
 }
 
-        // if cancelled, fall through to create new queue entry
-      } else {
-        const ok = await uiConfirm(
-          "⚠️ Duplicate Job Detected",
-          `Item #${job} already exists in ${loc}\n\nQty: ${existing.qty} • Status: ${existing.status || "—"}\n\nAdd a duplicate to the queue anyway?`,
-          "Yes, Add to Queue",
-          "Cancel"
-        );
-        if(!ok) return;
-      }
-    }
-  }
-
   const qLocId = getQueueLocationId();
   if(!qLocId){
     await uiAlert(
