@@ -2124,22 +2124,26 @@ async function queueCurrentJob(){
           "Cancel"
         );
         if(ok){
-  await apiPut(`/items/${existing.id}`, {
+  const qLocId = getQueueLocationId();
+  if(!qLocId){ await uiAlert("Queue Not Ready", "QUEUE location missing."); return; }
+  await apiPost(`/items`, {
+    job_number: job,
+    mo: cleanJob(els.mo?.value || ""),
     qty: combinedQty,
-    location_id: existing.location_id,
-    mo: existing.mo || "",
-    status: existing.status || "",
-    notes: existing.notes || "",
-    updated_by: (els.updatedBy?.value || "").trim()
+    status: (els.status?.value || "").trim().slice(0, 40),
+    notes: (els.notes?.value || "").trim().slice(0, 120),
+    updated_by: (els.updatedBy?.value || "").trim().slice(0, 10),
+    location_id: qLocId
   });
+  await loadLocations();
+  await loadInventory();
+  renderQueuePage();
+  clearForm();
+  showMoveNotif(job, `✅ Added to queue with combined qty ${combinedQty}`);
+  toast(`✅ ${job} queued with combined qty ${combinedQty}`);
+  return;
+}
 
-          await loadLocations();
-          await loadInventory();
-          clearForm();
-          showMoveNotif(job, `✅ Qty updated in ${loc}`);
-          toast(`✅ ${job} qty updated to ${combinedQty} in ${loc}`);
-          return;
-        }
         // if cancelled, fall through to create new queue entry
       } else {
         const ok = await uiConfirm(
