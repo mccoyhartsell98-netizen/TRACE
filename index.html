@@ -307,7 +307,7 @@ function mapLocations(raw){
       const laneVal = r.lane ?? r.lane_number ?? r.laneNum;
       const machVal = r.machine ?? r.machine_name ?? r.machineName ?? r.name ?? r.label;
       const laneNum = (laneVal !== undefined && laneVal !== null && String(laneVal).trim() !== "")
-        ? Number(String(laneVal).replace(/\D/g,"")) : null;
+  ? String(laneVal).trim() : null;
       const machineName = (machVal !== undefined && machVal !== null && String(machVal).trim() !== "")
         ? String(machVal).trim() : "";
       const type = machineName ? "machine" : (laneNum ? "lane" : "unknown");
