@@ -2124,18 +2124,17 @@ async function queueCurrentJob(){
           "Cancel"
         );
         if(ok){
-          const qLocId = getQueueLocationId();
-if(!qLocId){ await uiAlert("Queue Not Ready", "QUEUE location missing."); return; }
-console.log("locIdByMachine contents:", [...locIdByMachine.entries()]);
-console.log("qLocId:", getQueueLocationId());
-await apiPut(`/items/${existing.id}`, {
-  qty: combinedQty,
-  location_id: qLocId,
-  mo: existing.mo||"",
-  status: existing.status||"",
-  notes: existing.notes||"",
-  updated_by: (els.updatedBy?.value||"").trim()
-});
+  const qLocId = getQueueLocationId();
+  if(!qLocId){ await uiAlert("Queue Not Ready", "QUEUE location missing."); return; }
+  await apiPost(`/items`, {
+    job_number: job,
+    mo: cleanJob(els.mo?.value || ""),
+    qty: combinedQty,
+    status: (els.status?.value || "").trim().slice(0, 40),
+    notes: (els.notes?.value || "").trim().slice(0, 120),
+    updated_by: (els.updatedBy?.value || "").trim().slice(0, 10),
+    location_id: qLocId
+  });
 
           await loadLocations();
           await loadInventory();
