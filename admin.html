@@ -2123,17 +2123,14 @@ async function queueCurrentJob(){
           "Yes, Combine Qty",
           "Cancel"
         );
-        iif(ok){
-  const qLocId = getQueueLocationId();
-  if(!qLocId){ await uiAlert("Queue Not Ready", "QUEUE location missing."); return; }
-  await apiPost(`/items`, {
-    job_number: job,
-    mo: cleanJob(els.mo?.value || ""),
+        if(ok){
+  await apiPut(`/items/${existing.id}`, {
     qty: combinedQty,
-    status: (els.status?.value || "").trim().slice(0, 40),
-    notes: (els.notes?.value || "").trim().slice(0, 120),
-    updated_by: (els.updatedBy?.value || "").trim().slice(0, 10),
-    location_id: qLocId
+    location_id: existing.location_id,
+    mo: existing.mo || "",
+    status: existing.status || "",
+    notes: existing.notes || "",
+    updated_by: (els.updatedBy?.value || "").trim()
   });
 
           await loadLocations();
