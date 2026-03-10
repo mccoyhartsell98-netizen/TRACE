@@ -2170,8 +2170,9 @@ if(!qLocId){
       return;
     }
   } else {
-    // job exists -> move it to QUEUE location
+    // job exists -> create new queue entry instead of moving it
     const payload = {
+      job_number: job,
       location_id: qLocId,
       mo: cleanJob(els.mo?.value || ""),
       qty: Math.max(0, parseInt(els.qty?.value || "0", 10)),
@@ -2179,13 +2180,14 @@ if(!qLocId){
       notes: (els.notes?.value || "").trim().slice(0, 120),
       updated_by: (els.updatedBy?.value || "").trim().slice(0, 10),
     };
-    await apiPut(`/items/${item.id}`, payload);
+    await apiPost(`/items`, payload);
   }
   await loadLocations();
   await loadInventory();
   renderQueuePage();
   clearForm();
   showMoveNotif(job, `✅ Successfully added to Queue`);
+  toast(`✅ ${job} added to Queue`);
 }
 // ====== SCAN POPUP ======
 let scannedItemId = null;
