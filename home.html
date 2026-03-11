@@ -1,0 +1,2067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TRACE — We Track. You Improve.</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #080b10;
+      --bg2: #0c1018;
+      --blue: #2a7fff;
+      --blue2: #5aa3ff;
+      --glow: rgba(42,127,255,0.18);
+      --text: #eaf2ff;
+      --muted: rgba(234,242,255,0.55);
+      --border: rgba(255,255,255,0.08);
+      --panel: rgba(255,255,255,0.03);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      overflow-x: hidden;
+      cursor: none;
+    }
+
+@keyframes livePulse {
+  0%, 35% {
+    color: var(--blue);
+    filter: drop-shadow(0 0 12px rgba(42,127,255,0.5));
+  }
+  50%, 58% {
+    color: #7dc4ff;
+    filter: drop-shadow(0 0 40px rgba(42,127,255,1)) drop-shadow(0 0 80px rgba(42,127,255,0.6));
+  }
+  72%, 100% {
+    color: var(--blue);
+    filter: drop-shadow(0 0 12px rgba(42,127,255,0.5));
+  }
+}
+
+.feed-row {
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.feed-row.fading {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+.feed-row.entering {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+/* HAMBURGER */
+.nav-hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: none;
+  padding: 4px;
+  z-index: 1001;
+}
+.nav-hamburger span {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background: #fff;
+  border-radius: 2px;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+.nav-hamburger.open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+.nav-hamburger.open span:nth-child(2) {
+  opacity: 0;
+}
+.nav-hamburger.open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* MOBILE MENU */
+.nav-mobile {
+  display: none;
+  position: fixed;
+  top: 72px;
+  left: 0; right: 0;
+  background: rgba(8,11,16,0.97);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+  flex-direction: column;
+  padding: 16px 24px 24px;
+  gap: 4px;
+  z-index: 999;
+  transform: translateY(-10px);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+.nav-mobile.open {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.nav-mobile-link {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  transition: color 0.2s;
+}
+.nav-mobile-link:last-child { border-bottom: none; }
+.nav-mobile-link:hover { color: #fff; }
+.nav-mobile-cta {
+  color: var(--blue2) !important;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .nav-hamburger { display: flex; }
+  .nav-mobile { display: flex; }
+}
+
+/* SOCIAL PROOF */
+.social-proof {
+  background: var(--bg2);
+  padding: 80px 24px;
+}
+.social-proof-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 60px;
+  flex-wrap: wrap;
+}
+.social-proof-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.social-proof-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+}
+.social-proof-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: rgba(100,220,100,0.8);
+}
+.testimonial-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.testimonial-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 28px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.25s, transform 0.25s;
+}
+.testimonial-card:hover {
+  border-color: rgba(42,127,255,0.25);
+  transform: translateY(-3px);
+}
+.testimonial-card::before {
+  content: '"';
+  position: absolute;
+  top: -10px;
+  left: 20px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 120px;
+  color: rgba(42,127,255,0.06);
+  line-height: 1;
+  pointer-events: none;
+}
+.testimonial-quote {
+  font-size: 14px;
+  color: rgba(234,242,255,0.8);
+  line-height: 1.7;
+  font-weight: 300;
+  margin-bottom: 24px;
+}
+.testimonial-author {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.testimonial-dot {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(42,127,255,0.12);
+  border: 1px solid rgba(42,127,255,0.3);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--blue2);
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.05em;
+}
+.testimonial-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+.testimonial-role {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 900px) {
+  .testimonial-grid { grid-template-columns: 1fr; }
+  .social-proof-divider { display: none; }
+}
+
+/* GRAIN OVERLAY */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 99997;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  animation: grainShift 0.8s steps(2) infinite;
+}
+@keyframes grainShift {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(-2px, 1px); }
+  50%  { transform: translate(1px, -2px); }
+  75%  { transform: translate(2px, 1px); }
+  100% { transform: translate(-1px, 2px); }
+}
+
+/* GROWTH CARD SHINE */
+.pricing-shine {
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+.pricing-shine::after {
+  content: '';
+  position: absolute;
+  top: -100%;
+  left: -60%;
+  width: 60%;
+  height: 300%;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255,255,255,0.06) 50%,
+    rgba(42,127,255,0.08) 55%,
+    transparent 70%
+  );
+  transform: skewX(-15deg);
+  opacity: 0;
+}
+.pricing-card.featured.visible .pricing-shine::after {
+  animation: shineSwipe 0.9s cubic-bezier(0.4,0,0.2,1) forwards;
+  animation-delay: 1.35s;
+}
+@keyframes shineSwipe {
+  0% {
+    opacity: 1;
+    left: -60%;
+  }
+  100% {
+    opacity: 1;
+    left: 130%;
+  }
+}
+
+    /* CUSTOM CURSOR */
+    .cursor {
+      position: fixed;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--blue);
+      pointer-events: none;
+      z-index: 99999;
+      transform: translate(-50%, -50%);
+      transition: transform 0.08s ease, width 0.2s ease, height 0.2s ease, opacity 0.2s ease;
+      mix-blend-mode: screen;
+      box-shadow: 0 0 20px var(--blue), 0 0 40px rgba(42,127,255,0.4);
+    }
+    .cursor-ring {
+      position: fixed;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      border: 1px solid rgba(42,127,255,0.5);
+      pointer-events: none;
+      z-index: 99998;
+      transform: translate(-50%, -50%);
+      transition: transform 0.18s ease, width 0.2s ease, height 0.2s ease;
+    }
+    body:hover .cursor { opacity: 1; }
+
+    /* NAV */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 48px;
+      border-bottom: 1px solid transparent;
+      transition: background 0.3s, border-color 0.3s, backdrop-filter 0.3s;
+    }
+    nav.scrolled {
+      background: rgba(8,11,16,0.45);
+      border-color: var(--border);
+      backdrop-filter: blur(8px);
+    }
+    .nav-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      letter-spacing: 4px;
+      color: #fff;
+      text-decoration: none;
+      filter: drop-shadow(0 0 12px rgba(42,127,255,0.5));
+    }
+    .nav-links {
+      display: flex;
+      gap: 36px;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: #fff; }
+    .nav-cta {
+      background: rgba(42,127,255,0.15);
+      border: 1px solid rgba(42,127,255,0.45);
+      color: var(--blue2) !important;
+      padding: 10px 22px;
+      border-radius: 999px;
+      font-weight: 700 !important;
+      transition: background 0.2s, box-shadow 0.2s !important;
+    }
+    .nav-cta:hover {
+      background: rgba(42,127,255,0.28) !important;
+      box-shadow: 0 0 24px rgba(42,127,255,0.25);
+      color: #fff !important;
+    }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      padding: 120px 24px 80px;
+    }
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 900px 600px at 50% 40%, rgba(42,127,255,0.12), transparent 65%),
+        radial-gradient(ellipse 600px 400px at 80% 80%, rgba(42,127,255,0.06), transparent 60%);
+    }
+    .hero-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(42,127,255,0.12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(42,127,255,0.12) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, black, transparent);
+    }
+    .hero-inner {
+      position: relative;
+      text-align: center;
+      max-width: 900px;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border: 1px solid rgba(42,127,255,0.35);
+      border-radius: 999px;
+      background: rgba(42,127,255,0.08);
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.2em;
+      color: var(--blue2);
+      margin-bottom: 32px;
+      opacity: 0;
+      animation: fadeUp 0.8s ease forwards 0.2s;
+    }
+    .hero-badge-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--blue);
+      box-shadow: 0 0 10px var(--blue);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 0.6; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.1); }
+    }
+    .hero-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(72px, 12vw, 140px);
+      line-height: 0.92;
+      letter-spacing: 6px;
+      color: #fff;
+      opacity: 0;
+      animation: fadeUp 0.9s ease forwards 0.4s;
+    }
+    .hero-title span {
+      animation: traceGlow 6s ease-in-out infinite;
+    }
+    .hero-sub {
+      margin-top: 28px;
+      font-size: clamp(16px, 2.2vw, 20px);
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 560px;
+      margin-left: auto;
+      margin-right: auto;
+      font-weight: 300;
+      opacity: 0;
+      animation: fadeUp 0.9s ease forwards 0.6s;
+    }
+    .hero-actions {
+      margin-top: 44px;
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+      opacity: 0;
+      animation: fadeUp 0.9s ease forwards 0.8s;
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 36px;
+      border-radius: 14px;
+      background: var(--blue);
+      color: #fff;
+      font-weight: 700;
+      font-size: 15px;
+      text-decoration: none;
+      border: none;
+      cursor: none;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 8px 32px rgba(42,127,255,0.35);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 48px rgba(42,127,255,0.5);
+    }
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 36px;
+      border-radius: 14px;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 15px;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      cursor: none;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-ghost:hover { border-color: rgba(42,127,255,0.45); color: #fff; }
+    .hero-stats {
+      margin-top: 72px;
+      display: flex;
+      gap: 48px;
+      justify-content: center;
+      flex-wrap: wrap;
+      opacity: 0;
+      animation: fadeUp 0.9s ease forwards 1s;
+    }
+    .hero-stat { text-align: center; }
+    .hero-stat-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 44px;
+      letter-spacing: 2px;
+      color: #fff;
+      line-height: 1;
+    }
+    .hero-stat-num span { color: var(--blue); }
+    .hero-stat-label {
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 4px;
+      font-weight: 500;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes traceGlow {
+      0%, 35% {
+        color: var(--blue);
+        filter: drop-shadow(0 0 30px rgba(42,127,255,0.6));
+      }
+      50%, 58% {
+        color: #7dc4ff;
+        filter: drop-shadow(0 0 60px rgba(42,127,255,1)) drop-shadow(0 0 120px rgba(42,127,255,0.5));
+      }
+      72%, 100% {
+        color: var(--blue);
+        filter: drop-shadow(0 0 30px rgba(42,127,255,0.6));
+      }
+    }
+
+    /* SECTION BASE */
+    section { padding: 120px 24px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .section-label {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 16px;
+      opacity: 0.85;
+    }
+    .section-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(42px, 6vw, 72px);
+      letter-spacing: 3px;
+      line-height: 1;
+      color: #fff;
+      margin-bottom: 20px;
+    }
+    .section-sub {
+      font-size: 17px;
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 520px;
+      font-weight: 300;
+    }
+
+    /* ABOUT */
+    .about {
+      background: linear-gradient(180deg, var(--bg), var(--bg2));
+      position: relative;
+      overflow: hidden;
+    }
+    .about::before {
+      content: '';
+      position: absolute;
+      left: -200px; top: 50%;
+      transform: translateY(-50%);
+      width: 600px; height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(42,127,255,0.08), transparent 70%);
+      pointer-events: none;
+    }
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
+    .about-visual { position: relative; }
+    .about-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 28px;
+      position: relative;
+      overflow: hidden;
+    }
+    .about-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(42,127,255,0.5), transparent);
+    }
+    .about-card-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .about-card-row:last-child { border-bottom: none; }
+    .about-card-label { color: var(--muted); font-weight: 500; }
+    .about-card-val { font-weight: 700; color: #fff; }
+    .about-card-badge {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .badge-green { background: rgba(100,220,100,0.12); border: 1px solid rgba(100,220,100,0.3); color: #6ddc6d; }
+    .badge-blue { background: rgba(42,127,255,0.12); border: 1px solid rgba(42,127,255,0.3); color: var(--blue2); }
+    .about-card-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      color: var(--blue);
+      margin-bottom: 16px;
+      text-transform: uppercase;
+    }
+
+    /* WHY CHOOSE */
+    .why { background: var(--bg); }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-top: 60px;
+    }
+    .feature-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 32px 28px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+    }
+    .feature-card:hover {
+      border-color: rgba(42,127,255,0.35);
+      transform: translateY(-4px);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(42,127,255,0.1);
+    }
+    .feature-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 0%, rgba(42,127,255,0.06), transparent 60%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    .feature-card:hover::after { opacity: 1; }
+    .feature-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      letter-spacing: 1.5px;
+      color: #fff;
+      margin-bottom: 10px;
+      margin-top: 18px;
+    }
+    .feature-body {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.65;
+      font-weight: 300;
+    }
+
+    /* PRICING */
+    .pricing {
+      background: linear-gradient(180deg, var(--bg2), var(--bg));
+      position: relative;
+    }
+    .pricing::before {
+      content: '';
+      position: absolute;
+      right: -100px; top: 50%;
+      transform: translateY(-50%);
+      width: 500px; height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(42,127,255,0.07), transparent 70%);
+      pointer-events: none;
+    }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-top: 60px;
+      align-items: stretch;
+    }
+    .pricing-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 36px 28px;
+  position: relative;
+  transition: transform 0.25s, box-shadow 0.25s;
+  display: flex;
+  flex-direction: column;
+}
+    .pricing-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 32px 80px rgba(0,0,0,0.5);
+    }
+    .pricing-card.featured {
+      border-color: rgba(42,127,255,0.5);
+      background: linear-gradient(180deg, rgba(42,127,255,0.08), var(--panel));
+      box-shadow: 0 0 0 1px rgba(42,127,255,0.15), 0 32px 80px rgba(0,0,0,0.4);
+    }
+    .pricing-card.featured::before {
+      content: 'MOST POPULAR';
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--blue);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      padding: 5px 14px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .pricing-tier {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 10px;
+    }
+    .pricing-price {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 58px;
+      letter-spacing: 2px;
+      line-height: 1;
+      color: #fff;
+    }
+    .pricing-price sup {
+      font-size: 24px;
+      vertical-align: super;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 700;
+    }
+    .pricing-period {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+      margin-bottom: 24px;
+    }
+    .pricing-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 24px 0;
+    }
+    .pricing-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 32px;
+      flex: 1;
+    }
+    .pricing-features li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .pricing-features li::before {
+      content: '→';
+      color: var(--blue);
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .pricing-btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.08em;
+      cursor: none;
+      transition: all 0.2s;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .pricing-card.featured .pricing-btn {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #fff;
+      box-shadow: 0 8px 24px rgba(42,127,255,0.3);
+    }
+    .pricing-btn:hover {
+      border-color: rgba(42,127,255,0.5);
+      color: #fff;
+    }
+    .pricing-card.featured .pricing-btn:hover {
+      box-shadow: 0 12px 36px rgba(42,127,255,0.5);
+      transform: translateY(-1px);
+    }
+
+    /* DEMO CTA */
+    .demo {
+      background: var(--bg);
+      padding: 100px 24px;
+    }
+    .demo-inner {
+      max-width: 700px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .demo-form {
+      margin-top: 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .demo-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .demo-input {
+      width: 100%;
+      padding: 16px 18px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .demo-input::placeholder { color: rgba(234,242,255,0.25); }
+    .demo-input:focus {
+      border-color: rgba(42,127,255,0.5);
+      box-shadow: 0 0 0 3px rgba(42,127,255,0.12);
+    }
+    .demo-submit {
+      padding: 18px;
+      border-radius: 12px;
+      background: var(--blue);
+      color: #fff;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 0.08em;
+      border: none;
+      cursor: none;
+      transition: box-shadow 0.2s, transform 0.15s;
+      box-shadow: 0 8px 32px rgba(42,127,255,0.3);
+      text-transform: uppercase;
+    }
+    .demo-submit:hover {
+      box-shadow: 0 16px 48px rgba(42,127,255,0.5);
+      transform: translateY(-2px);
+    }
+    .demo-note {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 10px;
+    }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      background: var(--bg2);
+      padding: 60px 24px 32px;
+    }
+    .footer-inner { width: 100%; }
+    .footer-top {
+      display: grid;
+      grid-template-columns: 1.8fr 1fr 1fr;
+      gap: 48px;
+      margin-bottom: 48px;
+      padding-bottom: 48px;
+      border-bottom: 1px solid var(--border);
+    }
+    .footer-brand-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 12px;
+      margin-bottom: 16px;
+      font-weight: 300;
+      line-height: 1.6;
+      max-width: 260px;
+    }
+    .footer-email {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--blue2);
+      text-decoration: none;
+      letter-spacing: 0.05em;
+      transition: color 0.2s;
+    }
+    .footer-email:hover { color: #fff; }
+    .footer-links-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .footer-links-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 4px;
+    }
+    .footer-link {
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+      font-weight: 400;
+    }
+    .footer-link:hover { color: #fff; }
+    .footer-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .footer-copy {
+      font-size: 12px;
+      color: rgba(255,255,255,0.2);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .footer-tag {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(42,127,255,0.5);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    @media (max-width: 900px) {
+      .footer-top { grid-template-columns: 1fr; gap: 32px; }
+    }
+
+    /* SCROLL REVEAL */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    /* staggered cards — delay is set inline, just need to honour it */
+    .feature-card.reveal {
+      transition: opacity 0.6s ease, transform 0.6s ease, border-color 0.25s, box-shadow 0.25s;
+    }
+
+.pricing-card.reveal {
+  transition: opacity 0.6s ease, transform 0.6s ease, box-shadow 0.25s;
+}
+    /* DIVIDER */
+    .section-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 0 48px;
+    }
+
+    /* TICKER */
+    .ticker-wrap {
+      overflow: hidden;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      background: rgba(42,127,255,0.03);
+    }
+    .ticker {
+      display: flex;
+      gap: 60px;
+      animation: ticker 20s linear infinite;
+      white-space: nowrap;
+    }
+    .ticker-item {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(42,127,255,0.6);
+      flex-shrink: 0;
+    }
+    .ticker-item span { color: rgba(255,255,255,0.25); margin: 0 8px; }
+    @keyframes ticker {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    /* PRODUCT DEMO */
+    .product-demo {
+      background: linear-gradient(180deg, var(--bg), var(--bg2));
+      position: relative;
+      overflow: hidden;
+    }
+    .product-demo::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 900px 500px at 50% 40%, rgba(42,127,255,0.08), transparent 70%);
+      pointer-events: none;
+    }
+    .product-demo-head {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+    .trace-demo-shell {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+    .trace-demo-window {
+      position: relative;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid rgba(42,127,255,0.22);
+      background: rgba(10, 14, 20, 0.95);
+      box-shadow:
+        0 40px 120px rgba(0,0,0,0.65),
+        0 0 80px rgba(42,127,255,0.08);
+    }
+    .trace-demo-topbar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 16px;
+      background: #12161d;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .trace-demo-dots { display: flex; gap: 6px; }
+    .trace-demo-dots span {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+    .trace-demo-dots span:nth-child(1) { background: #ff5f57; }
+    .trace-demo-dots span:nth-child(2) { background: #febc2e; }
+    .trace-demo-dots span:nth-child(3) { background: #28c840; }
+    .trace-demo-url {
+      flex: 1;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px;
+      padding: 6px 12px;
+      color: rgba(255,255,255,0.28);
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* NEW DEMO LAYOUT */
+    .trace-demo-main {
+      position: relative !important;
+      padding: 22px !important;
+      overflow: hidden !important;
+      min-height: auto !important;
+    }
+    .trace-demo-layout {
+      display: grid;
+      grid-template-columns: 1.2fr 0.9fr;
+      gap: 18px;
+      align-items: start;
+    }
+    .trace-demo-header-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .trace-demo-kicker {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      color: var(--blue);
+      margin-bottom: 6px;
+    }
+    .trace-demo-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      letter-spacing: 2px;
+      color: #fff;
+      line-height: 1;
+    }
+    .trace-demo-live-pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(100,220,100,0.1);
+      border: 1px solid rgba(100,220,100,0.25);
+      color: #7df57d;
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.12em;
+    }
+    .trace-demo-grid {
+      display: grid !important;
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 12px !important;
+      max-width: 100% !important;
+    }
+    .trace-lane {
+      min-height: 72px !important;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: rgba(234,242,255,0.84);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px !important;
+      font-weight: 600;
+      font-size: 15px !important;
+      transition: all 0.3s ease;
+    }
+    .trace-lane span {
+      display: inline-flex;
+      min-width: 28px;
+      height: 28px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      font-size: 12px;
+      color: rgba(255,255,255,0.85);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .trace-lane.active {
+      background: rgba(42,127,255,0.14);
+      border-color: rgba(42,127,255,0.45);
+      color: #fff;
+      box-shadow: 0 0 0 1px rgba(42,127,255,0.15), 0 18px 40px rgba(42,127,255,0.12);
+    }
+    .trace-job-panel {
+  position: relative !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  width: 100% !important;
+  margin: 0 !important;
+  opacity: 0 !important;
+  transform: translateY(8px) !important;
+  pointer-events: none !important;
+  animation: none !important;
+  border-radius: 16px;
+  background: rgba(12,16,24,0.96);
+  border: 1px solid rgba(42,127,255,0.28);
+  box-shadow: 0 18px 50px rgba(0,0,0,0.45);
+  padding: 14px;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.trace-job-panel.visible {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+  pointer-events: auto !important;
+}
+    .trace-job-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .trace-job-label {
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--blue);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+    .trace-job-title {
+      font-size: 22px;
+      color: #fff;
+      font-weight: 700;
+    }
+    .trace-job-status {
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      color: rgba(138,255,138,0.95);
+      background: rgba(138,255,138,0.08);
+      border: 1px solid rgba(138,255,138,0.22);
+      padding: 7px 10px;
+      border-radius: 999px;
+    }
+    .trace-job-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .trace-job-card.dim { opacity: 0.7; }
+    .trace-job-number {
+      font-size: 16px;
+      color: #fff;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .trace-job-meta {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .trace-move-btn {
+      border: 1px solid rgba(42,127,255,0.32);
+      background: rgba(42,127,255,0.12);
+      color: #fff;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-weight: 700;
+      font-size: 13px;
+      font-family: 'DM Sans', sans-serif;
+      cursor: none;
+      white-space: nowrap;
+    }
+    .trace-toast {
+      position: absolute;
+      right: 22px !important;
+      bottom: 20px !important;
+      left: auto !important;
+      transform: translateY(20px) !important;
+      background: rgba(11,20,14,0.96);
+      border: 1px solid rgba(100,220,100,0.28);
+      color: #8fff8f;
+      padding: 12px 18px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.06em;
+      box-shadow: 0 14px 40px rgba(0,0,0,0.4);
+      opacity: 0;
+      pointer-events: none;
+    }
+    .trace-toast.show {
+      animation: toastRightInOut 2.2s ease forwards !important;
+    }
+    @keyframes toastRightInOut {
+      0% { opacity: 0; transform: translateY(20px) scale(0.94); }
+      15%, 75% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(12px) scale(0.98); }
+    }
+    /* FAKE CURSOR */
+    .trace-fake-cursor {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      pointer-events: none;
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .trace-fake-cursor svg {
+      width: 16px;
+      height: 16px;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
+    }
+    .trace-fake-cursor.visible { opacity: 1; }
+    .trace-fake-cursor.clicking { transform: scale(0.82); }
+
+    /* MACHINE PICKER DROPDOWN */
+    .trace-machine-picker {
+      position: absolute;
+      top: 0; left: 0;
+      background: rgba(10,14,22,0.98);
+      border: 1px solid rgba(42,127,255,0.35);
+      border-radius: 14px;
+      padding: 10px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(42,127,255,0.1);
+      z-index: 50;
+      opacity: 0;
+      transform: scale(0.92) translateY(-6px);
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      min-width: 180px;
+    }
+    .trace-machine-picker.open {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+    .trace-machine-picker-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      color: var(--blue);
+      text-transform: uppercase;
+      padding: 4px 8px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      margin-bottom: 6px;
+    }
+    .trace-machine-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: rgba(234,242,255,0.75);
+      font-weight: 500;
+      transition: background 0.15s, color 0.15s;
+    }
+    .trace-machine-option:hover,
+    .trace-machine-option.highlighted {
+      background: rgba(42,127,255,0.14);
+      color: #fff;
+    }
+    .trace-machine-option-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(42,127,255,0.5);
+      flex-shrink: 0;
+    }
+    .trace-machine-option.highlighted .trace-machine-option-dot {
+      background: var(--blue);
+      box-shadow: 0 0 8px rgba(42,127,255,0.7);
+    }
+
+    /* SUCCESS STATE */
+    .demo-success {
+      display: none;
+      text-align: center;
+      padding: 40px;
+    }
+    .demo-success-icon { font-size: 48px; margin-bottom: 16px; }
+    .demo-success-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 36px;
+      letter-spacing: 3px;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .demo-success-sub { color: var(--muted); font-size: 15px; }
+
+    /* RESPONSIVE */
+    @media (max-width: 900px) {
+      nav { padding: 16px 24px; }
+      .nav-links { display: none; }
+      .about-grid { grid-template-columns: 1fr; gap: 48px; }
+      .features-grid { grid-template-columns: 1fr; }
+      .pricing-grid { grid-template-columns: 1fr; }
+      .demo-row { grid-template-columns: 1fr; }
+      footer { flex-direction: column; text-align: center; padding: 32px 24px; }
+      .trace-demo-layout { grid-template-columns: 1fr !important; }
+      .trace-fake-cursor { display: none !important; }
+      .trace-machine-picker { position: relative !important; top: auto !important; left: auto !important; margin-top: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="grain"></div>
+  <div class="cursor" id="cursor"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+
+  <!-- NAV -->
+  <nav id="nav">
+    <a href="#"><img src="./trace-logo-cropped.png" style="height:48px;width:auto;mix-blend-mode:screen;filter:drop-shadow(0 0 12px rgba(42,127,255,0.6));" alt="TRACE"/></a>
+ <button class="nav-hamburger" id="navHamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links">
+      <li><a href="#about">About</a></li>
+      <li><a href="#why">Why TRACE</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#demo" class="nav-cta">Request Demo</a></li>
+    </ul>
+  </nav>
+  <div class="nav-mobile" id="navMobile">
+    <a href="#about" class="nav-mobile-link">About</a>
+    <a href="#why" class="nav-mobile-link">Why TRACE</a>
+    <a href="#pricing" class="nav-mobile-link">Pricing</a>
+    <a href="#demo" class="nav-mobile-link nav-mobile-cta">Request Demo</a>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero" id="home">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+    <div class="hero-inner">
+      <div class="hero-badge">
+        <div class="hero-badge-dot"></div>
+        REAL-TIME INVENTORY TRACKING
+      </div>
+      <h1 class="hero-title">
+        WE TRACK.<br><span>YOU IMPROVE.</span>
+      </h1>
+      <p class="hero-sub" style="color:rgba(234,242,255,0.85);font-size:20px;font-weight:400;letter-spacing:0.01em;">
+        Stop losing jobs on the floor. TRACE gives your team a <span style="color:var(--blue);font-weight:700;filter:drop-shadow(0 0 8px rgba(42,127,255,0.6));">live view</span> of every job, lane, and machine — from first scan to final move.
+      </p>
+      <div class="hero-actions">
+        <a href="#demo" class="btn-primary">
+          Request a Demo
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <a href="#about" class="btn-ghost">See How It Works</a>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-num">100<span>%</span></div>
+          <div class="hero-stat-label">Real-Time</div>
+        </div>
+        <div class="hero-stat" style="border-left:1px solid rgba(42,127,255,0.25);border-right:1px solid rgba(42,127,255,0.25);padding:0 48px;">
+          <div class="hero-stat-num" style="font-size:52px;letter-spacing:6px;color:var(--blue);animation:livePulse 6s ease-in-out infinite;">LIVE</div>
+          <div class="hero-stat-label">Job Visibility</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">QR<span>.</span></div>
+          <div class="hero-stat-label">Scan & Move</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TICKER -->
+  <div class="ticker-wrap">
+    <div class="ticker">
+      <div class="ticker-item">Real-Time Tracking <span>///</span></div>
+      <div class="ticker-item">QR Scan & Move <span>///</span></div>
+      <div class="ticker-item">Lane Management <span>///</span></div>
+      <div class="ticker-item">Role-Based Access <span>///</span></div>
+      <div class="ticker-item">Activity Feed <span>///</span></div>
+      <div class="ticker-item">Kiosk Mode <span>///</span></div>
+      <div class="ticker-item">Admin Panel <span>///</span></div>
+      <div class="ticker-item">Real-Time Tracking <span>///</span></div>
+      <div class="ticker-item">QR Scan & Move <span>///</span></div>
+      <div class="ticker-item">Lane Management <span>///</span></div>
+      <div class="ticker-item">Role-Based Access <span>///</span></div>
+      <div class="ticker-item">Activity Feed <span>///</span></div>
+      <div class="ticker-item">Kiosk Mode <span>///</span></div>
+      <div class="ticker-item">Admin Panel <span>///</span></div>
+    </div>
+  </div>
+
+  <!-- ABOUT -->
+  <section class="about" id="about">
+    <div class="container">
+      <div class="about-grid">
+        <div>
+          <div class="section-label reveal">// What is TRACE</div>
+          <h2 class="section-title reveal">BUILT FOR<br>THE FLOOR.</h2>
+          <p class="section-sub reveal">
+            TRACE is a warehouse inventory tracking system designed for real environments — loud, fast, and unforgiving. It replaces clipboards, spreadsheets, and guesswork with a live system your whole team can actually use.
+          </p>
+          <p class="section-sub reveal" style="margin-top: 20px;">
+            From the admin panel to the shop floor kiosk, every part of TRACE was built with one thing in mind — speed and clarity when it matters most.
+          </p>
+        </div>
+        <div class="about-card">
+  <div class="about-card-title" style="display:flex;align-items:center;justify-content:space-between;">
+    // Live Activity Feed
+    <span style="font-size:11px;color:rgba(100,220,100,0.9);font-family:'JetBrains Mono',monospace;">● LIVE</span>
+  </div>
+  <div id="activityFeed">
+    <div class="about-card-row feed-row">
+      <span class="about-card-label">Job #78011</span>
+      <span class="about-card-badge badge-green">Lane 3</span>
+    </div>
+    <div class="about-card-row feed-row">
+      <span class="about-card-label">Job #64902</span>
+      <span class="about-card-badge badge-blue">Machine S8</span>
+    </div>
+    <div class="about-card-row feed-row">
+      <span class="about-card-label">Job #55130</span>
+      <span class="about-card-badge badge-green">Lane 1</span>
+    </div>
+    <div class="about-card-row feed-row">
+      <span class="about-card-label">Job #91004</span>
+      <span class="about-card-badge badge-blue">Queue</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+<!-- SOCIAL PROOF -->
+  <section class="social-proof" id="social">
+    <div class="container">
+      <div class="social-proof-bar reveal">
+        <span class="social-proof-label">Trusted by real teams on the floor</span>
+        <span class="social-proof-divider"></span>
+        <span class="social-proof-badge">● Now onboarding early teams</span>
+      </div>
+      <div class="testimonial-grid">
+        <div class="testimonial-card reveal" style="transition-delay: 0ms;">
+          <div class="testimonial-quote">"Since switching to TRACE, our team spends zero time hunting down jobs. It's all right there on the screen."</div>
+          <div class="testimonial-author">
+            <div class="testimonial-dot">CT</div>
+            <div>
+              <div class="testimonial-name">CT Commercial Paper</div>
+              <div class="testimonial-role">Print & Fulfillment Facility</div>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card reveal" style="transition-delay: 200ms;">
+          <div class="testimonial-quote">"The admin dashboard gives us a live view of the entire floor. We caught a bottleneck in Lane 4 we didn't even know existed."</div>
+          <div class="testimonial-author">
+            <div class="testimonial-dot">EA</div>
+            <div>
+              <div class="testimonial-name">Early Access Team</div>
+              <div class="testimonial-role">Warehouse Operations</div>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card reveal" style="transition-delay: 400ms;">
+          <div class="testimonial-quote">"Setup was fast, the kiosk mode works great on the floor, and the team picked it up immediately. No training needed."</div>
+          <div class="testimonial-author">
+            <div class="testimonial-dot">EA</div>
+            <div>
+              <div class="testimonial-name">Early Access Team</div>
+              <div class="testimonial-role">Distribution Facility</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+<div class="section-divider"></div>
+
+  <!-- TRACE PRODUCT DEMO -->
+  <section class="product-demo" id="product">
+    <div class="container">
+      <div class="product-demo-head reveal">
+        <div class="section-label">// Product Demo</div>
+        <h2 class="section-title">SEE TRACE<br>IN MOTION.</h2>
+        <p class="section-sub" style="margin:0 auto;text-align:center;">
+         Watch the admin dashboard in action — select a lane, move a job to a machine, and see it confirmed in real time
+        </p>
+      </div>
+
+      <div class="trace-demo-shell reveal">
+        <div class="trace-demo-window">
+          <div class="trace-demo-topbar">
+            <div class="trace-demo-dots">
+              <span></span><span></span><span></span>
+            </div>
+            <div class="trace-demo-url">traceinventory.org</div>
+          </div>
+
+          <div class="trace-demo-main">
+            <div class="trace-demo-header-row">
+              <div>
+                <div class="trace-demo-kicker">LIVE FLOOR STATUS</div>
+                <div class="trace-demo-title">Lane Overview</div>
+              </div>
+              <div class="trace-demo-live-pill">● LIVE</div>
+            </div>
+            <div class="trace-demo-layout">
+              <div class="trace-demo-grid">
+                <div class="trace-lane">Lane 1 <span>3</span></div>
+                <div class="trace-lane">Lane 2 <span>1</span></div>
+                <div class="trace-lane" id="traceLane3">Lane 3 <span>4</span></div>
+                <div class="trace-lane">Lane 4 <span>2</span></div>
+                <div class="trace-lane">Lane 5 <span>5</span></div>
+                <div class="trace-lane">Lane 6 <span>1</span></div>
+                <div class="trace-lane">Lane 7 <span>0</span></div>
+                <div class="trace-lane">Lane 8 <span>2</span></div>
+              </div>
+              <div class="trace-job-panel" id="traceJobPanel">
+                <div class="trace-job-head">
+                  <div>
+                    <div class="trace-job-label">Selected Lane</div>
+                    <div class="trace-job-title">Lane 3</div>
+                  </div>
+                  <div class="trace-job-status">4 Jobs</div>
+                </div>
+                <div class="trace-job-card" id="traceJobCard1">
+                  <div class="trace-job-main">
+                    <div class="trace-job-number">Job #78011</div>
+                    <div class="trace-job-meta">MO 22194 • Qty 200 • Updated by Print Shop Admin</div>
+                  </div>
+                  <button class="trace-move-btn" id="traceMoveBtn">Move</button>
+                </div>
+                <div class="trace-job-card dim">
+                  <div class="trace-job-main">
+                    <div class="trace-job-number">Job #64902</div>
+                    <div class="trace-job-meta">MO 19882 • Qty 120 • Updated 2 min ago</div>
+                  </div>
+                </div>
+                <!-- MACHINE PICKER -->
+                <div class="trace-machine-picker" id="traceMachinePicker">
+                  <div class="trace-machine-picker-title">Move to Machine</div>
+                  <div class="trace-machine-option" id="traceMachineS8"><span class="trace-machine-option-dot"></span>Machine S8</div>
+                  <div class="trace-machine-option"><span class="trace-machine-option-dot"></span>Machine S4</div>
+                  <div class="trace-machine-option"><span class="trace-machine-option-dot"></span>Machine S12</div>
+                  <div class="trace-machine-option"><span class="trace-machine-option-dot"></span>Queue</div>
+                </div>
+              </div>
+            </div>
+            <div class="trace-toast" id="traceToast">✓ Job #78011 moved to Machine S8</div>
+            <!-- FAKE CURSOR -->
+            <div class="trace-fake-cursor" id="traceCursor">
+              <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2 2L2 12L5.5 9L7.5 14L9 13.5L7 8.5L11 8.5L2 2Z" fill="white" stroke="rgba(0,0,0,0.4)" stroke-width="0.5"/>
+              </svg>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY CHOOSE -->
+  <section class="why" id="why">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-label">// Why Choose TRACE</div>
+        <h2 class="section-title">EVERYTHING<br>YOU NEED.</h2>
+        <p class="section-sub">No bloat. No learning curve. Just a system that works the second your team scans their first job.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card reveal" style="transition-delay: 0ms;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(42,127,255,0.9)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>
+          <div class="feature-title">QR Scan & Move</div>
+          <p class="feature-body">Scan any job label and move it to a lane or machine in seconds. Works on any device — no app install required.</p>
+        </div>
+        <div class="feature-card reveal" style="transition-delay: 100ms;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(42,127,255,0.9)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <div class="feature-title">Real-Time Updates</div>
+          <p class="feature-body">Every move, every status change — reflected instantly across every screen in your facility. No refresh needed.</p>
+        </div>
+        <div class="feature-card reveal" style="transition-delay: 200ms;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(42,127,255,0.9)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          <div class="feature-title">Role-Based Access</div>
+          <p class="feature-body">Forklift drivers, operators, supervisors, and admins — each role sees exactly what they need and nothing they don't.</p>
+        </div>
+        <div class="feature-card reveal" style="transition-delay: 300ms;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(42,127,255,0.9)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          <div class="feature-title">Kiosk Mode</div>
+          <p class="feature-body">A dedicated PIN-protected kiosk interface built for the shop floor. Simple enough to use with gloves on.</p>
+        </div>
+        <div class="feature-card reveal" style="transition-delay: 400ms;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(42,127,255,0.9)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+          <div class="feature-title">Activity Feed</div>
+          <p class="feature-body">A live log of every job movement. Know who moved what, when, and where — with full audit history.</p>
+        </div>
+        <div class="feature-card reveal" style="transition-delay: 500ms;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(42,127,255,0.9)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1"/><path d="M7 9H4M7 12H4M7 15H4M17 9h3M17 12h3M17 15h3M9 7V4M12 7V4M15 7V4M9 17v3M12 17v3M15 17v3"/></svg>
+          <div class="feature-title">Built-In Assistant</div>
+          <p class="feature-body">Ask the TRACE assistant anything — "Where is job 78011?" or "What's in Lane 3?" — and get an instant answer.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- PRICING -->
+  <section class="pricing" id="pricing">
+    <div class="container">
+      <div class="reveal" style="text-align:center; margin-bottom: 0;">
+        <div class="section-label">// Pricing</div>
+        <h2 class="section-title">SIMPLE.<br>TRANSPARENT.</h2>
+        <p class="section-sub" style="margin: 0 auto;">No setup fees. No long-term contracts. Cancel anytime.</p>
+      </div>
+      <div class="pricing-grid">
+
+        <div class="pricing-card reveal" style="transition-delay: 0ms;">
+  <div class="pricing-tier">Starter</div>
+          <div class="pricing-price"><sup>$</sup>99</div>
+          <div class="pricing-period">per month</div>
+          <div class="pricing-divider"></div>
+          <ul class="pricing-features">
+            <li>Up to 2 locations</li>
+            <li>Up to 5 user accounts</li>
+            <li>QR scan & move</li>
+            <li>Basic lane tracking</li>
+            <li>Email support</li>
+          </ul>
+          <button class="pricing-btn" onclick="document.getElementById('demo').scrollIntoView({behavior:'smooth'})">Get Started</button>
+        </div>
+
+        <div class="pricing-card featured reveal" style="transition-delay: 1200ms;">
+  <div class="pricing-shine"></div>
+  <div class="pricing-tier">Growth</div>
+          <div class="pricing-price"><sup>$</sup>299</div>
+          <div class="pricing-period">per month</div>
+          <div class="pricing-divider"></div>
+          <ul class="pricing-features">
+            <li>Unlimited lanes & machines</li>
+            <li>Up to 25 user accounts</li>
+            <li>Full kiosk mode</li>
+            <li>Activity feed & audit history</li>
+            <li>Role-based access control</li>
+            <li>Queue management</li>
+            <li>Priority support</li>
+          </ul>
+          <button class="pricing-btn" onclick="document.getElementById('demo').scrollIntoView({behavior:'smooth'})">Get Started</button>
+        </div>
+
+        <div class="pricing-card reveal" style="transition-delay: 600ms;">
+  <div class="pricing-tier">Enterprise</div>
+          <div class="pricing-price" style="font-size:42px;letter-spacing:4px;">CUSTOM</div>
+<div class="pricing-period">tailored to your operation</div>
+          <div class="pricing-divider"></div>
+          <ul class="pricing-features">
+            <li>Everything in Growth</li>
+            <li>Unlimited users</li>
+            <li>Multi-site support</li>
+            <li>Custom onboarding</li>
+            <li>Dedicated account manager</li>
+            <li>SLA guarantee</li>
+            <li>API access</li>
+          </ul>
+          <button class="pricing-btn" onclick="document.getElementById('demo').scrollIntoView({behavior:'smooth'})">Contact Us</button>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- DEMO -->
+  <section class="demo" id="demo">
+    <div class="demo-inner">
+      <div class="reveal">
+        <div class="section-label" style="display:block; text-align:center;">// Request a Demo</div>
+        <h2 class="section-title" style="text-align:center;">SEE IT<br>IN ACTION.</h2>
+        <p class="section-sub" style="margin: 0 auto; text-align:center;">Fill out the form below and we'll reach out to schedule a personalized walkthrough of TRACE for your team.</p>
+      </div>
+
+      <div class="demo-form reveal" id="demoForm">
+        <div class="demo-row">
+          <input class="demo-input" type="text" placeholder="First Name" id="demoFirst"/>
+          <input class="demo-input" type="text" placeholder="Last Name" id="demoLast"/>
+        </div>
+        <input class="demo-input" type="email" placeholder="Work Email" id="demoEmail"/>
+        <input class="demo-input" type="text" placeholder="Company Name" id="demoCompany"/>
+        <select class="demo-input" id="demoPlan" style="cursor:none;">
+          <option value="" disabled selected>Interested In...</option>
+          <option>Starter — $99/mo</option>
+          <option>Growth — $299/mo</option>
+          <option>Enterprise — $799/mo</option>
+          <option>Not sure yet</option>
+        </select>
+        <button class="demo-submit" id="demoSubmit">Request My Demo →</button>
+        <div class="demo-note">We typically respond within 2-4 business days.</div>
+      </div>
+
+      <div class="demo-success" id="demoSuccess">
+        <div class="demo-success-icon">✅</div>
+        <div class="demo-success-title">YOU'RE ON THE LIST.</div>
+        <div class="demo-success-sub">We'll be in touch within 1 business day to schedule your demo.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <img src="./trace-logo-cropped.png" style="height:36px;width:auto;mix-blend-mode:screen;filter:drop-shadow(0 0 8px rgba(42,127,255,0.4));opacity:0.7;" alt="TRACE"/>
+          <p class="footer-brand-sub">Built for the floor. Trusted by the team.</p>
+          <a href="mailto:hello@traceinventory.org" class="footer-email">hello@traceinventory.org</a>
+        </div>
+        <div class="footer-links-group">
+          <div class="footer-links-title">Product</div>
+          <a href="#about" class="footer-link">About</a>
+          <a href="#why" class="footer-link">Why TRACE</a>
+          <a href="#product" class="footer-link">See It In Action</a>
+          <a href="#pricing" class="footer-link">Pricing</a>
+        </div>
+        <div class="footer-links-group">
+          <div class="footer-links-title">Get Started</div>
+          <a href="#demo" class="footer-link">Request a Demo</a>
+          <a href="mailto:hello@traceinventory.org" class="footer-link">Contact Us</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-copy">© 2026 McCoy Hartsell. All rights reserved.</div>
+        <div class="footer-tag">WE TRACK. YOU IMPROVE.</div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // CURSOR
+    const cursor = document.getElementById('cursor');
+    const ring = document.getElementById('cursorRing');
+    let mx = 0, my = 0, rx = 0, ry = 0;
+    document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+    function animCursor() {
+      cursor.style.left = mx + 'px'; cursor.style.top = my + 'px';
+      rx += (mx - rx) * 0.12; ry += (my - ry) * 0.12;
+      ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+      requestAnimationFrame(animCursor);
+    }
+    animCursor();
+    document.querySelectorAll('a, button, .feature-card, .pricing-card').forEach(el => {
+      el.addEventListener('mouseenter', () => {
+        cursor.style.width = '20px'; cursor.style.height = '20px';
+        ring.style.width = '52px'; ring.style.height = '52px';
+      });
+      el.addEventListener('mouseleave', () => {
+        cursor.style.width = '12px'; cursor.style.height = '12px';
+        ring.style.width = '36px'; ring.style.height = '36px';
+      });
+    });
+
+
+   // MOBILE NAV
+const hamburger = document.getElementById('navHamburger');
+const navMobile = document.getElementById('navMobile');
+hamburger.addEventListener('click', () => {
+  hamburger.classList.toggle('open');
+  navMobile.classList.toggle('open');
+});
+document.querySelectorAll('.nav-mobile-link').forEach(link => {
+  link.addEventListener('click', () => {
+    hamburger.classList.remove('open');
+    navMobile.classList.remove('open');
+  });
+});
+
+    // NAV SCROLL
+    const nav = document.getElementById('nav');
+    window.addEventListener('scroll', () => { nav.classList.toggle('scrolled', window.scrollY > 40); });
+
+    // SCROLL REVEAL
+    const reveals = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((e, i) => {
+        if (e.isIntersecting) {
+          // Feature cards use inline transition-delay for stagger — don't add extra setTimeout
+          if (e.target.classList.contains('feature-card') || e.target.classList.contains('pricing-card') || e.target.classList.contains('testimonial-card')) {
+           e.target.classList.add('visible');
+         } else {
+            setTimeout(() => e.target.classList.add('visible'), i * 80);
+          }
+          observer.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.2 });
+    reveals.forEach(el => observer.observe(el));
+
+    // DEMO FORM
+    document.getElementById('demoSubmit').addEventListener('click', () => {
+      const first = document.getElementById('demoFirst').value.trim();
+      const email = document.getElementById('demoEmail').value.trim();
+      if (!first || !email) {
+        document.getElementById('demoFirst').style.borderColor = !first ? 'rgba(255,100,100,0.5)' : '';
+        document.getElementById('demoEmail').style.borderColor = !email ? 'rgba(255,100,100,0.5)' : '';
+        return;
+      }
+      document.getElementById('demoForm').style.display = 'none';
+      document.getElementById('demoSuccess').style.display = 'block';
+    });
+
+// ABOUT CARD LIVE FEED
+(function () {
+  const feed = document.getElementById('activityFeed');
+  if (!feed) return;
+
+  const entries = [
+    { label: 'Job #78011', badge: 'Lane 3',     type: 'green' },
+    { label: 'Job #64902', badge: 'Machine S8', type: 'blue'  },
+    { label: 'Job #55130', badge: 'Lane 1',     type: 'green' },
+    { label: 'Job #91004', badge: 'Queue',       type: 'blue'  },
+    { label: 'Job #32847', badge: 'Machine S4', type: 'blue'  },
+    { label: 'Job #44210', badge: 'Lane 6',     type: 'green' },
+    { label: 'Job #19033', badge: 'Lane 2',     type: 'green' },
+    { label: 'Job #87654', badge: 'Machine S12',type: 'blue'  },
+    { label: 'Job #50021', badge: 'Queue',       type: 'blue'  },
+    { label: 'Job #61100', badge: 'Lane 5',     type: 'green' },
+  ];
+
+  let index = 4; // next entry to add
+
+  function addRow() {
+    const rows = feed.querySelectorAll('.feed-row');
+
+    // Fade out the top row
+    rows[0].classList.add('fading');
+
+    setTimeout(() => {
+      // Remove it from DOM
+      rows[0].remove();
+
+      // Create new row
+      const entry = entries[index % entries.length];
+      index++;
+
+      const row = document.createElement('div');
+      row.className = 'about-card-row feed-row entering';
+      row.innerHTML = `
+        <span class="about-card-label">${entry.label}</span>
+        <span class="about-card-badge badge-${entry.type}">${entry.badge}</span>
+      `;
+      feed.appendChild(row);
+
+      // Trigger enter animation
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          row.classList.remove('entering');
+        });
+      });
+    }, 400);
+  }
+
+  setInterval(addRow, 2000);
+})();
+
+    // TRACE PRODUCT DEMO — FULL CURSOR CHOREOGRAPHY
+    (function () {
+      const demoMain    = document.querySelector('.trace-demo-main');
+      const fakeCursor  = document.getElementById('traceCursor');
+      const lane3       = document.getElementById('traceLane3');
+      const moveBtn     = document.getElementById('traceMoveBtn');
+      const picker      = document.getElementById('traceMachinePicker');
+      const machineS8   = document.getElementById('traceMachineS8');
+      const toast       = document.getElementById('traceToast');
+
+      if (!fakeCursor || !lane3 || !moveBtn || !picker || !toast) return;
+
+      // Helper: get center of an element relative to demoMain
+      function getCenter(el) {
+        const parentRect = demoMain.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        return {
+          x: elRect.left - parentRect.left + elRect.width / 2,
+          y: elRect.top  - parentRect.top  + elRect.height / 2
+        };
+      }
+
+      // Move cursor smoothly to {x,y} over `ms` ms
+      function moveTo(x, y, ms) {
+        return new Promise(resolve => {
+          fakeCursor.style.transition = `left ${ms}ms cubic-bezier(0.4,0,0.2,1), top ${ms}ms cubic-bezier(0.4,0,0.2,1)`;
+          fakeCursor.style.left = x + 'px';
+          fakeCursor.style.top  = y + 'px';
+          setTimeout(resolve, ms);
+        });
+      }
+
+      // Click animation (scale down + up)
+      function click() {
+        return new Promise(resolve => {
+          fakeCursor.style.transition = 'transform 0.08s ease';
+          fakeCursor.style.transform = 'scale(0.7)';
+          setTimeout(() => {
+            fakeCursor.style.transform = 'scale(1)';
+            setTimeout(resolve, 100);
+          }, 100);
+        });
+      }
+
+      function wait(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+      }
+
+      // Reset everything to initial state
+      function reset() {
+        fakeCursor.classList.remove('visible');
+        fakeCursor.style.transition = 'none';
+        lane3.classList.remove('active');
+        document.getElementById('traceJobPanel').classList.remove('visible');
+        picker.classList.remove('open');
+        machineS8.classList.remove('highlighted');
+        toast.classList.remove('show');
+        moveBtn.style.background = '';
+        moveBtn.style.borderColor = '';
+      }
+
+      async function runDemo() {
+        reset();
+        await wait(800);
+
+        // 1. Appear near top-left of demo area
+        fakeCursor.style.left = '30px';
+        fakeCursor.style.top  = '30px';
+        fakeCursor.classList.add('visible');
+        await wait(400);
+
+        // 2. Move to Lane 3
+        const lanePos = getCenter(lane3);
+        await moveTo(lanePos.x, lanePos.y, 700);
+        await wait(200);
+
+        // 3. Click Lane 3 → highlight it
+        await click();
+        lane3.classList.add('active');
+        document.getElementById('traceJobPanel').classList.add('visible');
+        await wait(600);
+
+        // 4. Move to Move button
+        const btnPos = getCenter(moveBtn);
+        await moveTo(btnPos.x, btnPos.y, 600);
+        await wait(200);
+
+        // 5. Click Move → flash button, open picker
+        moveBtn.style.background = 'rgba(42,127,255,0.4)';
+        moveBtn.style.borderColor = 'rgba(42,127,255,0.9)';
+        await click();
+        moveBtn.style.background = '';
+        moveBtn.style.borderColor = '';
+        picker.classList.add('open');
+        await wait(500);
+
+        // 6. Move cursor to Machine S8 in picker
+        const s8Pos = getCenter(machineS8);
+        await moveTo(s8Pos.x, s8Pos.y, 500);
+        machineS8.classList.add('highlighted');
+        await wait(300);
+
+        // 7. Click Machine S8 → close picker, show toast
+        await click();
+        picker.classList.remove('open');
+        machineS8.classList.remove('highlighted');
+        await wait(150);
+        toast.classList.add('show');
+
+        // 8. Cursor drifts away after confirming
+        await moveTo(s8Pos.x + 40, s8Pos.y - 20, 500);
+        await wait(200);
+        fakeCursor.classList.remove('visible');
+
+        // 9. Toast lingers then fades (handled by CSS animation), then loop
+        await wait(2400);
+        toast.classList.remove('show');
+        await wait(800);
+
+        runDemo();
+      }
+
+      // Start after a short initial delay
+      setTimeout(runDemo, 1200);
+    })();
+  </script>
+</body>
+</html>
