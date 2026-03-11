@@ -1685,6 +1685,31 @@
 const API_BASE = "https://trace-api-sak3.onrender.com";
 const MACHINES = ["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane"];
 
+// ====== MACHINE EXPIRY SYSTEM ======
+const MACHINE_EXPIRY_DAYS = 3;
+const MACHINE_WARN_DAYS = 2;
+const EXPIRY_TS_KEY = "trace_machine_timestamps_v1";
+
+function getMachineTimestamps(){ try{ return JSON.parse(localStorage.getItem(EXPIRY_TS_KEY)||"{}"); }catch(e){ return {}; } }
+function setMachineTimestamp(id, iso){ const t=getMachineTimestamps(); t[String(id)]=iso; localStorage.setItem(EXPIRY_TS_KEY,JSON.stringify(t)); }
+function clearMachineTimestamp(id){ const t=getMachineTimestamps(); delete t[String(id)]; localStorage.setItem(EXPIRY_TS_KEY,JSON.stringify(t)); }
+
+function getMachineDaysOld(item){
+  const ts = getMachineTimestamps();
+  const ref = ts[String(item.id)] || item.updatedAt || item.createdAt;
+  if(!ref) return 0;
+  return (Date.now() - new Date(ref).getTime()) / 86400000;
+}
+
+function getMachineAgeStatus(item){
+  if(!item.machine || item.machine.toUpperCase() === "QUEUE") return null;
+  const days = getMachineDaysOld(item);
+  if(days >= MACHINE_EXPIRY_DAYS) return "expired";
+  if(days >= MACHINE_WARN_DAYS) return "warning";
+  return "ok";
+}
+
+
 // ====== AUTH STATE ======
 const AUTH = {
   token: localStorage.getItem("trace_token") || null,
@@ -2533,20 +2558,28 @@ function renderMachineList(){
 
   machineItems.sort((a,b) => (parseInt(a.job,10)||0) - (parseInt(b.job,10)||0));
   machineItems.forEach(item => {
+    const ageStatus = getMachineAgeStatus(item);
+const ageBadge = ageStatus === "expired"
+  ? `<div style="margin-top:6px;padding:4px 10px;border-radius:8px;background:rgba(255,107,107,.18);border:1px solid rgba(255,107,107,.55);color:#ff6b6b;font-weight:900;font-size:12px;">🔴 Day ${Math.floor(getMachineDaysOld(item))} — Expiring Today</div>`
+  : ageStatus === "warning"
+  ? `<div style="margin-top:6px;padding:4px 10px;border-radius:8px;background:rgba(255,209,102,.14);border:1px solid rgba(255,209,102,.45);color:#ffd166;font-weight:900;font-size:12px;">⚠️ Day ${Math.floor(getMachineDaysOld(item))} on machine</div>`
+  : "";
     const div = document.createElement("div");
     div.className = "resultItem" + (item.id===selectedId ? " active" : "");
     const by = item.updatedBy ? ` • By: ${escapeHtml(item.updatedBy)}` : "";
     const at = item.updatedAt ? ` • Updated ${escapeHtml(formatTimestamp(item.updatedAt))}` : "";
     div.innerHTML = `
-      <div class="big">Item #${escapeHtml(item.job)}</div>
-      ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ``}
-      <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${item.status ? escapeHtml(item.status) : "—"}</div>
-      <div class="meta">Machine: ${escapeHtml(item.machine)} • Notes: ${item.notes ? escapeHtml(item.notes) : "—"}${by}${at}</div>
-      <div class="btnRow" style="margin-top:10px;">
-        <button class="primary" data-move="1">Move</button>
-        <button class="ghost" data-send-queue="1" style="border-color:rgba(255,209,102,.35);color:rgba(255,230,140,.9);">⏸ Hold</button>
-      </div>
-    `;
+  <div class="big">Item #${escapeHtml(item.job)}</div>
+  ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ``}
+  <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${item.status ? escapeHtml(item.status) : "—"}</div>
+  <div class="meta">Machine: ${escapeHtml(item.machine)} • Notes: ${item.notes ? escapeHtml(item.notes) : "—"}${by}${at}</div>
+  ${ageBadge}
+  <div class="btnRow" style="margin-top:10px;">
+    <button class="primary" data-move="1">Move</button>
+    <button class="ghost" data-send-queue="1" style="border-color:rgba(255,209,102,.35);color:rgba(255,230,140,.9);">⏸ Hold</button>
+    <button class="ghost" data-reset-timer="1" style="border-color:rgba(58,122,254,.35);color:rgba(180,205,255,.9);">↺ Reset Timer</button>
+  </div>
+`;
     div.querySelector("[data-move]").addEventListener("click", (e) => { e.stopPropagation(); openMoveOverlay(item.id); });
 div.querySelector("[data-send-queue]").addEventListener("click", async (e) => {
   e.stopPropagation();
@@ -2559,6 +2592,15 @@ div.querySelector("[data-send-queue]").addEventListener("click", async (e) => {
   renderMachineList();
   showMoveNotif(item.job, `⏸ Sent back to Queue`);
   toast(`⏸ ${item.job} sent to Queue`);
+});
+
+div.querySelector("[data-reset-timer]").addEventListener("click", async (e) => {
+  e.stopPropagation();
+  const ok = await uiConfirm("Reset Timer", `Give Item #${item.job} 3 more days on ${item.machine}?`, "Reset", "Cancel");
+  if(!ok) return;
+  setMachineTimestamp(item.id, new Date().toISOString());
+  renderMachineList();
+  toast(`↺ Timer reset for ${item.job}`);
 });
 div.addEventListener("click", ()=> loadToForm(item.id));
     els.machineResults.appendChild(div);
@@ -2784,6 +2826,7 @@ async function moveToMachine(id, machine){
     await loadLocations();
     await loadInventory();
     hideLoading();
+    setMachineTimestamp(id, new Date().toISOString());
     toast(`✅ Moved to ${machine}`);
     showMoveNotif(item?.job || id, `→ ${machine} • by ${item?.updatedBy || "—"}`);
     pushUndo({ type:"move", itemId:id, originalLocationId, originalLocation, newLocation:machine });
@@ -2994,6 +3037,7 @@ updateTabBadges();
 
     console.log("✅ ADMIN INIT COMPLETE");
     runAutoCleanupIfNeeded();
+    runMachineExpiryCheck();
     setInterval(async () => {
       await loadLocations();
       await loadInventory();
@@ -3303,6 +3347,34 @@ async function runAutoCleanupIfNeeded(){
   }catch(e){
     console.warn("⚠️ Auto cleanup failed:", e.message);
   }
+}
+
+async function runMachineExpiryCheck(){
+  const last = localStorage.getItem("trace_last_expiry_check");
+  const now = Date.now();
+  if(last && now - parseInt(last,10) < 3600000) return; // max once per hour
+  localStorage.setItem("trace_last_expiry_check", String(now));
+
+  const expired = inventory.filter(x => getMachineAgeStatus(x) === "expired");
+  if(expired.length === 0) return;
+
+  const expiredJobs = expired.map(x => x.job).join(", ");
+  console.log(`⏰ Auto-expiring ${expired.length} job(s) from machines: ${expiredJobs}`);
+
+  for(const item of expired){
+    try{
+      await apiDelete(`/items/${item.id}`);
+      clearMachineTimestamp(item.id);
+      console.log(`✅ Soft-expired: ${item.job} from ${item.machine}`);
+    }catch(e){
+      console.warn(`⚠️ Could not expire ${item.job}:`, e.message);
+    }
+  }
+
+  await loadInventory();
+  renderMachineList();
+  renderGlobalSearch();
+  toast(`⏰ ${expired.length} job(s) auto-expired from machines — check History`);
 }
 
 // ====== ADD LOCATION ======
