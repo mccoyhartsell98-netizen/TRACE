@@ -1253,7 +1253,12 @@
     </div>
   </div>
 
-  <div class="versionBadge">TRACE Admin v1.0</div>
+  <div class="versionBadge" style="display:flex;align-items:center;gap:8px;">
+  <div style="width:7px;height:7px;border-radius:50%;background:rgba(138,255,138,.95);box-shadow:0 0 10px rgba(138,255,138,.55);animation:traceDotPulse 1.15s ease-in-out infinite;"></div>
+  <span style="font-size:11px;font-weight:900;letter-spacing:.25em;text-transform:uppercase;color:rgba(180,205,255,.9);">Print Shop</span>
+  <span style="color:rgba(58,122,254,.5);font-size:11px;">|</span>
+  <span style="font-size:11px;font-weight:900;letter-spacing:.25em;text-transform:uppercase;color:rgba(138,255,138,.85);">Admin</span>
+</div>
 
   <!-- APP ROOT -->
   <div id="appRoot" class="appRoot isHidden">
@@ -1267,24 +1272,8 @@
 
       <div class="rolebar">
         <div class="roleLeft">
-  <button id="undoBtn" class="ghost" disabled>Undo</button>
-  <div style="
-    display:flex;
-    align-items:center;
-    gap:8px;
-    padding:6px 14px;
-    border-radius:999px;
-    border:1px solid rgba(58,122,254,.35);
-    background:rgba(58,122,254,.08);
-    backdrop-filter:blur(8px);
-    box-shadow:0 0 18px rgba(58,122,254,.12), inset 0 0 0 1px rgba(255,255,255,.03);
-  ">
-    <div style="width:7px;height:7px;border-radius:50%;background:rgba(138,255,138,.95);box-shadow:0 0 10px rgba(138,255,138,.55);animation:traceDotPulse 1.15s ease-in-out infinite;"></div>
-    <span style="font-size:11px;font-weight:900;letter-spacing:.25em;text-transform:uppercase;color:rgba(180,205,255,.9);">Print Shop</span>
-    <span style="color:rgba(58,122,254,.5);font-size:11px;">|</span>
-    <span style="font-size:11px;font-weight:900;letter-spacing:.25em;text-transform:uppercase;color:rgba(138,255,138,.85);">Admin</span>
-  </div>
-</div>
+          <button id="undoBtn" class="ghost" disabled>Undo</button>
+        </div>
         <div style="display:flex;gap:10px;align-items:center;">
           <button class="ghost" id="addLocationBtn" title="Add Lane or Machine">Add Location</button>
           <button class="ghost" id="menuBtn" title="Menu">☰</button>
