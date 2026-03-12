@@ -452,7 +452,11 @@ html, body {
       animation: fadeUp 0.9s ease forwards 0.4s;
     }
     .hero-title span {
-  display: inline-block;
+  display: inline;
+  -webkit-text-fill-color: transparent;
+  background: linear-gradient(135deg, #5aa3ff, #2a7fff);
+  -webkit-background-clip: text;
+  background-clip: text;
   animation: traceGlow 6s ease-in-out infinite;
 }
     .hero-sub {
@@ -543,19 +547,16 @@ html, body {
       to { opacity: 1; transform: translateY(0); }
     }
     @keyframes traceGlow {
-      0%, 35% {
-        color: var(--blue);
-        filter: drop-shadow(0 0 30px rgba(42,127,255,0.6));
-      }
-      50%, 58% {
-        color: #7dc4ff;
-        filter: drop-shadow(0 0 60px rgba(42,127,255,1)) drop-shadow(0 0 120px rgba(42,127,255,0.5));
-      }
-      72%, 100% {
-        color: var(--blue);
-        filter: drop-shadow(0 0 30px rgba(42,127,255,0.6));
-      }
-    }
+  0%, 35% {
+    filter: brightness(1);
+  }
+  50%, 58% {
+    filter: brightness(1.6) drop-shadow(0 0 20px rgba(42,127,255,0.8));
+  }
+  72%, 100% {
+    filter: brightness(1);
+  }
+}
 
     /* SECTION BASE */
     section { padding: 120px 24px; }
@@ -1408,6 +1409,7 @@ html, body {
   .pricing-card.reveal { transition-delay: 0ms !important; }
   .pricing-card.featured.reveal { transition-delay: 0ms !important; }
   .pricing-card.featured .pricing-shine::after { animation: none !important; }
+  .ticker-track { animation-duration: 15s !important; }
 }
   </style>
 </head>
