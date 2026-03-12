@@ -291,7 +291,7 @@ html, body {
 }
 .pricing-card.featured.visible .pricing-shine::after {
   animation: shineSwipe 0.9s cubic-bezier(0.4,0,0.2,1) forwards;
-  animation-delay: 1.35s;
+  animation-delay: 0.3s;
 }
 @keyframes shineSwipe {
   0% {
@@ -1892,7 +1892,21 @@ document.querySelectorAll('.nav-mobile-link').forEach(link => {
         if (e.isIntersecting) {
           // Feature cards use inline transition-delay for stagger — don't add extra setTimeout
           if (e.target.classList.contains('feature-card') || e.target.classList.contains('pricing-card') || e.target.classList.contains('testimonial-card')) {
-           e.target.classList.add('visible');
+  e.target.classList.add('visible');
+  if (e.target.classList.contains('featured')) {
+    const shine = e.target.querySelector('.pricing-shine::after');
+    const shineEl = e.target.querySelector('.pricing-shine');
+    if (shineEl) {
+      shineEl.style.setProperty('--play', 'running');
+      const after = shineEl;
+      after.style.animation = 'none';
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          after.style.animation = '';
+        });
+      });
+    }
+  }
          } else {
             setTimeout(() => e.target.classList.add('visible'), i * 80);
           }
