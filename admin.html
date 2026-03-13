@@ -3049,14 +3049,23 @@ updateTabBadges();
     console.log("✅ ADMIN INIT COMPLETE");
     runAutoCleanupIfNeeded();
     runMachineExpiryCheck();
-    setInterval(async () => {
-      await loadLocations();
-      await loadInventory();
-      renderLaneList();
-      renderMachineList();
-      renderGlobalSearch();
-      updateTabBadges();
-    }, 60000);
+    // Live indicator
+const livePill = document.createElement("div");
+livePill.style.cssText = "position:fixed;top:12px;right:100px;z-index:120;display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--stroke);border-radius:999px;background:rgba(0,0,0,.35);backdrop-filter:blur(6px);font-size:11px;font-weight:900;letter-spacing:.2em;color:rgba(138,255,138,.85);";
+livePill.innerHTML = `<div id="liveDot" style="width:7px;height:7px;border-radius:50%;background:rgba(138,255,138,.95);box-shadow:0 0 8px rgba(138,255,138,.5);animation:traceDotPulse 1.15s ease-in-out infinite;"></div>LIVE`;
+document.body.appendChild(livePill);
+
+setInterval(async () => {
+  const dot = document.getElementById("liveDot");
+  if(dot){ dot.style.background="rgba(255,209,102,.95)"; dot.style.boxShadow="0 0 8px rgba(255,209,102,.5)"; }
+  await loadLocations();
+  await loadInventory();
+  renderLaneList();
+  renderMachineList();
+  renderGlobalSearch();
+  updateTabBadges();
+  if(dot){ dot.style.background="rgba(138,255,138,.95)"; dot.style.boxShadow="0 0 8px rgba(138,255,138,.5)"; }
+}, 15000);;
   } catch (err) { 
     console.error("❌ Init failed:", err);
     els.globalResults.innerHTML = `
