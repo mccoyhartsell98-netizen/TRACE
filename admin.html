@@ -1304,6 +1304,7 @@
   <button class="ghost" id="openHistoryBtn">History</button>
   <button class="ghost" id="openQueueBtn">Queue</button>
   <button class="ghost" id="openFeedBtn">Activity Feed</button>
+  <button class="ghost" id="openPartialPicksBtn">Partial Pick Log</button>
   <div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#6C86A8;padding:4px 2px;margin-top:8px;border-bottom:1px solid rgba(42,127,255,0.15);margin-bottom:4px;">Administration</div>
   <button class="ghost" id="openUsersBtn">User Management</button>
 </div>
@@ -1555,6 +1556,43 @@
         <div id="qrPageCanvas" style="background:#fff;padding:10px;border-radius:12px;display:none;"></div>
       </div>
       <div class="tiny" id="qrPageUrlPreview" style="margin-top:10px;color:var(--muted);word-break:break-all;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PARTIAL PICKS PAGE -->
+<div id="partialPicksPage" class="appPage hidden">
+  <div class="wrap" style="max-width:900px;">
+    <div class="pageHeader">
+      <button class="ghost" id="partialPicksPageBack">← Back</button>
+      <h2 style="margin:0;font-size:18px;">Partial Pick Log</h2>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="partialPicksCount" class="completedCount">0</span>
+        <span style="font-size:12px;color:var(--muted);">entries</span>
+      </div>
+    </div>
+    <input type="text" id="partialPicksSearch" placeholder="Search by job, MO, driver, or location..." style="margin-bottom:12px;">
+    <div style="background:var(--panel);border:1px solid var(--stroke);border-radius:12px;overflow:hidden;">
+      <table style="width:100%;border-collapse:collapse;" id="partialPicksTable">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:10px 12px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--stroke);font-weight:900;">Job</th>
+            <th style="text-align:left;padding:10px 12px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--stroke);font-weight:900;">MO</th>
+            <th style="text-align:left;padding:10px 12px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--stroke);font-weight:900;">Taken</th>
+            <th style="text-align:left;padding:10px 12px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--stroke);font-weight:900;">Remaining</th>
+            <th style="text-align:left;padding:10px 12px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--stroke);font-weight:900;">From</th>
+            <th style="text-align:left;padding:10px 12px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--stroke);font-weight:900;">To</th>
+            <th style="text-align:left;padding:10px 12px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--stroke);font-weight:900;">Driver</th>
+            <th style="text-align:left;padding:10px 12px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--stroke);font-weight:900;">When</th>
+          </tr>
+        </thead>
+        <tbody id="partialPicksBody"></tbody>
+      </table>
+      <div id="partialPicksEmpty" class="emptyState">
+        <div class="emptyState-icon">⚡</div>
+        <div class="emptyState-title">No Partial Picks Yet</div>
+        <div class="emptyState-sub">When a driver takes a partial qty from a job it will appear here.</div>
+      </div>
     </div>
   </div>
 </div>
@@ -4308,6 +4346,91 @@ async function stopQRScan(silent=false){
     setTimeout(() => window.showTutorial(), 1400);
   }
 })();
+
+// ====== PARTIAL PICKS LOG ======
+let partialPicksCache = [];
+
+async function loadPartialPicks() {
+  try {
+    const d = await apiGet("/partial-picks");
+    partialPicksCache = Array.isArray(d.picks) ? d.picks : [];
+  } catch(e) {
+    console.warn("loadPartialPicks failed:", e.message);
+    partialPicksCache = [];
+  }
+}
+
+function renderPartialPicks() {
+  const q = normalize(document.getElementById("partialPicksSearch")?.value || "");
+  let list = partialPicksCache;
+  if(q) {
+    list = list.filter(x =>
+      normalize(x.job_number).includes(q) ||
+      normalize(x.mo || "").includes(q) ||
+      normalize(x.driver || "").includes(q) ||
+      normalize(x.from_location || "").includes(q) ||
+      normalize(x.to_location || "").includes(q)
+    );
+  }
+
+  const tbody = document.getElementById("partialPicksBody");
+  const empty = document.getElementById("partialPicksEmpty");
+  const count = document.getElementById("partialPicksCount");
+  if(!tbody) return;
+
+  count.textContent = String(partialPicksCache.length);
+  tbody.innerHTML = "";
+
+  if(partialPicksCache.length === 0) {
+    empty.style.display = "flex";
+    return;
+  }
+  empty.style.display = "none";
+
+  if(list.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" style="padding:24px;text-align:center;color:var(--muted);">No results match your search.</td></tr>`;
+    return;
+  }
+
+  list.forEach(p => {
+    const tr = document.createElement("tr");
+    tr.style.borderBottom = "1px solid rgba(255,255,255,.04)";
+    tr.innerHTML = `
+      <td style="padding:12px;font-weight:900;color:#fff;">${escapeHtml(p.job_number)}</td>
+      <td style="padding:12px;color:var(--muted);">${escapeHtml(p.mo || "—")}</td>
+      <td style="padding:12px;font-weight:900;color:#ff6b6b;">${p.taken_qty}</td>
+      <td style="padding:12px;font-weight:900;color:#8aff8a;">${p.remaining_qty}</td>
+      <td style="padding:12px;color:rgba(180,205,255,.85);">${escapeHtml(p.from_location || "—")}</td>
+      <td style="padding:12px;color:rgba(180,205,255,.85);">${escapeHtml(p.to_location || "—")}</td>
+      <td style="padding:12px;color:var(--muted);">${escapeHtml(p.driver || "—")}</td>
+      <td style="padding:12px;color:var(--muted);font-size:12px;">${formatTimestamp(p.created_at)}</td>
+    `;
+    tr.addEventListener("click", () => {
+      if(p.job_number) {
+        hidePage("partialPicksPage");
+        const item = inventory.find(x => x.job === p.job_number.trim().toUpperCase());
+        if(item) {
+          if(item.machine) selectMachine(item.machine);
+          else if(item.lane) selectLane(item.lane);
+          loadToForm(item.id);
+        }
+      }
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById("partialPicksPageBack").addEventListener("click", () => hidePage("partialPicksPage"));
+document.getElementById("partialPicksSearch").addEventListener("input", renderPartialPicks);
+
+document.getElementById("openPartialPicksBtn").addEventListener("click", async () => {
+  closeSideMenu();
+  showPage("partialPicksPage");
+  await loadPartialPicks();
+  renderPartialPicks();
+  // auto cleanup while we're here
+  apiDelete("/partial-picks/cleanup").catch(() => {});
+});
 
 </script>
 </body>
