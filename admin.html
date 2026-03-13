@@ -2589,7 +2589,6 @@ function renderMachineList(){
   if(machineItemsAll.length === 0){
     els.machineResults.innerHTML = `
       <div class="emptyState">
-        <div class="emptyState-icon">⚙️</div>
         <div class="emptyState-title">Machine is Empty</div>
         <div class="emptyState-sub">No jobs currently on ${selectedMachine}.</div>
       </div>`;
@@ -3303,7 +3302,6 @@ function renderFeedPage(){
   if(sorted.length === 0){
     container.innerHTML = `
       <div class="emptyState">
-        <div class="emptyState-icon">⚡</div>
         <div class="emptyState-title">No Activity Yet</div>
         <div class="emptyState-sub">Move events will appear here as jobs are updated across lanes and machines.</div>
       </div>`;
