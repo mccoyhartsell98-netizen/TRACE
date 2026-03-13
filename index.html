@@ -4,936 +4,531 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>TRACE — Kiosk</title>
-
   <style>
     :root{
-      --bg:#0b0f16;
-      --panel:#101a2a;
-      --panel2:#0f1522;
-      --text:#eaf2ff;
-      --muted:rgba(234,242,255,.7);
-      --border:rgba(255,255,255,.12);
-      --btn:#0f1b2e;
-      --btn2:#122547;
-      --accent:#2a7fff;
+      --bg:#0b0f16;--panel2:#0f1522;--text:#eaf2ff;
+      --muted:rgba(234,242,255,.7);--border:rgba(255,255,255,.12);
+      --btn:#0f1b2e;--btn2:#122547;
     }
-    html,body{height:100%;margin:0;font-family:system-ui,Segoe UI,Arial;background:radial-gradient(1100px 700px at 25% 10%, rgba(42,127,255,.16), transparent 60%), var(--bg);color:var(--text);overflow-x:hidden;}
+    html,body{height:100%;margin:0;font-family:system-ui,Segoe UI,Arial;
+      background:radial-gradient(1100px 700px at 25% 10%,rgba(42,127,255,.16),transparent 60%),var(--bg);
+      color:var(--text);overflow-x:hidden;}
     .wrap{min-height:100%;display:flex;align-items:center;justify-content:center;padding:18px;}
-    .card{width:min(520px, 95vw);background:linear-gradient(180deg, rgba(16,26,42,.96), rgba(10,14,22,.96));border:1px solid var(--border);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.45);overflow:hidden;}
-    .top{padding:16px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;}
-    .brand{font-weight:900;letter-spacing:.5px}
-    .sub{font-size:12px;color:var(--muted);margin-top:2px}
+    .card{width:min(520px,95vw);background:linear-gradient(180deg,rgba(16,26,42,.96),rgba(10,14,22,.96));
+      border:1px solid var(--border);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.45);overflow:hidden;}
+    .top{padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
     .pill{font-size:12px;border:1px solid var(--border);padding:6px 10px;border-radius:999px;color:var(--muted)}
     .body{padding:14px 16px 16px;}
-    .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-    .btn{
-      width:100%;background:var(--btn);color:var(--text);
-      border:1px solid var(--border);border-radius:14px;
-      padding:14px 14px;font-weight:900;letter-spacing:.2px;cursor:pointer;
-      transition:.12s transform, .12s background;
-    }
-    .btn:hover{background:var(--btn2)}
-    .btn:active{transform:scale(.985)}
-    .btn.secondary{background:transparent}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
-    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+    .btn{width:100%;background:var(--btn);color:var(--text);border:1px solid var(--border);
+      border-radius:14px;padding:14px;font-weight:900;cursor:pointer;transition:.12s background;font-size:14px;}
+    .btn:hover{background:var(--btn2)} .btn:active{transform:scale(.985)}
+    .btn.sec{background:transparent}
+    .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+    .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
     .pinDots{font-size:22px;letter-spacing:6px;margin:10px 0 6px}
-    .msg{
-      font-size:12px;
-      color:var(--muted);
-      min-height:18px;
-      text-align:center;
-      padding:8px 12px;
-      display:none;
-    }
-    .msg.visible{display:block;}
-    input{
-      width:100%;background:var(--panel2);color:var(--text);
-      border:1px solid var(--border);border-radius:12px;
-      padding:12px 12px;font-weight:700;outline:none;
-      box-sizing:border-box;
-    }
     .section{margin-top:12px;border:1px solid var(--border);border-radius:14px;padding:12px;background:rgba(15,21,34,.55)}
     .tiny{font-size:12px;color:var(--muted);word-break:break-all;margin-top:8px}
     .hide{display:none!important}
+    input{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--border);
+      border-radius:12px;padding:12px;font-weight:700;outline:none;box-sizing:border-box;font-size:16px;}
 
-    .toast{
-      position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
-      background:#1a3a1a;border:1px solid #2d7a2d;color:#7fff7f;
-      padding:12px 24px;border-radius:999px;font-weight:900;font-size:14px;
-      z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;
+    /* Single overlay class used everywhere */
+    .overlay{
+      position:fixed;inset:0;background:rgba(0,0,0,.72);
+      display:flex;align-items:center;justify-content:center;
+      z-index:999;padding:18px;
     }
-    .toast.show{opacity:1;}
-
-    .modal-overlay{
-      position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);
-      display:flex;align-items:center;justify-content:center;z-index:100;padding:18px;
-    }
-    .modal{
-      background:linear-gradient(180deg, rgba(16,26,42,.98), rgba(10,14,22,.98));
+    .obox{
+      background:linear-gradient(180deg,rgba(18,28,46,.99),rgba(10,14,22,.99));
       border:1px solid var(--border);border-radius:18px;
-      box-shadow:0 20px 60px rgba(0,0,0,.6);
-      width:min(460px,95vw);padding:18px;
+      width:min(460px,95vw);padding:22px;
     }
-    .modal-title{font-weight:900;font-size:15px;margin-bottom:14px}
-    .modal-back{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:0;margin-bottom:12px;display:flex;align-items:center;gap:5px}
-    .modal-back:hover{color:var(--text)}
+    .otitle{font-weight:900;font-size:16px;margin-bottom:8px;}
+    .osub{font-size:13px;color:var(--muted);margin-bottom:18px;}
 
-    .lane-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:4px}
-    .machine-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
-    .sel-btn{
-      background:var(--btn);color:var(--text);border:1px solid var(--border);
-      border-radius:12px;padding:12px 6px;font-weight:700;font-size:13px;
-      cursor:pointer;transition:.12s background;text-align:center;
-    }
-    .sel-btn:hover{background:var(--btn2)}
-    .fade-out{animation:fadeOut .2s ease forwards;}
-    .fade-in{animation:fadeIn .2s ease forwards;}
-    @keyframes fadeOut{from{opacity:1;}to{opacity:0;}}
-    @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
-    .dup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:200;padding:18px;}
-    .dup-modal{background:linear-gradient(180deg,rgba(16,26,42,.99),rgba(10,14,22,.99));border:1px solid rgba(255,180,50,.35);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.7);width:min(440px,95vw);padding:20px;}
-    .dup-title{font-weight:900;font-size:16px;color:#ffd166;margin-bottom:6px;}
-    .dup-job{font-size:22px;font-weight:900;color:#fff;margin-bottom:4px;}
-    .dup-where{font-size:13px;color:rgba(180,205,255,.85);margin-bottom:14px;}
-    .dup-body{font-size:13px;color:rgba(234,242,255,.75);line-height:1.6;margin-bottom:16px;}
-    .dup-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-    .dup-which-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;}
-    .dup-which-btn{background:var(--btn);color:var(--text);border:1px solid rgba(42,127,255,.45);border-radius:12px;padding:14px 10px;font-weight:900;font-size:13px;cursor:pointer;text-align:center;}
-    .dup-which-btn:hover{background:var(--btn2);}
+    .lane-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+    .mach-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+    .sbtn{background:var(--btn);color:var(--text);border:1px solid var(--border);
+      border-radius:12px;padding:12px 6px;font-weight:700;font-size:13px;cursor:pointer;text-align:center;}
+    .sbtn:hover{background:var(--btn2)}
+
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+      padding:12px 28px;border-radius:999px;font-weight:900;font-size:14px;
+      z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+    .toast.show{opacity:1;}
+    .back{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:0;margin-bottom:14px;display:block;}
+    .back:hover{color:var(--text)}
   </style>
 </head>
-
 <body>
-  <div class="wrap">
-    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;width:min(520px,95vw)">
-      <img src="./trace-logo.png.png" style="height:350px;width:auto;" alt="TRACE" />
-      <div class="card" style="width:100%">
-        <div class="top">
-          <div><div class="sub">Kiosk Access</div></div>
-          <div class="pill" id="pillStatus">LOCKED</div>
-        </div>
-        <div class="body">
 
-          <!-- PIN GATE -->
-          <div id="viewPin">
-            <div style="font-weight:900;">Enter PIN</div>
-            <div class="pinDots" id="pinDots">______</div>
-            <div class="grid" id="pinPad">
-              <button class="btn" data-d="1">1</button>
-              <button class="btn" data-d="2">2</button>
-              <button class="btn" data-d="3">3</button>
-              <button class="btn" data-d="4">4</button>
-              <button class="btn" data-d="5">5</button>
-              <button class="btn" data-d="6">6</button>
-              <button class="btn" data-d="7">7</button>
-              <button class="btn" data-d="8">8</button>
-              <button class="btn" data-d="9">9</button>
-              <button class="btn secondary" id="pinBack">⌫</button>
-              <button class="btn" data-d="0">0</button>
-              <button class="btn secondary" id="pinClear">C</button>
-            </div>
-            <div class="grid2">
-              <button class="btn" id="pinSubmit">UNLOCK</button>
-              <button class="btn secondary" id="pinGoMain">Admin Login</button>
-            </div>
-            <div class="msg" id="pinMsg"></div>
-            <div class="tiny" id="qrPayloadHint"></div>
+<div class="wrap">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:4px;width:min(520px,95vw)">
+    <img src="./trace-logo.png.png" style="height:350px;width:auto;" alt="TRACE"/>
+    <div class="card" style="width:100%">
+      <div class="top">
+        <div style="font-size:12px;color:var(--muted)">Kiosk Access</div>
+        <div class="pill" id="pillStatus">LOCKED</div>
+      </div>
+      <div class="body">
+
+        <!-- PIN -->
+        <div id="viewPin">
+          <div style="font-weight:900">Enter PIN</div>
+          <div class="pinDots" id="pinDots">____</div>
+          <div class="g3" id="pinPad">
+            <button class="btn" data-d="1">1</button><button class="btn" data-d="2">2</button><button class="btn" data-d="3">3</button>
+            <button class="btn" data-d="4">4</button><button class="btn" data-d="5">5</button><button class="btn" data-d="6">6</button>
+            <button class="btn" data-d="7">7</button><button class="btn" data-d="8">8</button><button class="btn" data-d="9">9</button>
+            <button class="btn sec" id="pinBack">&#x232B;</button>
+            <button class="btn" data-d="0">0</button>
+            <button class="btn sec" id="pinClear">C</button>
           </div>
-
-          <!-- HUB -->
-          <div id="viewHub" class="hide">
-            <div class="row">
-              <div style="font-weight:900;" id="hubUser">—</div>
-              <button class="btn secondary" style="width:auto;padding:10px 12px" id="hubLogout">Done / Logout</button>
-            </div>
-            <div class="grid2" style="margin-top:12px">
-              <button class="btn" id="hubMove">MOVE</button>
-              <button class="btn" id="hubSearch">SEARCH</button>
-              <button class="btn" id="hubAdmin">ADMIN</button>
-            </div>
-            <div class="section" id="jobCard" style="margin-top:12px">
-              <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
-                <div style="font-weight:900">Scanned Job</div>
-                <div class="pill" id="jobCardStatus">—</div>
-              </div>
-              <div class="tiny" id="scanLine" style="margin-top:8px">No job loaded</div>
-            </div>
+          <div class="g2">
+            <button class="btn" id="pinSubmit">UNLOCK</button>
+            <button class="btn sec" id="pinAdmin">Admin Login</button>
           </div>
-
+          <div id="pinMsg" style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0;min-height:20px;"></div>
         </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- WHICH PALLET OVERLAY -->
-  <div class="dup-overlay hide" id="whichOverlay">
-    <div class="dup-modal">
-      <div class="dup-title">⚠️ Multiple Pallets Found</div>
-      <div class="dup-job" id="whichJobNum"></div>
-      <div class="dup-body" style="margin-bottom:10px;">Which pallet are you scanning?</div>
-      <div class="dup-which-grid" id="whichGrid"></div>
-      <button class="btn secondary" id="whichClose" style="margin-top:12px;">Close</button>
-    </div>
-  </div>
-
-  <!-- DUP OVERLAY (kept for future use) -->
-  <div class="dup-overlay hide" id="dupOverlay">
-    <div class="dup-modal">
-      <div class="dup-title">⚠️ Job Found in Another Lane</div>
-      <div class="dup-job" id="dupJobNum"></div>
-      <div class="dup-where" id="dupWhere"></div>
-      <div class="dup-body" id="dupBody"></div>
-      <div class="dup-btns">
-        <button class="btn" id="dupTakeBoth">Take Both</button>
-        <button class="btn secondary" id="dupIgnore">Ignore</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- PARTIAL PICK MODAL -->
-  <div class="modal-overlay hide" id="partialModal">
-    <div class="modal">
-      <div class="modal-title">Are you taking the full job?</div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;" id="partialJobInfo">—</div>
-      <div class="grid2">
-        <button class="btn" id="partialYesBtn">YES — FULL JOB</button>
-        <button class="btn secondary" id="partialNoBtn">NO — PARTIAL</button>
-      </div>
-      <div id="partialQtySection" class="hide" style="margin-top:16px;">
-        <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">How many are you taking?</div>
-        <input id="partialQtyInput" type="number" min="1" placeholder="Enter qty..." />
-        <button class="btn" id="partialConfirmBtn" style="margin-top:10px;">CONFIRM & MOVE</button>
-      </div>
-      <button class="btn secondary" id="partialCancelBtn" style="margin-top:10px;">Cancel</button>
-    </div>
-  </div>
-
-  <div class="toast" id="toast"></div>
-
-  <!-- MOVE MODAL -->
-  <div class="modal-overlay hide" id="moveModal">
-    <div class="modal">
-      <div id="moveStep1">
-        <div class="modal-title">Move To — Select Type</div>
-        <div class="grid2" style="margin-top:0">
-          <button class="btn" id="moveLaneBtn">LANE</button>
-          <button class="btn" id="moveMachineBtn">MACHINE</button>
+        <!-- HUB -->
+        <div id="viewHub" class="hide">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-weight:900;font-size:15px" id="hubGreet">—</div>
+            <button class="btn sec" style="width:auto;padding:8px 14px" id="hubLogout">Logout</button>
+          </div>
+          <div class="g2" style="margin-top:12px">
+            <button class="btn" id="hubMove">MOVE</button>
+            <button class="btn" id="hubSearch">SEARCH</button>
+            <button class="btn" id="hubAdmin">ADMIN</button>
+          </div>
+          <div class="section">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-weight:900">Scanned Job</div>
+              <div class="pill" id="jobStatus">—</div>
+            </div>
+            <div class="tiny" id="jobLine">No job loaded</div>
+          </div>
         </div>
-        <div style="margin-top:14px">
-          <button class="btn secondary" style="width:auto;padding:8px 14px;font-size:13px" id="moveCancel">Cancel</button>
-        </div>
-      </div>
-      <div id="moveStep2Lane" class="hide">
-        <button class="modal-back" id="backFromLane">← Back</button>
-        <div class="modal-title">Select Lane</div>
-        <div class="lane-grid" id="laneGrid"></div>
-      </div>
-      <div id="moveStep2Machine" class="hide">
-        <button class="modal-back" id="backFromMachine">← Back</button>
-        <div class="modal-title">Select Machine</div>
-        <div class="machine-grid" id="machineGrid"></div>
-      </div>
-    </div>
-  </div>
 
-  <!-- SEARCH MODAL -->
-  <div class="modal-overlay hide" id="searchModal">
-    <div class="modal">
-      <div class="modal-title">Search Job / MO</div>
-      <input id="searchInput" placeholder="Type job number or MO…" />
-      <div class="grid2" style="margin-top:10px">
-        <button class="btn" id="searchGoBtn">SEARCH</button>
-        <button class="btn secondary" id="searchCancelBtn">Cancel</button>
-      </div>
-      <div class="msg" id="searchMsg" style="margin-top:10px"></div>
-      <div class="section" id="searchResultCard" style="display:none;">
-        <div style="font-weight:900" id="searchResultLine1">—</div>
-        <div class="tiny" id="searchResultLine2">—</div>
-        <div class="grid2" style="margin-top:10px">
-          <button class="btn" id="searchLoadBtn">LOAD THIS JOB</button>
-          <button class="btn secondary" id="searchClearBtn">Clear</button>
-        </div>
       </div>
     </div>
   </div>
+</div>
+
+<!--   OVERLAY 1 — Full or Partial?   -->
+<div class="overlay hide" id="ovPartial">
+  <div class="obox">
+    <div class="otitle">Taking the full job?</div>
+    <div class="osub" id="ovPartialInfo">—</div>
+    <div class="g2" style="margin-top:0">
+      <button class="btn" id="btnYesFull">YES — TAKE ALL</button>
+      <button class="btn sec" id="btnNoPartial">NO — PARTIAL</button>
+    </div>
+    <!-- shown only when they hit NO -->
+    <div id="qtyArea" class="hide" style="margin-top:16px">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:8px">How many are you taking?</div>
+      <input id="qtyInput" type="number" min="1" placeholder="Enter qty…"/>
+      <button class="btn" id="btnConfirmQty" style="margin-top:10px">CONFIRM QTY &amp; PICK LOCATION</button>
+    </div>
+    <button class="btn sec" id="btnCancelPartial" style="margin-top:12px">Cancel</button>
+  </div>
+</div>
+
+<!--  OVERLAY 2 — Pick destination   -->
+<div class="overlay hide" id="ovDest">
+  <div class="obox">
+
+    <!-- 2a: Lane or Machine? -->
+    <div id="destType">
+      <div class="otitle">Move to — Lane or Machine?</div>
+      <div class="g2" style="margin-top:0">
+        <button class="btn" id="btnPickLane">LANE</button>
+        <button class="btn" id="btnPickMachine">MACHINE</button>
+      </div>
+      <button class="btn sec" id="btnCancelDest" style="margin-top:12px">Cancel</button>
+    </div>
+
+    <!-- 2b: Pick lane number -->
+    <div id="destLanes" class="hide">
+      <button class="back" id="backFromLanes">&#x2190; Back</button>
+      <div class="otitle">Select Lane</div>
+      <div class="lane-grid" id="laneGrid"></div>
+    </div>
+
+    <!-- 2c: Pick machine -->
+    <div id="destMachines" class="hide">
+      <button class="back" id="backFromMachines">&#x2190; Back</button>
+      <div class="otitle">Select Machine</div>
+      <div class="mach-grid" id="machGrid"></div>
+    </div>
+
+  </div>
+</div>
+
+<!--   OVERLAY 3 — Multi-pallet picker   -->
+<div class="overlay hide" id="ovWhich">
+  <div class="obox">
+    <div class="otitle" style="color:#ffd166">Multiple Pallets Found</div>
+    <div class="osub">Which pallet are you moving?</div>
+    <div id="whichGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+    <button class="btn sec" id="btnWhichCancel" style="margin-top:14px">Cancel</button>
+  </div>
+</div>
+
+<!--   OVERLAY 4 — Search   -->
+<div class="overlay hide" id="ovSearch">
+  <div class="obox">
+    <div class="otitle">Search Job / MO</div>
+    <input id="searchInput" placeholder="Job number or MO…"/>
+    <div class="g2" style="margin-top:10px">
+      <button class="btn" id="btnDoSearch">SEARCH</button>
+      <button class="btn sec" id="btnSearchCancel">Cancel</button>
+    </div>
+    <div id="searchMsg" style="font-size:12px;color:var(--muted);padding:8px 0;min-height:20px;"></div>
+    <div id="searchResult" class="hide" style="border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:4px">
+      <div style="font-weight:900" id="srTitle">—</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px" id="srSub">—</div>
+      <button class="btn" id="btnLoadSearchJob" style="margin-top:12px">LOAD THIS JOB</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
 
 <script>
-  const MAIN_TRACE_URL = "./index.html";
-  const ADMIN_URL      = "./admin.html";
-  const API_BASE       = "https://trace-api-sak3.onrender.com";
+const API  = "https://trace-api-sak3.onrender.com";
+const ADMIN = "./admin.html";
+const $     = id => document.getElementById(id);
 
-  // ── state ─────────────────────────────────────────────────────────────────
-  let pinBuf            = "";
-  let locations         = [];
-  let locIdByLane       = new Map();
-  let locIdByMachine    = new Map();
-  let inventory         = [];
-  let activeItem        = null;   // always the normalised shape: { id, job, mo, qty, status, lane, machine, notes }
-  let activePallets     = [];
-  let partialTakenQty   = 0;
-  let partialRemainingQty = 0;
-  let pendingSearchItem = null;
+// ── state ──────────────────────────────────────────────────────────────────
+let activeItem = null;  // { id, job, mo, qty, status, lane, machine, location_id, notes }
+let takingQty  = null;  // null = full job, number = partial
+let locations  = [];
+let inventory  = [];
+let locByLane  = new Map();  // "Lane 5" → id
+let locByMach  = new Map();  // "S8"     → id
+let pinBuf     = "";
+let pendingSearch = null;
 
-  const qs         = new URLSearchParams(location.search);
-  const payload    = { job: qs.get("job") || "", mo: qs.get("mo") || "", qty: qs.get("qty") || "" };
-  const scannedJob = (qs.get("job") || "").trim();
-  const $          = (id) => document.getElementById(id);
+const scannedJob = (new URLSearchParams(location.search).get("job") || "").trim().toUpperCase();
 
-  window.onerror = (msg, src, line) => {
-    document.body.insertAdjacentHTML("beforeend",
-      `<div style="position:fixed;top:0;left:0;right:0;background:red;color:white;padding:10px;z-index:9999;font-size:12px;">${msg} — line ${line}</div>`
-    );
-  };
+// ── toast ──────────────────────────────────────────────────────────────────
+function toast(msg, err=false) {
+  const t=$("toast");
+  t.textContent=msg;
+  t.style.cssText=`background:${err?"#3a1a1a":"#1a3a1a"};border:1px solid ${err?"#7a2d2d":"#2d7a2d"};color:${err?"#ff7f7f":"#7fff7f"};`;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),3500);
+}
 
-  // ── tiny helpers ──────────────────────────────────────────────────────────
-  const show = (a, b) => { $(a).classList.remove("hide"); $(b).classList.add("hide"); };
-  const setStatus = (t) => { $("pillStatus").textContent = t; };
+// ── PIN ────────────────────────────────────────────────────────────────────
+function renderPin(){
+  $("pinDots").textContent=(pinBuf+"____").slice(0,4).split("").map(c=>c==="_"?"_":"•").join("");
+}
+$("pinPad").addEventListener("click",e=>{
+  const d=e.target.closest("[data-d]")?.dataset.d;
+  if(d!==undefined && pinBuf.length<4){ pinBuf+=d; renderPin(); }
+});
+$("pinBack").onclick  =()=>{ pinBuf=pinBuf.slice(0,-1); renderPin(); };
+$("pinClear").onclick =()=>{ pinBuf=""; renderPin(); };
+$("pinAdmin").onclick =()=>location.href=ADMIN;
 
-  // FIX: use a class toggle instead of :not(:empty) so empty strings reliably hide
-  function setMsg(id, text) {
-    const el = $(id);
-    el.textContent = text;
-    el.classList.toggle("visible", text.length > 0);
-  }
+$("pinSubmit").onclick=async()=>{
+  if(!/^\d{4}$/.test(pinBuf)){$("pinMsg").textContent="PIN must be 4 digits";return;}
+  $("pinMsg").textContent="Checking…";
+  try{
+    const r=await fetch(`${API}/auth/pin-login`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pin:pinBuf})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||d.ok===false) throw d;
+    localStorage.setItem("tt",d.token);
+    localStorage.setItem("tu",JSON.stringify(d.user));
+    pinBuf="";renderPin();$("pinMsg").textContent="";
+    enterHub(d.user);
+  }catch(e){$("pinMsg").textContent=e?.error||"Invalid PIN";pinBuf="";renderPin();}
+};
 
-  // ── build lane/machine buttons ────────────────────────────────────────────
-  const laneGrid = $("laneGrid");
-  for (let i = 1; i <= 12; i++) {
-    const b = document.createElement("button");
-    b.className = "sel-btn";
-    b.textContent = `Lane ${i}`;
-    b.onclick = () => handleMoveSelection("lane", i);
-    laneGrid.appendChild(b);
-  }
+function auth(){return{token:localStorage.getItem("tt"),user:JSON.parse(localStorage.getItem("tu")||"null")};}
+function clearAuth(){localStorage.removeItem("tt");localStorage.removeItem("tu");}
 
-  const machines   = ["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane"];
-  const machineGrid = $("machineGrid");
-  machines.forEach(m => {
-    const b = document.createElement("button");
-    b.className = "sel-btn";
-    b.textContent = m;
-    b.onclick = () => handleMoveSelection("machine", m);
-    machineGrid.appendChild(b);
-  });
-
-  // ── location data ─────────────────────────────────────────────────────────
-  function mapLocations(raw) {
-    const arr = Array.isArray(raw) ? raw : [];
-    return arr.map(r => {
-      const location_id = Number(r.location_id ?? r.id);
-      const laneVal = r.lane ?? r.lane_number ?? r.laneNum;
-      const machVal = r.machine ?? r.machine_name ?? r.machineName ?? r.name ?? r.label;
-      const laneNum    = (laneVal !== undefined && laneVal !== null && String(laneVal).trim() !== "")
-                         ? String(laneVal).trim() : null;
-      const machineName = (machVal !== undefined && machVal !== null && String(machVal).trim() !== "")
-                          ? String(machVal).trim() : "";
-      const type = machineName ? "machine" : (laneNum ? "lane" : "unknown");
-      return { location_id, type, laneNum, machineName };
-    }).filter(x => Number.isFinite(x.location_id));
-  }
-
-  function buildLocationIndexes() {
-    locIdByLane    = new Map();
-    locIdByMachine = new Map();
-    locations.forEach(l => {
-      if (l.type === "lane"    && l.laneNum)     locIdByLane.set(`Lane ${l.laneNum}`, l.location_id);
-      if (l.type === "machine" && l.machineName) locIdByMachine.set(l.machineName,    l.location_id);
+// ── data ───────────────────────────────────────────────────────────────────
+async function loadLocations(){
+  try{
+    const r=await fetch(`${API}/locations`,{cache:"no-store"});
+    const d=await r.json().catch(()=>({}));
+    const raw=Array.isArray(d)?d:(d.locations||d.rows||[]);
+    locations=raw.map(x=>({
+      id:Number(x.location_id??x.id),
+      laneNum:String(x.lane??x.lane_number??x.laneNum??"").trim(),
+      machName:String(x.machine??x.machine_name??x.machineName??x.name??"").trim()
+    })).filter(x=>x.id>0);
+    locByLane.clear(); locByMach.clear();
+    locations.forEach(l=>{
+      if(l.laneNum)  locByLane.set("Lane "+l.laneNum, l.id);
+      if(l.machName) locByMach.set(l.machName, l.id);
     });
+  }catch(e){console.warn(e);}
+}
+
+async function loadInventory(){
+  try{
+    const r=await fetch(`${API}/items`,{cache:"no-store"});
+    const d=await r.json().catch(()=>({}));
+    const raw=Array.isArray(d)?d:(d.items||d.rows||[]);
+    inventory=raw.map(it=>{
+      const lid=Number(it.location_id??it.locationId??0);
+      const loc=locations.find(l=>l.id===lid);
+      return{
+        id:it.item_id??it.id,
+        job:String(it.job_number??it.job??"").trim().toUpperCase(),
+        mo:String(it.mo??"").trim().toUpperCase(),
+        qty:parseInt(it.qty??0,10),
+        status:String(it.status??"").trim(),
+        lane:loc?.laneNum?`Lane ${loc.laneNum}`:"",
+        machine:loc?.machName||"",
+        location_id:lid,
+        notes:it.notes||""
+      };
+    }).filter(x=>x.job&&x.status.toLowerCase()!=="deleted");
+  }catch(e){console.warn(e);}
+}
+
+function findJob(q){
+  const s=String(q).trim().toUpperCase();
+  return inventory.filter(x=>x.job===s||x.mo===s);
+}
+
+// ── hub ────────────────────────────────────────────────────────────────────
+async function enterHub(user){
+  const h=new Date().getHours();
+  $("hubGreet").textContent=(h<12?"Good Morning":h<17?"Good Afternoon":"Good Evening")+", "+(user.display_name||user.name||"Driver");
+  $("hubAdmin").style.display=user.role==="admin"?"block":"none";
+  $("pillStatus").textContent="UNLOCKED";
+  $("viewPin").classList.add("hide");
+  $("viewHub").classList.remove("hide");
+  $("jobLine").textContent="Loading…";
+  await loadLocations();
+  await loadInventory();
+  // load job from QR scan
+  if(scannedJob){
+    const m=findJob(scannedJob);
+    if(!m.length){$("jobLine").textContent=`Job #${scannedJob} not found`;$("jobStatus").textContent="NOT FOUND";}
+    else if(m.length===1) setActive(m[0]);
+    else showWhich(m,picked=>setActive(picked));
+  } else {
+    $("jobLine").textContent="No job loaded";
   }
+}
 
-  async function loadLocations() {
-    try {
-      const r    = await fetch(`${API_BASE}/locations`, { cache: "no-store" });
-      const data = await r.json().catch(() => ({}));
-      const raw  = Array.isArray(data) ? data : (data.locations || data.rows || []);
-      locations  = mapLocations(raw);
-      buildLocationIndexes();
-    } catch(e) { console.warn("Locations load failed:", e.message); }
+function setActive(item){
+  activeItem=item;
+  const loc=item.machine?`Machine ${item.machine}`:(item.lane||"No location");
+  $("jobLine").textContent=`Job ${item.job} \u2022 MO ${item.mo||"-"} \u2022 QTY ${item.qty} \u2022 ${loc}`;
+  $("jobStatus").textContent=item.status||"active";
+}
+
+$("hubLogout").onclick=()=>{
+  clearAuth();activeItem=null;takingQty=null;
+  $("viewHub").classList.add("hide");$("viewPin").classList.remove("hide");
+  $("pillStatus").textContent="LOCKED";
+};
+$("hubAdmin").onclick=()=>location.href=ADMIN;
+$("hubSearch").onclick=openSearch;
+
+// ══════════════════════════════════════════════════════════════════════════
+//   MOVE BUTTON FLOW
+// ══════════════════════════════════════════════════════════════════════════
+$("hubMove").onclick=()=>{
+  if(!activeItem){toast("No job loaded — scan a job first",true);return;}
+  openPartial();
+};
+
+// ── Overlay 1: Full or Partial? ────────────────────────────────────────────
+function openPartial(){
+  takingQty=null;
+  $("ovPartialInfo").textContent=`Job ${activeItem.job}  \u2022  MO ${activeItem.mo||"-"}  \u2022  QTY ${activeItem.qty}`;
+  $("qtyArea").classList.add("hide");
+  $("qtyInput").value="";
+  $("ovPartial").classList.remove("hide");
+}
+
+$("btnYesFull").onclick=()=>{
+  takingQty=null;
+  $("ovPartial").classList.add("hide");
+  openDest();
+};
+
+$("btnNoPartial").onclick=()=>{
+  $("qtyArea").classList.remove("hide");
+  $("qtyInput").focus();
+};
+
+$("btnConfirmQty").onclick=()=>{
+  const v=parseInt($("qtyInput").value||"0",10);
+  if(!v||v<=0){toast("Enter a valid qty",true);return;}
+  if(v>=activeItem.qty){toast("That covers the full qty — tap YES instead",true);return;}
+  takingQty=v;
+  $("ovPartial").classList.add("hide");
+  openDest();
+};
+
+$("btnCancelPartial").onclick=()=>{$("ovPartial").classList.add("hide");takingQty=null;};
+
+// ── Overlay 2: Pick destination ────────────────────────────────────────────
+function openDest(){
+  $("destType").classList.remove("hide");
+  $("destLanes").classList.add("hide");
+  $("destMachines").classList.add("hide");
+  $("ovDest").classList.remove("hide");
+}
+function closeDest(){$("ovDest").classList.add("hide");}
+
+$("btnPickLane").onclick   =()=>{$("destType").classList.add("hide");$("destLanes").classList.remove("hide");};
+$("btnPickMachine").onclick=()=>{$("destType").classList.add("hide");$("destMachines").classList.remove("hide");};
+$("backFromLanes").onclick   =()=>{$("destLanes").classList.add("hide");$("destType").classList.remove("hide");};
+$("backFromMachines").onclick=()=>{$("destMachines").classList.add("hide");$("destType").classList.remove("hide");};
+$("btnCancelDest").onclick   =()=>{closeDest();takingQty=null;};
+
+// Build lane buttons 1-12
+(function(){
+  const g=$("laneGrid");
+  for(let i=1;i<=12;i++){
+    const b=document.createElement("button");
+    b.className="sbtn";b.textContent="Lane "+i;
+    b.onclick=()=>doMove("Lane "+i, locByLane.get("Lane "+i));
+    g.appendChild(b);
   }
+})();
 
-  async function loadInventory() {
-    try {
-      const r    = await fetch(`${API_BASE}/items`, { cache: "no-store" });
-      const data = await r.json().catch(() => ({}));
-      const raw  = Array.isArray(data) ? data : (data.items || data.rows || []);
-      inventory  = raw.map(it => {
-        const id     = it.item_id ?? it.id;
-        const job    = String(it.job_number ?? it.job ?? "").trim().toUpperCase();
-        const mo     = String(it.mo ?? "").trim().toUpperCase();
-        const qty    = parseInt(it.qty ?? 0, 10);
-        const status = String(it.status ?? "").trim();
-        const loc_id = Number(it.location_id ?? it.locationId);
-        const locObj = locations.find(l => l.location_id === loc_id);
-        const lane    = (locObj && locObj.type === "lane")    ? `Lane ${locObj.laneNum}` : "";
-        const machine = (locObj && locObj.type === "machine") ? locObj.machineName       : "";
-        return { id, job, mo, qty, status, lane, machine, notes: it.notes || "" };
-      }).filter(x => x.job.length > 0 && x.status.toLowerCase() !== "deleted");
-    } catch(e) { console.warn("Inventory load failed:", e.message); }
-  }
+// Build machine buttons
+["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane"].forEach(m=>{
+  const b=document.createElement("button");
+  b.className="sbtn";b.textContent=m;
+  b.onclick=()=>doMove(m, locByMach.get(m));
+  $("machGrid").appendChild(b);
+});
 
-  function findItem(query) {
-    const q = String(query || "").trim().toUpperCase();
-    if (!q) return null;
-    return inventory.find(x => x.job === q)
-        || inventory.find(x => x.mo  === q)
-        || inventory.find(x => x.job.includes(q))
-        || null;
-  }
+// ── The actual API calls ────────────────────────────────────────────────────
+async function doMove(label, destId){
+  closeDest();
+  if(!destId){toast(`"${label}" has no DB location`,true);return;}
+  const {token,user}=auth();
+  const by=user?.display_name||user?.name||"kiosk";
+  const item=activeItem;
 
-  // ── FIX: single normalised setter — both raw API shape and inventory shape ──
-  // This is the ROOT CAUSE fix for the partial modal not appearing.
-  // Before, loadScannedJob() set activeItem to the raw API shape (job_number not job),
-  // so activeItem.job was undefined, the modal text threw, and classList.remove never ran.
-  function setActiveItemFromAnyShape(it) {
-    const job    = String(it.job ?? it.job_number ?? "").trim().toUpperCase();
-    const mo     = String(it.mo  ?? "").trim().toUpperCase();
-    const qty    = parseInt(it.qty ?? 0, 10);
-    const status = String(it.status ?? "—").trim();
+  try{
+    if(takingQty===null){
+      // ── FULL JOB: just move it ──────────────────────────────────────────
+      await put(item.id,{
+        location_id:destId, mo:item.mo||"", qty:item.qty,
+        status:item.status||"active", notes:item.notes||"", updated_by:by
+      },token);
+      toast(`Job ${item.job} moved to ${label}`);
 
-    // Normalise lane to always be "Lane N" or ""
-    let lane = String(it.lane ?? "").trim();
-    if (lane && !lane.toLowerCase().startsWith("lane")) lane = `Lane ${lane}`;
-
-    const machine = String(it.machine ?? "").trim();
-
-    activeItem = {
-      id:     it.id ?? it.item_id ?? it.itemId,
-      job, mo, qty, status, lane, machine,
-      notes:  it.notes ?? ""
-    };
-
-    const loc = activeItem.machine
-      ? `Machine ${activeItem.machine}`
-      : (activeItem.lane || "Unknown location");
-
-    $("scanLine").textContent = `Job ${activeItem.job} • MO ${activeItem.mo || "-"} • QTY ${activeItem.qty ?? "-"} • ${loc}`;
-    $("jobCardStatus").textContent = activeItem.status || "—";
-
-    // Keep URL in sync so a refresh restores the job
-    const url = new URL(location.href);
-    url.searchParams.set("job", activeItem.job);
-    history.replaceState({}, "", url.toString());
-  }
-
-  // ── FIX: reliable current-location lookup using the normalised lane string ──
-  function getCurrentLocationId(item) {
-    if (item.machine) return locIdByMachine.get(item.machine)  ?? null;
-    if (item.lane)    return locIdByLane.get(item.lane)        ?? null;
-    return null;
-  }
-
-  // ── move modal ────────────────────────────────────────────────────────────
-  function showMoveModal() {
-    $("moveModal").classList.remove("hide");
-    $("moveStep1").classList.remove("hide");
-    $("moveStep2Lane").classList.add("hide");
-    $("moveStep2Machine").classList.add("hide");
-  }
-
-  function hideMoveModal() { $("moveModal").classList.add("hide"); }
-
-  async function handleMoveSelection(type, value) {
-    hideMoveModal();
-
-    const palletsToMove = activePallets.length > 0 ? activePallets : (activeItem ? [activeItem] : []);
-    if (palletsToMove.length === 0) { showToast("No job loaded to move", true); return; }
-
-    const locId = type === "lane" ? locIdByLane.get(`Lane ${value}`) : locIdByMachine.get(value);
-    if (!locId) { showToast(`No DB location found for ${type === "lane" ? "Lane "+value : value}`, true); return; }
-
-    const { user, token } = getAuth();
-    const updatedBy = user?.display_name || user?.name || "kiosk";
-    const label     = type === "lane" ? `Lane ${value}` : value;
-
-    // ── PARTIAL PICK PATH ────────────────────────────────────────────────
-    if (partialTakenQty > 0 && partialRemainingQty > 0) {
-      const originalItem = palletsToMove[0];
-
-      // FIX: capture values NOW before resetting — toast was always showing 0
-      const taken     = partialTakenQty;
-      const remaining = partialRemainingQty;
-
-      // FIX: use normalised getCurrentLocationId instead of fragile inline find()
-      const currentLocId = getCurrentLocationId(originalItem);
-
-      try {
-        // Update original record — stays in current location with reduced qty
-        await fetch(`${API_BASE}/items/${originalItem.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-          body: JSON.stringify({
-            qty:         remaining,
-            location_id: currentLocId,
-            updated_by:  updatedBy,
-            mo:          originalItem.mo     || "",
-            status:      originalItem.status || "active",
-            notes:       originalItem.notes  || ""
-          })
-        });
-
-        // Create new record for the taken qty at the destination
-        await fetch(`${API_BASE}/items`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-          body: JSON.stringify({
-            job_number:  originalItem.job,
-            mo:          originalItem.mo     || "",
-            qty:         taken,
-            location_id: locId,
-            status:      originalItem.status || "active",
-            updated_by:  updatedBy,
-            notes:       `Partial pick — taken from ${originalItem.lane || originalItem.machine}`
-          })
-        });
-
-        sendPartialPickEmail(originalItem.job, originalItem.mo, taken, remaining, label, updatedBy);
-
-        // Reset AFTER capturing
-        partialTakenQty     = 0;
-        partialRemainingQty = 0;
-
-        await loadLocations();
-        await loadInventory();
-        $("scanLine").textContent = `Job ${originalItem.job} • Split — ${taken} to ${label}, ${remaining} remaining`;
-        showToast(`✅ Partial move done — ${taken} taken to ${label}`);
-        showScanAgain();
-
-      } catch(e) {
-        showToast(e.message || "Partial move failed", true);
-      }
-
-    // ── FULL JOB MOVE PATH ───────────────────────────────────────────────
     } else {
-      Promise.all(palletsToMove.map(p => moveItemToLocation(p.id, locId, updatedBy, p)))
-        .then(async () => {
-          await loadLocations();
-          await loadInventory();
-          const updated = findItem(palletsToMove[0].job);
-          if (updated) setActiveItemFromAnyShape(updated);
-          activePallets = [];
-          showToast(`✅ ${palletsToMove.length > 1 ? "Both pallets moved" : "Moved"} to ${label}`);
-          showScanAgain();
-        })
-        .catch(e => showToast(e.message || "Move failed", true));
-    }
-  }
+      // ── PARTIAL: reduce original, create new record ─────────────────────
+      const remaining=item.qty-takingQty;
 
-  $("moveLaneBtn").onclick    = () => { $("moveStep1").classList.add("hide"); $("moveStep2Lane").classList.remove("hide"); };
-  $("moveMachineBtn").onclick = () => { $("moveStep1").classList.add("hide"); $("moveStep2Machine").classList.remove("hide"); };
-  $("backFromLane").onclick    = () => { $("moveStep2Lane").classList.add("hide"); $("moveStep1").classList.remove("hide"); };
-  $("backFromMachine").onclick = () => { $("moveStep2Machine").classList.add("hide"); $("moveStep1").classList.remove("hide"); };
-  $("moveCancel").onclick = hideMoveModal;
-  $("moveModal").addEventListener("click", (e) => { if (e.target === $("moveModal")) hideMoveModal(); });
+      // 1. Reduce qty on original (stays in same location)
+      await put(item.id,{
+        location_id:item.location_id, mo:item.mo||"", qty:remaining,
+        status:item.status||"active", notes:item.notes||"", updated_by:by
+      },token);
 
-  // ── search modal ──────────────────────────────────────────────────────────
-  function openSearchModal() {
-    $("searchModal").classList.remove("hide");
-    setMsg("searchMsg", "");
-    $("searchInput").value = "";
-    $("searchResultCard").style.display = "none";
-    pendingSearchItem = null;
-    setTimeout(() => $("searchInput").focus(), 50);
-  }
+      // 2. New record at destination with the taken qty
+      await post({
+        job_number:item.job, mo:item.mo||"", qty:takingQty,
+        location_id:destId, status:item.status||"active",
+        updated_by:by, notes:`Partial from ${item.lane||item.machine||"?"}`
+      },token);
 
-  function closeSearchModal() { $("searchModal").classList.add("hide"); }
+      toast(`${takingQty} of ${item.job} \u2192 ${label} \u2022 ${remaining} remaining`);
 
-  $("searchCancelBtn").onclick = closeSearchModal;
-  $("searchClearBtn").onclick  = () => {
-    $("searchResultCard").style.display = "none";
-    setMsg("searchMsg", "");
-    pendingSearchItem = null;
-  };
-  $("searchModal").addEventListener("click", (e) => { if (e.target === $("searchModal")) closeSearchModal(); });
-
-  $("searchGoBtn").onclick = async () => {
-    const q = $("searchInput").value.trim();
-    if (!q) { setMsg("searchMsg", "Type a job number or MO."); return; }
-
-    setMsg("searchMsg", "Searching…");
-    const found = await searchAny(q);
-
-    if (!found) {
-      setMsg("searchMsg", "Not found in TRACE.");
-      $("searchResultCard").style.display = "none";
-      pendingSearchItem = null;
-      return;
+      // Non-blocking email notify
+      fetch(`${API}/notify/partial-pick`,{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({job:item.job,mo:item.mo,taken:takingQty,remaining,destination:label,driver:by})
+      }).catch(()=>{});
     }
 
-    pendingSearchItem = found;
-    setMsg("searchMsg", "");
-
-    const job     = String(found.job ?? found.job_number ?? "—").toUpperCase();
-    const mo      = found.mo  || "—";
-    const qty     = found.qty ?? "—";
-    let   lane    = String(found.lane ?? "");
-    if (lane && !lane.toLowerCase().startsWith("lane")) lane = `Lane ${lane}`;
-    const machine = found.machine ? `Machine ${found.machine}` : "";
-    const where   = [lane, machine].filter(Boolean).join(" • ") || "No location";
-
-    $("searchResultLine1").textContent = `Job ${job} • MO ${mo} • QTY ${qty}`;
-    $("searchResultLine2").textContent = where;
-    $("searchResultCard").style.display = "block";
-  };
-
-  $("searchLoadBtn").onclick = async () => {
-    if (!pendingSearchItem) return;
-    setActiveItemFromAnyShape(pendingSearchItem);
+    takingQty=null;
     await loadLocations();
     await loadInventory();
-    closeSearchModal();
-    showToast("✓ Job loaded");
-    checkDuplicateLanes(activeItem);
-  };
+    const fresh=findJob(item.job);
+    if(fresh.length) setActive(fresh[0]);
 
-  async function searchAny(query) {
-    const q = String(query || "").trim();
-    if (!q) return null;
-    const local = findItem(q);
-    if (local) return local;
-    try { return await fetchJob(q); } catch(e) { return null; }
+  }catch(e){
+    toast(e.message||"Move failed",true);
   }
+}
 
-  // ── auth ──────────────────────────────────────────────────────────────────
-  async function checkApi() {
-    try {
-      const r = await fetch(`${API_BASE}/health`, { cache: "no-store" });
-      if (!r.ok) throw new Error("bad status");
-      $("pillStatus").textContent = "LOCKED • API OK";
-    } catch(e) { $("pillStatus").textContent = "LOCKED • API DOWN"; }
-  }
+async function put(id,body,token){
+  const r=await fetch(`${API}/items/${id}`,{method:"PUT",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify(body)});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok||d.ok===false) throw new Error(d.error||"Update failed");
+  return d;
+}
+async function post(body,token){
+  const r=await fetch(`${API}/items`,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify(body)});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok||d.ok===false) throw new Error(d.error||"Create failed");
+  return d;
+}
 
-  function saveAuth(token, user) {
-    localStorage.setItem("trace_pin_token", token);
-    localStorage.setItem("trace_pin_user",  JSON.stringify(user));
-  }
-  function getAuth() {
-    return {
-      token: localStorage.getItem("trace_pin_token"),
-      user:  JSON.parse(localStorage.getItem("trace_pin_user") || "null")
-    };
-  }
-  function clearAuth() {
-    localStorage.removeItem("trace_pin_token");
-    localStorage.removeItem("trace_pin_user");
-  }
-
-  async function pinLogin(pin) {
-    const r    = await fetch(`${API_BASE}/auth/pin-login`, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ pin })
-    });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok || data.ok === false) throw data;
-    return data;
-  }
-
-  // ── PIN pad ───────────────────────────────────────────────────────────────
-  function renderPinDots() {
-    $("pinDots").textContent = (pinBuf + "____").slice(0,4).split("").map(ch => ch === "_" ? "_" : "•").join("");
-  }
-
-  function hintPayload() {
-    const has = payload.job || payload.mo || payload.qty;
-    $("qrPayloadHint").textContent = has
-      ? `Loaded from QR → Job: ${payload.job || "-"} • MO: ${payload.mo || "-"} • QTY: ${payload.qty || "-"}`
-      : "";
-  }
-
-  $("pinPad").addEventListener("click", (e) => {
-    const b = e.target.closest("button");
-    if (!b) return;
-    const d = b.getAttribute("data-d");
-    if (d !== null && pinBuf.length < 4) { pinBuf += d; renderPinDots(); }
+// ── Multi-pallet picker ─────────────────────────────────────────────────────
+function showWhich(matches, onPick){
+  const g=$("whichGrid");g.innerHTML="";
+  matches.forEach(item=>{
+    const loc=item.machine?`Machine ${item.machine}`:(item.lane||"No location");
+    const b=document.createElement("button");
+    b.className="sbtn";
+    b.innerHTML=`<div style="font-size:14px;font-weight:900">${loc}</div><div style="font-size:11px;margin-top:3px;opacity:.7">QTY ${item.qty}</div>`;
+    b.onclick=()=>{$("ovWhich").classList.add("hide");onPick(item);};
+    g.appendChild(b);
   });
+  $("btnWhichCancel").onclick=()=>$("ovWhich").classList.add("hide");
+  $("ovWhich").classList.remove("hide");
+}
 
-  $("pinBack").onclick  = () => { pinBuf = pinBuf.slice(0,-1); renderPinDots(); };
-  $("pinClear").onclick = () => { pinBuf = ""; renderPinDots(); };
+// ── Search ──────────────────────────────────────────────────────────────────
+function openSearch(){
+  $("searchInput").value="";$("searchMsg").textContent="";
+  $("searchResult").classList.add("hide");pendingSearch=null;
+  $("ovSearch").classList.remove("hide");
+  setTimeout(()=>$("searchInput").focus(),50);
+}
+$("btnSearchCancel").onclick=()=>$("ovSearch").classList.add("hide");
 
-  $("pinSubmit").onclick = async () => {
-    if (!/^\d{4}$/.test(pinBuf)) { setMsg("pinMsg", "PIN must be 4 digits"); return; }
-    setMsg("pinMsg", "Checking...");
-    try {
-      const data = await pinLogin(pinBuf);
-      saveAuth(data.token, data.user);
-      pinBuf = ""; renderPinDots();
-      setMsg("pinMsg", "");
-      enterHub(data.user);
-    } catch(err) {
-      setMsg("pinMsg", err?.error || "Invalid PIN");
-      pinBuf = ""; renderPinDots();
-    }
-  };
+$("btnDoSearch").onclick=()=>{
+  const q=$("searchInput").value.trim();
+  if(!q){$("searchMsg").textContent="Enter a job number or MO.";return;}
+  const m=findJob(q);
+  if(!m.length){$("searchMsg").textContent="Not found in TRACE.";$("searchResult").classList.add("hide");return;}
+  pendingSearch=m[0];
+  $("searchMsg").textContent="";
+  const loc=m[0].machine?`Machine ${m[0].machine}`:(m[0].lane||"No location");
+  $("srTitle").textContent=`Job ${m[0].job} \u2022 MO ${m[0].mo||"-"} \u2022 QTY ${m[0].qty}`;
+  $("srSub").textContent=loc;
+  $("searchResult").classList.remove("hide");
+};
 
-  $("pinGoMain").onclick = () => { location.href = new URL(ADMIN_URL, location.href).toString(); };
+$("btnLoadSearchJob").onclick=()=>{
+  if(!pendingSearch) return;
+  setActive(pendingSearch);
+  $("ovSearch").classList.add("hide");
+  toast("Job loaded");
+};
 
-  // ── hub ───────────────────────────────────────────────────────────────────
-  function showHub() {
-    $("viewPin").classList.add("fade-out");
-    setTimeout(() => {
-      $("viewPin").classList.add("hide");
-      $("viewPin").classList.remove("fade-out");
-      $("viewHub").classList.remove("hide");
-      $("viewHub").classList.add("fade-in");
-      setTimeout(() => $("viewHub").classList.remove("fade-in"), 200);
-    }, 200);
-  }
-
-  // FIX: enterHub is the SINGLE place that loads data and sets activeItem.
-  // loadScannedJob() is removed — it used a different object shape and caused the modal bug.
-  async function enterHub(user) {
-    const name = user.display_name || user.name || (user.role ? user.role.toUpperCase() : "USER");
-    const hour = new Date().getHours();
-    const greeting = hour < 12 ? "Good Morning" : hour < 17 ? "Good Afternoon" : "Good Evening";
-    $("hubUser").innerHTML = `${greeting}, ${name}!<div style="font-size:12px;font-weight:600;color:rgba(255,255,255,.45);margin-top:3px;letter-spacing:.05em;">${(user.role || "").toUpperCase()}</div>`;
-    $("hubAdmin").style.display = (user.role === "admin") ? "block" : "none";
-    setStatus("UNLOCKED");
-    showHub();
-
-    $("scanLine").textContent = "Loading inventory…";
-    await loadLocations();
-    await loadInventory();
-
-    if (scannedJob) {
-      const item = findItem(scannedJob);
-      if (item) {
-        setActiveItemFromAnyShape(item);   // always sets activeItem.job correctly
-        checkDuplicateLanes(activeItem);
-      } else {
-        $("scanLine").textContent = `Job #${scannedJob} not found in TRACE`;
-        $("jobCardStatus").textContent = "NOT FOUND";
-        showNotFoundHelp(scannedJob);
-      }
-    } else {
-      $("scanLine").textContent = "No job loaded";
-      activeItem = null;
-    }
-  }
-
-  function backToPin(msg = "") {
-    pinBuf = ""; renderPinDots();
-    setMsg("pinMsg", msg);
-    setStatus("LOCKED");
-    $("viewPin").classList.remove("fade-out","fade-in");
-    $("viewHub").classList.remove("fade-out","fade-in");
-    show("viewPin","viewHub");
-  }
-
-  $("hubLogout").onclick = () => { clearAuth(); backToPin("Logged out."); };
-
-  // FIX: guard checks activeItem.job (not just activeItem) so a half-set object doesn't slip through
-  $("hubMove").onclick = () => {
-    if (!activeItem || !activeItem.job) { showToast("No job loaded to move", true); return; }
-    showPartialModal();
-  };
-
-  $("hubSearch").onclick = () => openSearchModal();
-  $("hubAdmin").onclick  = () => { location.href = new URL(ADMIN_URL, location.href).toString(); };
-
-  // ── partial modal ─────────────────────────────────────────────────────────
-  // FIX: this now always works because activeItem is always the normalised shape
-  function showPartialModal() {
-    if (!activeItem || !activeItem.job) { showToast("No job loaded", true); return; }
-    $("partialJobInfo").textContent =
-      `Job ${activeItem.job} • MO ${activeItem.mo || "-"} • QTY ${activeItem.qty ?? "-"}`;
-    $("partialQtySection").classList.add("hide");
-    $("partialQtyInput").value = "";
-    $("partialModal").classList.remove("hide");
-  }
-
-  $("partialYesBtn").onclick = () => {
-    $("partialModal").classList.add("hide");
-    showMoveModal();
-  };
-
-  $("partialNoBtn").onclick = () => {
-    $("partialQtySection").classList.remove("hide");
-    $("partialQtyInput").focus();
-  };
-
-  $("partialCancelBtn").onclick = () => { $("partialModal").classList.add("hide"); };
-
-  $("partialConfirmBtn").onclick = () => {
-    const takenQty = parseInt($("partialQtyInput").value || "0", 10);
-    const totalQty = parseInt(activeItem?.qty ?? 0, 10);
-
-    if (!takenQty || takenQty <= 0) { showToast("Enter a valid qty", true); return; }
-    if (takenQty >= totalQty)       { showToast("That's the full qty — hit YES instead", true); return; }
-
-    partialTakenQty     = takenQty;
-    partialRemainingQty = totalQty - takenQty;
-
-    $("partialModal").classList.add("hide");
-    showMoveModal();
-  };
-
-  // ── duplicate / which-pallet ──────────────────────────────────────────────
-  function checkDuplicateLanes(loadedItem) {
-    if (!loadedItem) return;
-    const job = String(loadedItem.job ?? loadedItem.job_number ?? "").trim().toUpperCase();
-    const allMatches = inventory.filter(x =>
-      String(x.job).trim().toUpperCase() === job && (x.lane || x.machine)
-    );
-    if (allMatches.length <= 1) return;
-    showWhichPicker(job, allMatches, (picked) => {
-      setActiveItemFromAnyShape(picked);
-      activePallets = [picked];
-      showToast(`✅ Loaded ${picked.job} from ${picked.machine ? "Machine "+picked.machine : picked.lane}`);
-    });
-  }
-
-  function showWhichPicker(job, matches, onPick) {
-    $("whichJobNum").textContent = `Job #${job}`;
-    const grid = $("whichGrid");
-    grid.innerHTML = "";
-
-    matches.forEach(item => {
-      const loc = item.machine ? `Machine ${item.machine}` : (item.lane || "Unknown");
-      const btn = document.createElement("button");
-      btn.className = "dup-which-btn";
-      btn.innerHTML = `<div style="font-size:15px;margin-bottom:4px;">${loc}</div><div style="font-size:12px;opacity:.7;">Qty: ${item.qty ?? "—"}</div>`;
-      btn.onclick = () => { $("whichOverlay").classList.add("hide"); onPick(item); };
-      grid.appendChild(btn);
-    });
-
-    const takeBtn = document.createElement("button");
-    takeBtn.className = "btn";
-    takeBtn.style.marginTop = "12px";
-    takeBtn.textContent = "Take Both";
-    takeBtn.onclick = () => {
-      $("whichOverlay").classList.add("hide");
-      activePallets = [...matches];
-      const locs = matches.map(x => x.machine ? `Machine ${x.machine}` : x.lane).join(" + ");
-      $("scanLine").textContent = `Job #${job} • TAKING ALL • ${locs}`;
-      $("jobCardStatus").textContent = "TAKE ALL";
-      showToast(`✅ All ${matches.length} pallets loaded — Job #${job}`);
-    };
-    grid.appendChild(takeBtn);
-
-    $("whichClose").onclick = () => $("whichOverlay").classList.add("hide");
-    $("whichOverlay").classList.remove("hide");
-  }
-
-  // ── API helpers ───────────────────────────────────────────────────────────
-  async function fetchJob(job) {
-    const r    = await fetch(`${API_BASE}/items/lookup?job=${encodeURIComponent(job)}`, { cache: "no-store" });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok || !data.ok) throw new Error(data.error || "Lookup failed");
-    return data.item;
-  }
-
-  // FIX: accept item param so we don't rely on the global activeItem inside Promise.all
-  async function moveItemToLocation(itemId, locationId, updatedBy, item) {
-    const { token } = getAuth();
-    const src = item || activeItem;
-    const r = await fetch(`${API_BASE}/items/${itemId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-      body: JSON.stringify({
-        location_id: locationId,
-        updated_by:  updatedBy,
-        mo:          src?.mo     || "",
-        qty:         src?.qty    ?? 0,
-        status:      src?.status || "",
-        notes:       src?.notes  || ""
-      })
-    });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok || !data.ok) throw new Error(data.error || "Move failed");
-    return data.item;
-  }
-
-  async function sendPartialPickEmail(job, mo, taken, remaining, destination, driver) {
-    try {
-      await fetch(`${API_BASE}/notify/partial-pick`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ job, mo, taken, remaining, destination, driver })
-      });
-    } catch(e) { console.warn("Email notify failed:", e.message); }
-  }
-
-  // ── UI helpers ────────────────────────────────────────────────────────────
-  function showToast(msg, isError = false) {
-    const t = $("toast");
-    t.textContent        = msg;
-    t.style.background   = isError ? "#3a1a1a" : "#1a3a1a";
-    t.style.borderColor  = isError ? "#7a2d2d" : "#2d7a2d";
-    t.style.color        = isError ? "#ff7f7f" : "#7fff7f";
-    t.classList.add("show");
-    setTimeout(() => t.classList.remove("show"), 3000);
-  }
-
-  function showScanAgain() {
-    const existing = $("scanAgainBtn");
-    if (existing) existing.remove();
-    const btn = document.createElement("button");
-    btn.className = "btn";
-    btn.id = "scanAgainBtn";
-    btn.style.marginTop = "12px";
-    btn.textContent = "Scan Next Job";
-    btn.onclick = () => {
-      activeItem          = null;
-      activePallets       = [];
-      partialTakenQty     = 0;
-      partialRemainingQty = 0;
-      $("scanLine").textContent  = "No job loaded";
-      $("jobCardStatus").textContent = "—";
-      const url = new URL(location.href);
-      url.searchParams.delete("job");
-      url.searchParams.delete("mo");
-      url.searchParams.delete("qty");
-      history.replaceState({}, "", url.toString());
-      btn.remove();
-      showToast("Ready to scan next job!");
-    };
-    $("jobCard").appendChild(btn);
-  }
-
-  function showNotFoundHelp(job) {
-    const existing = $("notFoundHelp");
-    if (existing) existing.remove();
-    const div = document.createElement("div");
-    div.id = "notFoundHelp";
-    div.style.marginTop = "12px";
-    div.innerHTML = `
-      <div style="font-size:13px;color:rgba(255,107,107,.9);font-weight:700;margin-bottom:10px;">
-        ⚠️ Contact your supervisor to add Job #${job} to the system.
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <button class="btn" id="notFoundTryAgain">Try Again</button>
-        <button class="btn secondary" id="notFoundSearch">Search Manually</button>
-      </div>`;
-    $("jobCard").appendChild(div);
-
-    $("notFoundTryAgain").onclick = () => {
-      activeItem = null;
-      $("scanLine").textContent      = "No job loaded";
-      $("jobCardStatus").textContent = "—";
-      const url = new URL(location.href);
-      url.searchParams.delete("job");
-      history.replaceState({}, "", url.toString());
-      div.remove();
-    };
-    $("notFoundSearch").onclick = () => { div.remove(); openSearchModal(); };
-  }
-
-  // ── boot ──────────────────────────────────────────────────────────────────
-  hintPayload();
-  renderPinDots();
-  checkApi();
-
-  (async function boot() {
-    const { token, user } = getAuth();
-    if (token && user) {
-      enterHub(user);          // enterHub handles loadLocations + loadInventory
-    } else {
-      await loadLocations();
-      await loadInventory();
-      backToPin("");
-    }
-  })();
+// ── Boot ────────────────────────────────────────────────────────────────────
+(async function boot(){
+  renderPin();
+  try{
+    const r=await fetch(`${API}/health`,{cache:"no-store"});
+    $("pillStatus").textContent=r.ok?"LOCKED \u2022 API OK":"LOCKED \u2022 API DOWN";
+  }catch(e){$("pillStatus").textContent="LOCKED \u2022 API DOWN";}
+  const {token,user}=auth();
+  if(token&&user) enterHub(user);
+})();
 </script>
 </body>
 </html>
