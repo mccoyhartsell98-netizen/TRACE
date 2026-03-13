@@ -199,6 +199,27 @@
   </div>
 </div>
 
+<!-- PARTIAL PICK MODAL -->
+<div class="modal-overlay hide" id="partialModal">
+  <div class="modal">
+    <div class="modal-title">Are you taking the full job?</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px;" id="partialJobInfo">—</div>
+    <div class="grid2">
+      <button class="btn" id="partialYesBtn">YES — FULL JOB</button>
+      <button class="btn secondary" id="partialNoBtn">NO — PARTIAL</button>
+    </div>
+
+    <!-- Hidden until they hit NO -->
+    <div id="partialQtySection" class="hide" style="margin-top:16px;">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">How many are you taking?</div>
+      <input id="partialQtyInput" type="number" min="1" placeholder="Enter qty..." />
+      <button class="btn" id="partialConfirmBtn" style="margin-top:10px;">CONFIRM & MOVE</button>
+    </div>
+
+    <button class="btn secondary" id="partialCancelBtn" style="margin-top:10px;">Cancel</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
   <!-- MOVE MODAL — Step 1: Lane or Machine -->
@@ -392,7 +413,7 @@ async function searchAny(query){
     $("moveModal").classList.add("hide");
   }
 
-  function handleMoveSelection(type, value) {
+async function handleMoveSelection(type, value) {
     hideMoveModal();
     const palletsToMove = activePallets.length > 0 ? activePallets : (activeItem ? [activeItem] : []);
   if (palletsToMove.length === 0) { showToast("No job loaded to move", true); return; }
@@ -401,22 +422,71 @@ async function searchAny(query){
     const { user } = getAuth();
     const updatedBy = user?.display_name || user?.name || "kiosk";
     const label = type === "lane" ? `Lane ${value}` : value;
-    Promise.all(palletsToMove.map(p => moveItemToLocation(p.id, locId, updatedBy)))
-    .then(async () => {
-      await loadLocations();
-      await loadInventory();
-      const updated = findItem(palletsToMove[0].job);
-      if(updated) activeItem = updated;
-      activePallets = [];
-      const loc = activeItem?.machine ? `Machine ${activeItem.machine}` : (activeItem?.lane || label);
-      $("scanLine").textContent = `Job ${palletsToMove[0].job} • MO ${palletsToMove[0].mo || "-"} • QTY ${palletsToMove[0].qty ?? "-"} • ${loc}`;
-      $("jobCardStatus").textContent = activeItem?.status || "—";
-       showToast(`✅ ${palletsToMove.length > 1 ? "Both pallets moved" : "Moved"} to ${label}`);
-      showScanAgain();
-    })
-    .catch(e => showToast(e.message || "Move failed", true));
-  }
+   if (partialTakenQty > 0 && partialRemainingQty > 0) {
+  const originalId = palletsToMove[0].id;
+  const { token } = getAuth();
 
+  // Update original job to remaining qty (stays in current location)
+  await fetch(`${API_BASE}/items/${originalId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+    body: JSON.stringify({
+      qty: partialRemainingQty,
+      location_id: locations.find(l =>
+        (activeItem.lane && l.type === "lane" && `Lane ${l.laneNum}` === activeItem.lane) ||
+        (activeItem.machine && l.type === "machine" && l.machineName === activeItem.machine)
+      )?.location_id,
+      updated_by: updatedBy,
+      mo: activeItem.mo || "",
+      status: activeItem.status || "",
+      notes: activeItem.notes || ""
+    })
+  });
+
+  // Create new entry for taken qty at destination
+  await fetch(`${API_BASE}/items`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+    body: JSON.stringify({
+      job_number: activeItem.job,
+      mo: activeItem.mo || "",
+      qty: partialTakenQty,
+      location_id: locId,
+      status: activeItem.status || "active",
+      updated_by: updatedBy,
+      notes: `Partial pick — taken from ${activeItem.lane || activeItem.machine}`
+    })
+  });
+
+  // Send email notification
+  sendPartialPickEmail(activeItem.job, activeItem.mo, partialTakenQty, partialRemainingQty, label, updatedBy);
+
+  partialTakenQty = 0;
+  partialRemainingQty = 0;
+
+  await loadLocations();
+  await loadInventory();
+  $("scanLine").textContent = `Job ${activeItem.job} • ${partialRemainingQty + partialTakenQty > 0 ? "Split complete" : ""} • Remaining QTY updated`;
+  showToast(`✅ Partial move done — ${partialTakenQty} taken to ${label}`);
+  showScanAgain();
+
+} else {
+  // Full job move — original logic
+  Promise.all(palletsToMove.map(p => moveItemToLocation(p.id, locId, updatedBy)))
+  .then(async () => {
+    await loadLocations();
+    await loadInventory();
+    const updated = findItem(palletsToMove[0].job);
+    if(updated) activeItem = updated;
+    activePallets = [];
+    const loc = activeItem?.machine ? `Machine ${activeItem.machine}` : (activeItem?.lane || label);
+    $("scanLine").textContent = `Job ${palletsToMove[0].job} • MO ${palletsToMove[0].mo || "-"} • QTY ${palletsToMove[0].qty ?? "-"} • ${loc}`;
+    $("jobCardStatus").textContent = activeItem?.status || "—";
+    showToast(`✅ ${palletsToMove.length > 1 ? "Both pallets moved" : "Moved"} to ${label}`);
+    showScanAgain();
+  })
+  .catch(e => showToast(e.message || "Move failed", true));
+}
   function showToast(msg, isError = false) {
     const t = $("toast");
     t.textContent = msg;
@@ -660,12 +730,8 @@ $("searchLoadBtn").onclick = async () => {
   // Hub buttons
   $("hubLogout").onclick = () => { clearAuth(); backToPin("Logged out."); };
   $("hubMove").onclick = () => {
-  const { user } = getAuth();
-  if (user?.role === "operator") {
-    handleMoveSelection("lane", 1);
-  } else {
-    showMoveModal();
-  }
+  if (!activeItem) { showToast("No job loaded to move", true); return; }
+  showPartialModal();
 };
   $("hubSearch").onclick = () => { openSearchModal(); };
   $("hubAdmin").onclick = () => {
@@ -674,7 +740,9 @@ $("searchLoadBtn").onclick = async () => {
 
   // Scanned job helpers
   let activeItem = null;
-  let activePallets = [];
+let activePallets = [];
+let partialTakenQty = 0;
+let partialRemainingQty = 0;
 
 let pendingSearchItem = null;
 
@@ -788,12 +856,23 @@ function renderScannedCard(item) {
   return data.item;
 }
 
+async function sendPartialPickEmail(job, mo, taken, remaining, destination, driver) {
+  try {
+    await fetch(`${API_BASE}/notify/partial-pick`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ job, mo, taken, remaining, destination, driver })
+    });
+  } catch(e) {
+    console.warn("Email notify failed:", e.message);
+  }
+}
+
   function renderScannedError(msg) {
     document.getElementById("scannedCard").style.display = "block";
     document.getElementById("scannedLine").textContent = `Could not load job: ${msg}`;
     document.getElementById("scannedLoc").textContent = "";
   }
-
 
 function showScanAgain() {
   const existing = $("scanAgainBtn");
@@ -918,6 +997,49 @@ function showWhichPicker(job, matches, onPick) {
   $("whichClose").onclick = () => $("whichOverlay").classList.add("hide");
   $("whichOverlay").classList.remove("hide");
 }
+
+// ====== PARTIAL PICK ======
+function showPartialModal() {
+  const item = activeItem;
+  $("partialJobInfo").textContent = `Job ${item.job} • MO ${item.mo || "-"} • QTY ${item.qty ?? "-"}`;
+  $("partialQtySection").classList.add("hide");
+  $("partialQtyInput").value = "";
+  $("partialModal").classList.remove("hide");
+}
+
+$("partialYesBtn").onclick = () => {
+  $("partialModal").classList.add("hide");
+  showMoveModal();
+};
+
+$("partialNoBtn").onclick = () => {
+  $("partialQtySection").classList.remove("hide");
+  $("partialQtyInput").focus();
+};
+
+$("partialCancelBtn").onclick = () => {
+  $("partialModal").classList.add("hide");
+};
+
+$("partialConfirmBtn").onclick = async () => {
+  const takenQty = parseInt($("partialQtyInput").value || "0", 10);
+  const totalQty = parseInt(activeItem?.qty ?? 0, 10);
+
+  if (!takenQty || takenQty <= 0) {
+    showToast("Enter a valid qty", true); return;
+  }
+  if (takenQty >= totalQty) {
+    showToast("That's the full qty — hit YES instead", true); return;
+  }
+
+  const remainingQty = totalQty - takenQty;
+  partialTakenQty = takenQty;
+  partialRemainingQty = remainingQty;
+
+  $("partialModal").classList.add("hide");
+  showMoveModal(); // they now pick where they're taking it
+};
+
   
   // Boot
   hintPayload();
