@@ -466,7 +466,7 @@ async function handleMoveSelection(type, value) {
 
   await loadLocations();
   await loadInventory();
-  $("scanLine").textContent = `Job ${activeItem.job} • ${partialRemainingQty + partialTakenQty > 0 ? "Split complete" : ""} • Remaining QTY updated`;
+  $("scanLine").textContent = `Job ${activeItem.job} • Split complete • Remaining QTY updated`;
   showToast(`✅ Partial move done — ${partialTakenQty} taken to ${label}`);
   showScanAgain();
 
@@ -486,7 +486,8 @@ async function handleMoveSelection(type, value) {
     showScanAgain();
   })
   .catch(e => showToast(e.message || "Move failed", true));
-}
+} 
+} 
   function showToast(msg, isError = false) {
     const t = $("toast");
     t.textContent = msg;
