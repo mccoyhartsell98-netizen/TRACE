@@ -340,7 +340,12 @@ $("hubSearch").onclick=openSearch;
 // ══════════════════════════════════════════════════════════════════════════
 $("hubMove").onclick=()=>{
   if(!activeItem){toast("No job loaded — scan a job first",true);return;}
-  openPartial();
+  const {user}=auth();
+  if(user?.role==="operator"){
+    doMove("Lane 1", locByLane.get("Lane 1"));
+  } else {
+    openPartial();
+  }
 };
 
 // ── Overlay 1: Full or Partial? ────────────────────────────────────────────
