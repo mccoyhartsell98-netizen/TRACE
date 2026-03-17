@@ -2679,7 +2679,7 @@ function renderGlobalSearch(){
   const q = normalize(els.globalSearch.value);
   els.globalResults.innerHTML = "";
   if(!q){
-    els.globalResults.innerHTML = `<div style="color:var(--muted)">Search any Item # or MO to instantly locate a job across all locations (Lanes, Machines, etc.)</div>`;
+    els.globalResults.innerHTML = `<div style="color:var(--muted);font-size:13px;">Search any Item # or MO to find a job across all locations.</div>`;
     return;
   }
   const matches = inventory.filter(x => normalize(x.job).includes(q) || normalize(x.mo).includes(q)).slice(0, 15);
