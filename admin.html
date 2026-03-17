@@ -2688,7 +2688,9 @@ function renderGlobalSearch(){
   matches.forEach(item => {
     const div = document.createElement("div");
     div.className = "resultItem";
-    const location = item.machine ? `Machine: ${escapeHtml(item.machine)}` : (item.lane ? escapeHtml(item.lane) : "—");
+    const location = item.machine ? 
+  (item.machine.toUpperCase() === "QUEUE" ? "Queue" : `Machine: ${escapeHtml(item.machine)}`) 
+  : (item.lane ? escapeHtml(item.lane) : "—");
      div.innerHTML = `
       <div class="big">Item #${escapeHtml(item.job)}</div>
       ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ``}
@@ -3331,7 +3333,9 @@ function renderFeedPage(){
   }
 
   sorted.slice(0, 80).forEach(item => {
-    const loc = item.machine ? `Machine ${item.machine}` : (item.lane || "Unknown");
+    const loc = item.machine ? 
+  (item.machine.toUpperCase() === "QUEUE" ? "Queue" : `Machine ${item.machine}`) 
+  : (item.lane || "Unknown");
     const by = item.updatedBy || "—";
     const when = timeAgo(item.updatedAt);
     const div = document.createElement("div");
