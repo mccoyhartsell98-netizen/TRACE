@@ -99,6 +99,7 @@
           </div>
           <div class="g2" style="margin-top:12px">
             <button class="btn" id="hubMove">MOVE</button>
+            <button class="btn" id="hubStatus">STATUS</button>
             <button class="btn" id="hubSearch">SEARCH</button>
             <button class="btn" id="hubAdmin">ADMIN</button>
           </div>
@@ -191,6 +192,15 @@
       <div style="font-size:12px;color:var(--muted);margin-top:4px" id="srSub">—</div>
       <button class="btn" id="btnLoadSearchJob" style="margin-top:12px">LOAD THIS JOB</button>
     </div>
+  </div>
+</div>
+
+<div class="overlay hide" id="ovStatus">
+  <div class="obox">
+    <div class="otitle">Update Status</div>
+    <div class="osub" id="ovStatusJob">—</div>
+    <div id="statusBtnGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;"></div>
+    <button class="btn sec" id="btnStatusCancel" style="margin-top:12px;">Cancel</button>
   </div>
 </div>
 
@@ -523,6 +533,54 @@ $("btnLoadSearchJob").onclick=()=>{
   $("ovSearch").classList.add("hide");
   toast("Job loaded");
 };
+
+
+// ====== STATUS UPDATE ======
+const STATUSES_KEY = "trace_statuses_v1";
+const DEFAULT_STATUSES = ["Tauro Queue","On Press","Printed","Partially Printed","On Hold","Completed","Move To Lane"];
+
+function getStatuses(){
+  try{ const r = localStorage.getItem(STATUSES_KEY); return r ? JSON.parse(r) : [...DEFAULT_STATUSES]; }
+  catch(e){ return [...DEFAULT_STATUSES]; }
+}
+
+$("hubStatus").onclick = () => {
+  if(!activeItem){ toast("No job loaded — scan a job first", true); return; }
+  $("ovStatusJob").textContent = `Job ${activeItem.job} • Current: ${activeItem.status || "—"}`;
+  const grid = $("statusBtnGrid");
+  grid.innerHTML = "";
+  getStatuses().forEach(s => {
+    const b = document.createElement("button");
+    b.className = "btn";
+    b.textContent = s;
+    b.onclick = () => applyStatus(s);
+    grid.appendChild(b);
+  });
+  $("ovStatus").classList.remove("hide");
+};
+
+$("btnStatusCancel").onclick = () => $("ovStatus").classList.add("hide");
+
+async function applyStatus(status){
+  $("ovStatus").classList.add("hide");
+  const { token, user } = auth();
+  const by = user?.display_name || user?.name || "kiosk";
+  try{
+    await put(activeItem.id, {
+      location_id: activeItem.location_id,
+      mo: activeItem.mo || "",
+      qty: activeItem.qty,
+      status: status,
+      notes: activeItem.notes || "",
+      updated_by: by
+    }, token);
+    activeItem.status = status;
+    setActive(activeItem);
+    toast(`Status updated → ${status}`);
+  } catch(e){
+    toast(e.message || "Update failed", true);
+  }
+}
 
 // ── Boot ────────────────────────────────────────────────────────────────────
 (async function boot(){
