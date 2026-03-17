@@ -1307,6 +1307,7 @@
   <button class="ghost" id="openPartialPicksBtn">Partial Pick Log</button>
   <div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#6C86A8;padding:4px 2px;margin-top:8px;border-bottom:1px solid rgba(42,127,255,0.15);margin-bottom:4px;">Administration</div>
   <button class="ghost" id="openUsersBtn">User Management</button>
+  <button class="ghost" id="openStatusesBtn">Status Options</button>
 </div>
       </aside>
 
@@ -1594,6 +1595,24 @@
         <div class="emptyState-sub">When a driver takes a partial qty from a job it will appear here.</div>
       </div>
     </div>
+  </div>
+</div>
+
+<div id="statusesPage" class="appPage hidden">
+  <div class="wrap" style="max-width:600px;">
+    <div class="pageHeader">
+      <button class="ghost" id="statusesPageBack">← Back</button>
+      <h2 style="margin:0;font-size:18px;">Status Options</h2>
+      <div></div>
+    </div>
+    <div class="card" style="margin-bottom:14px;">
+      <div style="display:flex;gap:10px;">
+        <input id="newStatusInput" type="text" placeholder="New status (e.g. On Press)">
+        <button class="primary" id="addStatusBtn" style="width:auto;white-space:nowrap;">Add</button>
+      </div>
+      <div id="statusMsg" style="margin-top:8px;font-size:13px;color:var(--muted);min-height:18px;"></div>
+    </div>
+    <div id="statusList" class="results"></div>
   </div>
 </div>
 
@@ -4431,6 +4450,70 @@ document.getElementById("openPartialPicksBtn").addEventListener("click", async (
   renderPartialPicks();
   // auto cleanup while we're here
   apiDelete("/partial-picks/cleanup").catch(() => {});
+});
+
+// ====== STATUS OPTIONS ======
+const STATUSES_KEY = "trace_statuses_v1";
+const DEFAULT_STATUSES = ["Tauro Queue","On Press","Printed","Partially Printed","On Hold","Completed","Move To Lane"];
+
+function loadStatuses(){
+  try{ const r = localStorage.getItem(STATUSES_KEY); return r ? JSON.parse(r) : [...DEFAULT_STATUSES]; }
+  catch(e){ return [...DEFAULT_STATUSES]; }
+}
+function saveStatuses(list){ localStorage.setItem(STATUSES_KEY, JSON.stringify(list)); }
+
+function renderStatusesPage(){
+  const list = loadStatuses();
+  const container = document.getElementById("statusList");
+  container.innerHTML = "";
+  if(list.length === 0){
+    container.innerHTML = `<div style="color:var(--muted);font-size:13px;">No statuses yet. Add one above.</div>`;
+    return;
+  }
+  list.forEach((s, i) => {
+    const div = document.createElement("div");
+    div.className = "resultItem";
+    div.style.display = "flex";
+    div.style.alignItems = "center";
+    div.style.justifyContent = "space-between";
+    div.innerHTML = `
+      <div style="font-weight:900;font-size:15px;">${escapeHtml(s)}</div>
+      <button class="danger" style="width:auto;padding:6px 12px;font-size:12px;" data-idx="${i}">Remove</button>
+    `;
+    div.querySelector("[data-idx]").addEventListener("click", async () => {
+      const ok = await uiConfirm("Remove Status", `Remove "${s}" from the list?`, "Remove", "Cancel");
+      if(!ok) return;
+      const updated = loadStatuses().filter((_, j) => j !== i);
+      saveStatuses(updated);
+      renderStatusesPage();
+      toast(`Removed "${s}"`);
+    });
+    container.appendChild(div);
+  });
+}
+
+document.getElementById("addStatusBtn").addEventListener("click", () => {
+  const input = document.getElementById("newStatusInput");
+  const msg = document.getElementById("statusMsg");
+  const val = input.value.trim();
+  if(!val){ msg.textContent = "Enter a status name."; return; }
+  const list = loadStatuses();
+  if(list.map(s => s.toLowerCase()).includes(val.toLowerCase())){
+    msg.textContent = `"${val}" already exists.`; return;
+  }
+  list.push(val);
+  saveStatuses(list);
+  input.value = "";
+  msg.textContent = "";
+  renderStatusesPage();
+  toast(`✅ Added "${val}"`);
+});
+
+document.getElementById("statusesPageBack").addEventListener("click", () => hidePage("statusesPage"));
+document.getElementById("openStatusesBtn").addEventListener("click", () => {
+  closeSideMenu();
+  showPage("statusesPage");
+  renderStatusesPage();
 });
 
 </script>
