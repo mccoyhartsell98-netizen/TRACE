@@ -1360,7 +1360,7 @@
 
         <!-- RIGHT -->
         <div class="card">
-          <h2>Job Update</h2>
+          <h2>Trace Details</h2>
           <div class="scroll">
             <div class="formGrid">
               <div class="full">
@@ -1382,7 +1382,8 @@
                 <input id="updatedBy" type="text" placeholder="Updated by (initials)">
               </div>
               <div class="full btnRow">
-                <button class="primary" id="saveBtn">Send to Lane</button>
+                <button class="primary" id="saveBtn">Update</button>
+                <button class="primary" id="moveBtn" disabled>Move</button>
                 <button class="primary" id="queueJobBtn">Send to Queue</button>
                 <button class="danger" id="deleteBtn" disabled>Delete</button>
               </div>
@@ -2405,7 +2406,8 @@ function applyScanParams(){
 // ====== FORM UI (admin always unlocked) ======
 function updateFormUI(){
   els.deleteBtn.disabled = !selectedId;
-  els.job.disabled = !!selectedId; // locked once created
+  els.job.disabled = !!selectedId;
+  document.getElementById("moveBtn").disabled = !selectedId; // add this
 }
 
 // ====== HISTORY (DB-backed) ======
@@ -3007,7 +3009,9 @@ els.machineSearch.addEventListener("input", renderMachineList);
 
 // Form buttons
 els.saveBtn.addEventListener("click", upsertItem);
-els.deleteBtn.addEventListener("click", deleteSelected);
+document.getElementById("moveBtn").addEventListener("click", () => {
+  if (selectedId) openMoveOverlay(selectedId);
+});
 
 // ===== QR + QUEUE EVENTS =====
 if (els.genJobQrBtn) els.genJobQrBtn.addEventListener("click", generateJobQr);
