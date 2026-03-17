@@ -1330,7 +1330,7 @@
     <input id="globalSearch" type="text" placeholder="Search Item # or MO (example: 6910153 or MO-5048)">
     <div class="results" id="globalResults" style="margin-top:10px;"></div>
     <div class="hint" style="margin-top:12px;">
-      Flow: <b>Search Item or MO</b> → <b>Move</b> → choose <b>Lane</b> or <b>Machine</b>.
+      Flow: <b>Search Item or MO</b> → <b>Move</b> → choose <b>Location</b>.
       <br/>
       Keys: <span class="kbd">1–9</span> quick lanes • <span class="kbd">F</span> fullscreen • <span class="kbd">ESC</span> close move box
     </div>
@@ -2679,7 +2679,7 @@ function renderGlobalSearch(){
   const q = normalize(els.globalSearch.value);
   els.globalResults.innerHTML = "";
   if(!q){
-    els.globalResults.innerHTML = `<div style="color:var(--muted)">Type an Item # or MO to search all lanes/machines.</div>`;
+    els.globalResults.innerHTML = `<div style="color:var(--muted)">Search any Item # or MO to instantly locate a job across all locations (Lanes, Machines, etc.)</div>`;
     return;
   }
   const matches = inventory.filter(x => normalize(x.job).includes(q) || normalize(x.mo).includes(q)).slice(0, 15);
