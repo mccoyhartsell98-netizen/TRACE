@@ -911,22 +911,24 @@
 document.getElementById('waitlistForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = e.target.querySelector('button[type="submit"]');
+  const btnRect = btn.getBoundingClientRect();
   const data = new FormData(e.target);
   await fetch('https://formspree.io/f/xvzwdwlw', { method:'POST', body: data, headers:{ 'Accept':'application/json' }});
   document.getElementById('waitlistForm').style.display = 'none';
   document.getElementById('waitlistSuccess').style.display = 'block';
-  launchConfetti('confettiCanvas', btn);
+  launchConfetti('confettiCanvas', null, btnRect);
 });
 
 // DEMO FORM
 document.getElementById('demoForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = e.target.querySelector('button[type="submit"]');
+  const btnRect = btn.getBoundingClientRect();
   const data = new FormData(e.target);
   await fetch('https://formspree.io/f/xvzwdwlw', { method:'POST', body: data, headers:{ 'Accept':'application/json' }});
   document.getElementById('demoForm').style.display = 'none';
   document.getElementById('demoSuccess').style.display = 'block';
-  launchConfetti('confettiCanvas2', btn);
+  launchConfetti('confettiCanvas2', null, btnRect);
 });
 
     // ABOUT CARD LIVE FEED
@@ -1032,17 +1034,19 @@ document.getElementById('demoForm').addEventListener('submit', async (e) => {
       setTimeout(runDemo, 1200);
     })();
 
-function launchConfetti(canvasId = 'confettiCanvas', originEl = null) {
+function launchConfetti(canvasId = 'confettiCanvas', originEl = null, originRect = null) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 
-  // Get origin from button or fall back to center
   let ox = canvas.width / 2;
   let oy = canvas.height / 2;
-  if (originEl) {
+  if (originRect) {
+    ox = originRect.left + originRect.width / 2;
+    oy = originRect.top + originRect.height / 2;
+  } else if (originEl) {
     const r = originEl.getBoundingClientRect();
     ox = r.left + r.width / 2;
     oy = r.top + r.height / 2;
