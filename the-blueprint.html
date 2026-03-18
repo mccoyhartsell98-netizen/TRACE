@@ -184,32 +184,6 @@
       .cursor-ring { display: none !important; }
     }
 
-.log-entry {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-  transition: background 0.15s;
-}
-.log-entry:hover { background: rgba(42,127,255,0.04); }
-.log-entry:last-child { border-bottom: none; margin-bottom: 8px; }
-.log-date {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  color: var(--blue);
-  opacity: 0.7;
-  white-space: nowrap;
-  padding-top: 1px;
-  flex-shrink: 0;
-}
-.log-msg {
-  font-size: 13px;
-  color: rgba(234,242,255,0.75);
-  line-height: 1.5;
-  font-weight: 400;
-}
-
   </style>
 </head>
 <body>
@@ -276,20 +250,16 @@
 
   <div class="section-divider"></div>
 
-<!-- LIVE LOG -->
+
+<!-- DEV LOG TEASER -->
 <div style="max-width: 600px; margin: 0 auto; padding: 0 24px 72px;">
-  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 18px;">
-    <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.25em; text-transform:uppercase; color:var(--blue); opacity:0.9;">// Dev Log</div>
-    <div style="display:flex; align-items:center; gap:8px;">
-      <div style="width:6px;height:6px;border-radius:50%;background:rgba(138,255,138,0.95);box-shadow:0 0 8px rgba(138,255,138,0.5);animation:pulse 1.5s ease-in-out infinite;"></div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.15em;color:rgba(138,255,138,0.85);">LIVE</div>
-    </div>
-  </div>
-  <div style="border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,0.02);padding-bottom:8px;" id="liveLog">
-    <div class="log-entry" style="border-bottom:none;">
-      <span class="log-date">...</span>
-      <span class="log-msg" style="color:var(--muted);">Loading commits...</span>
-    </div>
+  <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:14px;padding:28px;text-align:center;">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--blue);margin-bottom:12px;">// Dev Log</div>
+    <div style="font-size:15px;font-weight:600;color:#fff;margin-bottom:8px;">Every commit. Every fix. Every push.</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6;">Watch TRACE get built in real time — full development history, updated automatically with every deploy.</div>
+    <a href="./dev-log.html" style="display:inline-flex;align-items:center;gap:10px;padding:12px 28px;border-radius:12px;background:rgba(42,127,255,0.15);border:1px solid rgba(42,127,255,0.45);color:var(--blue2);font-weight:700;font-size:13px;text-decoration:none;letter-spacing:0.05em;transition:background 0.2s;">
+      Watch Us Build →
+    </a>
   </div>
 </div>
 
@@ -504,53 +474,6 @@
       }, { threshold: 0.5 });
       po.observe(fill);
     }
-
-async function loadCommitLog() {
-  const container = document.getElementById('liveLog');
-  if (!container) return;
-  try {
-    const res = await fetch('https://api.github.com/repos/mccoyhartsell98-netizen/TRACE/commits?per_page=100');
-    const commits = await res.json();
-    if (!Array.isArray(commits)) {
-      container.innerHTML = `<div class="log-entry" style="border-bottom:none;"><span class="log-date">--</span><span class="log-msg" style="color:var(--muted);">Could not load commit log.</span></div>`;
-      return;
-    }
-
-    // Filter out generic commits
-    const boring = /^(update|add files via upload|initial commit|minor|wip|misc|cleanup|clean up|typo)/i;
-    const fileOnly = /^(update|add|delete|remove|rename)\s+[\w\-\.]+\.(html|css|js|json|md|txt)\s*$/i;
-
-    const filtered = commits.filter(c => {
-      const msg = c.commit.message.split('\n')[0].trim();
-      if (fileOnly.test(msg)) return false;
-      if (boring.test(msg)) return false;
-      return msg.length > 8;
-    }).filter((c, index, self) =>
-  index === self.findIndex(x => x.commit.message.split('\n')[0] === c.commit.message.split('\n')[0])
-).slice(0, 15);
-
-    container.innerHTML = '';
-
-    if (filtered.length === 0) {
-      container.innerHTML = `<div class="log-entry" style="border-bottom:none;"><span class="log-date">--</span><span class="log-msg" style="color:var(--muted);">No meaningful commits yet — push something real.</span></div>`;
-      return;
-    }
-
-    filtered.forEach((c, i) => {
-      const date = new Date(c.commit.author.date);
-      const formatted = `[${String(date.getMonth()+1).padStart(2,'0')}/${String(date.getDate()).padStart(2,'0')}]`;
-      const msg = c.commit.message.split('\n')[0];
-      const div = document.createElement('div');
-      div.className = 'log-entry';
-      if (i === filtered.length - 1) div.style.borderBottom = 'none';
-      div.innerHTML = `<span class="log-date">${formatted}</span><span class="log-msg">${msg}</span>`;
-      container.appendChild(div);
-    });
-  } catch(e) {
-    container.innerHTML = `<div class="log-entry" style="border-bottom:none;"><span class="log-date">--</span><span class="log-msg" style="color:var(--muted);">Could not load commit log.</span></div>`;
-  }
-}
-loadCommitLog();
 
   </script>
 </body>
