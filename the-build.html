@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>The Build — TRACE</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #080b10; --bg2: #0c1018; --blue: #2a7fff; --blue2: #5aa3ff;
+      --text: #eaf2ff; --muted: rgba(234,242,255,0.55); --border: rgba(255,255,255,0.08);
+      --panel: rgba(255,255,255,0.03); --good: #8aff8a; --warn: #ffd166;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; overflow-x: hidden; cursor: none; }
+
+    /* CURSOR */
+    .cursor { position: fixed; width: 12px; height: 12px; border-radius: 50%; background: var(--blue); pointer-events: none; z-index: 99999; transform: translate(-50%,-50%); mix-blend-mode: screen; box-shadow: 0 0 20px var(--blue), 0 0 40px rgba(42,127,255,0.4); transition: width 0.2s, height 0.2s; }
+    .cursor-ring { position: fixed; width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(42,127,255,0.5); pointer-events: none; z-index: 99998; transform: translate(-50%,-50%); transition: width 0.2s, height 0.2s, left 0.18s ease, top 0.18s ease; }
+
+    /* GRAIN */
+    .grain { position: fixed; inset: 0; z-index: 99997; pointer-events: none; opacity: 0.035; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E"); background-size: 180px 180px; animation: grainShift 0.8s steps(2) infinite; }
+    @keyframes grainShift { 0%{transform:translate(0,0)} 25%{transform:translate(-2px,1px)} 50%{transform:translate(1px,-2px)} 75%{transform:translate(2px,1px)} 100%{transform:translate(-1px,2px)} }
+
+    /* NAV */
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; display: flex; align-items: center; justify-content: space-between; padding: 18px 48px; border-bottom: 1px solid transparent; transition: background 0.3s, border-color 0.3s; }
+    nav.scrolled { background: rgba(8,11,16,0.45); border-color: var(--border); backdrop-filter: blur(8px); }
+    .nav-links { display: flex; gap: 36px; list-style: none; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; transition: color 0.2s; }
+    .nav-links a:hover, .nav-links a.active { color: #fff; }
+    .nav-cta { background: rgba(42,127,255,0.15); border: 1px solid rgba(42,127,255,0.45); color: var(--blue2) !important; padding: 10px 22px; border-radius: 999px; font-weight: 700 !important; }
+    .nav-cta:hover { background: rgba(42,127,255,0.28) !important; color: #fff !important; }
+
+    /* HAMBURGER */
+    .nav-hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: none; padding: 4px; z-index: 1001; }
+    .nav-hamburger span { display: block; width: 24px; height: 2px; background: #fff; border-radius: 2px; transition: transform 0.3s ease, opacity 0.3s ease; }
+    .nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-hamburger.open span:nth-child(2) { opacity: 0; }
+    .nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+    .nav-mobile { display: none; position: fixed; top: 72px; left: 0; right: 0; background: rgba(8,11,16,0.97); backdrop-filter: blur(14px); border-bottom: 1px solid var(--border); flex-direction: column; padding: 16px 24px 24px; gap: 4px; z-index: 999; transform: translateY(-10px); opacity: 0; pointer-events: none; transition: transform 0.3s ease, opacity 0.3s ease; }
+    .nav-mobile.open { transform: translateY(0); opacity: 1; pointer-events: auto; }
+    .nav-mobile-link { color: var(--muted); text-decoration: none; font-size: 15px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; padding: 14px 0; border-bottom: 1px solid var(--border); transition: color 0.2s; }
+    .nav-mobile-link:last-child { border-bottom: none; }
+    .nav-mobile-link:hover { color: #fff; }
+    .nav-mobile-cta { color: var(--blue2) !important; font-weight: 700; }
+    @media (max-width: 900px) { .nav-hamburger { display: flex; } .nav-mobile { display: flex; } .nav-links { display: none; } nav { padding: 16px 24px; } }
+
+    /* HERO */
+    .build-hero {
+      min-height: 52vh; display: flex; align-items: center; justify-content: center;
+      position: relative; overflow: hidden; padding: 140px 24px 80px; text-align: center;
+    }
+    .build-hero-bg {
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 800px 500px at 50% 40%, rgba(42,127,255,0.1), transparent 65%);
+    }
+    .build-hero-grid {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(42,127,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(42,127,255,0.08) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, black, transparent);
+    }
+    .build-hero-inner { position: relative; max-width: 700px; margin: 0 auto; }
+    .build-badge {
+      display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px;
+      border: 1px solid rgba(42,127,255,0.35); border-radius: 999px;
+      background: rgba(42,127,255,0.08); font-size: 11px;
+      font-family: 'JetBrains Mono', monospace; letter-spacing: 0.2em;
+      color: var(--blue2); margin-bottom: 28px;
+      opacity: 0; animation: fadeUp 0.8s ease forwards 0.2s;
+    }
+    .build-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 10px var(--blue); animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:0.6;transform:scale(0.9)} 50%{opacity:1;transform:scale(1.1)} }
+    .build-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(72px, 12vw, 120px); line-height: 0.92; letter-spacing: 6px; color: #fff; opacity: 0; animation: fadeUp 0.9s ease forwards 0.4s; }
+    .build-title span { -webkit-text-fill-color: transparent; background: linear-gradient(135deg, #5aa3ff, #2a7fff); -webkit-background-clip: text; background-clip: text; }
+    .build-sub { margin-top: 24px; font-size: 17px; color: var(--muted); line-height: 1.7; font-weight: 300; opacity: 0; animation: fadeUp 0.9s ease forwards 0.6s; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+
+    /* PROGRESS */
+    .build-progress { padding: 0 24px 72px; }
+    .build-progress-inner { max-width: 600px; margin: 0 auto; }
+    .build-progress-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .build-progress-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--blue); opacity: 0.9; }
+    .build-progress-pct { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0.1em; }
+    .build-track { width: 100%; height: 6px; background: rgba(42,127,255,0.1); border-radius: 999px; border: 1px solid rgba(42,127,255,0.15); overflow: hidden; position: relative; }
+    .build-fill { height: 100%; width: 0%; border-radius: 999px; background: linear-gradient(90deg, #2a7fff, #5aa3ff); box-shadow: 0 0 12px rgba(42,127,255,0.8), 0 0 24px rgba(42,127,255,0.4); transition: width 1.8s cubic-bezier(0.2,0.9,0.2,1); position: relative; }
+    .build-fill-shine { position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent); animation: progressShine 2.2s ease-in-out infinite; border-radius: 999px; }
+    @keyframes progressShine { 0%{transform:translateX(-100%)} 60%,100%{transform:translateX(200%)} }
+    .build-milestones { display: flex; justify-content: space-between; margin-top: 10px; }
+    .build-milestone { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.15em; color: rgba(42,127,255,0.6); }
+    .build-milestone.dim { color: rgba(234,242,255,0.2); }
+
+    /* SECTION DIVIDER */
+    .section-divider { height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); margin: 0 48px; }
+
+    /* ROADMAP */
+    .roadmap { padding: 80px 24px 120px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .roadmap-head { text-align: center; margin-bottom: 72px; }
+    .section-label { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--blue); margin-bottom: 16px; opacity: 0.85; }
+    .section-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(42px,6vw,72px); letter-spacing: 3px; line-height: 1; color: #fff; margin-bottom: 16px; }
+    .section-sub { font-size: 17px; color: var(--muted); line-height: 1.7; max-width: 520px; margin: 0 auto; font-weight: 300; }
+
+    .roadmap-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; }
+
+    .roadmap-col { background: var(--panel); border: 1px solid var(--border); border-radius: 18px; padding: 28px; position: relative; overflow: hidden; }
+    .roadmap-col::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; border-radius: 18px 18px 0 0; }
+    .roadmap-col.shipped::before { background: linear-gradient(90deg, var(--good), rgba(138,255,138,0.3)); }
+    .roadmap-col.inprogress::before { background: linear-gradient(90deg, var(--blue), rgba(42,127,255,0.3)); }
+    .roadmap-col.coming::before { background: linear-gradient(90deg, var(--warn), rgba(255,209,102,0.3)); }
+
+    .col-header { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+    .col-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .shipped .col-dot { background: var(--good); box-shadow: 0 0 10px rgba(138,255,138,0.5); }
+    .inprogress .col-dot { background: var(--blue); box-shadow: 0 0 10px rgba(42,127,255,0.5); animation: pulse 1.5s ease-in-out infinite; }
+    .coming .col-dot { background: var(--warn); box-shadow: 0 0 10px rgba(255,209,102,0.4); }
+    .col-title { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 700; }
+    .shipped .col-title { color: var(--good); }
+    .inprogress .col-title { color: var(--blue2); }
+    .coming .col-title { color: var(--warn); }
+
+    .roadmap-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .roadmap-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .item-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+    .shipped .item-icon { background: rgba(138,255,138,0.08); border: 1px solid rgba(138,255,138,0.2); }
+    .inprogress .item-icon { background: rgba(42,127,255,0.08); border: 1px solid rgba(42,127,255,0.2); }
+    .coming .item-icon { background: rgba(255,209,102,0.08); border: 1px solid rgba(255,209,102,0.2); }
+    .item-text { flex: 1; }
+    .item-name { font-size: 14px; font-weight: 700; color: #fff; line-height: 1.3; }
+    .item-desc { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.45; font-weight: 300; }
+
+    /* COMING SOON CALLOUT */
+    .build-callout {
+      margin: 0 24px 80px;
+      max-width: 1100px;
+      margin-left: auto; margin-right: auto;
+      background: linear-gradient(135deg, rgba(42,127,255,0.08), rgba(42,127,255,0.03));
+      border: 1px solid rgba(42,127,255,0.25);
+      border-radius: 20px;
+      padding: 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .build-callout::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(42,127,255,0.5), transparent);
+    }
+    .build-callout-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(32px,5vw,56px); letter-spacing: 3px; color: #fff; margin-bottom: 12px; }
+    .build-callout-sub { font-size: 16px; color: var(--muted); max-width: 480px; margin: 0 auto 28px; line-height: 1.7; font-weight: 300; }
+    .build-callout-btn {
+      display: inline-flex; align-items: center; gap: 10px; padding: 16px 36px;
+      border-radius: 14px; background: var(--blue); color: #fff; font-weight: 700;
+      font-size: 15px; text-decoration: none; border: none; cursor: none;
+      transition: transform 0.15s, box-shadow 0.15s; box-shadow: 0 8px 32px rgba(42,127,255,0.35);
+    }
+    .build-callout-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 48px rgba(42,127,255,0.5); }
+
+    /* REVEAL */
+    .reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.7s ease, transform 0.7s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* FOOTER */
+    footer { border-top: 1px solid var(--border); background: var(--bg2); padding: 60px 24px 32px; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-top { display: grid; grid-template-columns: 1.8fr 1fr 1fr; gap: 48px; margin-bottom: 48px; padding-bottom: 48px; border-bottom: 1px solid var(--border); }
+    .footer-brand-sub { font-size: 13px; color: var(--muted); margin-top: 12px; margin-bottom: 16px; font-weight: 300; line-height: 1.6; max-width: 260px; }
+    .footer-email { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--blue2); text-decoration: none; letter-spacing: 0.05em; transition: color 0.2s; }
+    .footer-email:hover { color: #fff; }
+    .footer-links-group { display: flex; flex-direction: column; gap: 12px; }
+    .footer-links-title { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--blue); margin-bottom: 4px; }
+    .footer-link { font-size: 13px; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+    .footer-link:hover { color: #fff; }
+    .footer-bottom { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .footer-copy { font-size: 12px; color: rgba(255,255,255,0.2); font-family: 'JetBrains Mono', monospace; }
+    .footer-tag { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(42,127,255,0.5); font-family: 'JetBrains Mono', monospace; }
+
+    @media (max-width: 900px) {
+      .roadmap-grid { grid-template-columns: 1fr; }
+      .footer-top { grid-template-columns: 1fr; gap: 32px; }
+      .build-callout { padding: 32px 24px; }
+      .cursor { display: none !important; }
+      .cursor-ring { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="grain"></div>
+  <div class="cursor" id="cursor"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+
+  <!-- NAV -->
+  <nav id="nav">
+    <a href="./index.html"><img src="./trace-logo-cropped.png" style="height:48px;width:auto;mix-blend-mode:screen;filter:drop-shadow(0 0 12px rgba(42,127,255,0.6));" alt="TRACE"/></a>
+    <button class="nav-hamburger" id="navHamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links">
+      <li><a href="./index.html#about">About</a></li>
+      <li><a href="./index.html#why">Why TRACE</a></li>
+      <li><a href="./index.html#coming-soon">Coming Soon</a></li>
+      <li><a href="./the-build.html" class="active">The Build</a></li>
+      <li><a href="./index.html#demo" class="nav-cta">Get Early Access</a></li>
+    </ul>
+  </nav>
+  <div class="nav-mobile" id="navMobile">
+    <a href="./index.html#about" class="nav-mobile-link">About</a>
+    <a href="./index.html#why" class="nav-mobile-link">Why TRACE</a>
+    <a href="./index.html#coming-soon" class="nav-mobile-link">Coming Soon</a>
+    <a href="./the-build.html" class="nav-mobile-link">The Build</a>
+    <a href="./index.html#demo" class="nav-mobile-link nav-mobile-cta">Get Early Access</a>
+  </div>
+
+  <!-- HERO -->
+  <section class="build-hero">
+    <div class="build-hero-bg"></div>
+    <div class="build-hero-grid"></div>
+    <div class="build-hero-inner">
+      <div class="build-badge">
+        <div class="build-badge-dot"></div>
+        LIVE DEVELOPMENT LOG
+      </div>
+      <h1 class="build-title">THE<br><span>BUILD.</span></h1>
+      <p class="build-sub">No smoke. No mirrors. Here's exactly what's shipped, what's in progress, and what's coming. Watch TRACE get built in real time.</p>
+    </div>
+  </section>
+
+  <!-- PROGRESS BAR -->
+  <div class="build-progress">
+    <div class="build-progress-inner">
+      <div class="build-progress-row">
+        <div class="build-progress-label">Build Progress</div>
+        <div class="build-progress-pct">72%</div>
+      </div>
+      <div class="build-track">
+        <div class="build-fill" id="buildFill">
+          <div class="build-fill-shine"></div>
+        </div>
+      </div>
+      <div class="build-milestones">
+        <div class="build-milestone">Core Built</div>
+        <div class="build-milestone">Beta</div>
+        <div class="build-milestone dim">Public Launch</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- ROADMAP -->
+  <section class="roadmap">
+    <div class="container">
+      <div class="roadmap-head reveal">
+        <div class="section-label">// Roadmap</div>
+        <h2 class="section-title">WHERE WE<br>STAND.</h2>
+        <p class="section-sub">Every feature. Every status. Updated as we build.</p>
+      </div>
+
+      <div class="roadmap-grid">
+
+        <!-- SHIPPED -->
+        <div class="roadmap-col shipped reveal" style="transition-delay:0ms;">
+          <div class="col-header">
+            <div class="col-dot"></div>
+            <div class="col-title">Shipped</div>
+          </div>
+
+          <div class="roadmap-item">
+            <div class="item-icon">📦</div>
+            <div class="item-text">
+              <div class="item-name">Core Inventory Tracking</div>
+              <div class="item-desc">Real-time job tracking across all lanes and machines.</div>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <div class="item-icon">📱</div>
+            <div class="item-text">
+              <div class="item-name">QR Scan & Move</div>
+              <div class="item-desc">Scan any job label and move it instantly. No app needed.</div>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <div class="item-icon">🏭</div>
+            <div class="item-text">
+              <div class="item-name">Lane & Machine Management</div>
+              <div class="item-desc">Full control over lanes, machines, and the queue.</div>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <div class="item-icon">🔐</div>
+            <div class="item-text">
+              <div class="item-name">Role-Based Access</div>
+              <div class="item-desc">Driver, operator, supervisor, and admin roles with PIN kiosk.</div>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <div class="item-icon">⚡</div>
+            <div class="item-text">
+              <div class="item-name">Activity Feed</div>
+              <div class="item-desc">Live log of every job movement with full audit history.</div>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <div class="item-icon">🔀</div>
+            <div class="item-text">
+              <div class="item-name">Partial Pick System</div>
+              <div class="item-desc">Split jobs across locations with automatic remaining qty tracking.</div>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <div class="item-icon">↩️</div>
+            <div class="item-text">
+              <div class="item-name">Undo System</div>
+              <div class="item-desc">Reverse the last move instantly. No more floor mistakes.</div>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <div class="item-icon">🤖</div>
+            <div class="item-text">
+              <div class="item-name">Built-In Assistant</div>
+              <div class="item-desc">Ask anything — "Where is job 78011?" and get an instant answer.</div>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <div class="item-icon">👤</div>
+            <div class="item-text">
+              <div class="item-name">User Management</div>
+              <div class="item-desc">Create and manage accounts with PIN authentication.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- IN PROGRESS -->
+        <div class="roadmap-col inprogress reveal" style="transition-delay:150ms;">
+          <div class="col-header">
+            <div class="col-dot"></div>
+            <div class="col-title">In Progress</div>
+          </div>
+
+          <div class="roadmap-item">
+            <div class="item-icon">🔧</div>
+            <div class="item-text">
+              <div class="item-name">Customizable Location Types</div>
+              <div class="item-desc">Rename lanes and machines to match your floor — bays, cells, docks, anything.</div>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <div class="item-icon">⚙️</div>
+            <div class="item-text">
+              <div class="item-name">API Stability</div>
+              <div class="item-desc">Zero cold starts. Always-on infrastructure for floor reliability.</div>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <div class="item-icon">🔒</div>
+            <div class="item-text">
+              <div class="item-name">Conflict Handling</div>
+              <div class="item-desc">Two admins moving the same job at once — handled gracefully.</div>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <div class="item-icon">📲</div>
+            <div class="item-text">
+              <div class="item-name">Mobile Optimization</div>
+              <div class="item-desc">Full kiosk and admin experience on any phone or tablet.</div>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <div class="item-icon">🧪</div>
+            <div class="item-text">
+              <div class="item-name">Beta Testing</div>
+              <div class="item-desc">Live at CT Commercial Paper. Real floor. Real jobs. Real feedback.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COMING SOON -->
+        <div class="roadmap-col coming reveal" style="transition-delay:300ms;">
+          <div class="col-header">
+            <div class="col-dot"></div>
+            <div class="col-title">Coming Soon</div>
+          </div>
+
+          <div class="roadmap-item">
+            <div class="item-icon">🏢</div>
+            <div class="item-text">
+              <div class="item-name">Multi-Department Support</div>
+              <div class="item-desc">Run print, finishing, shipping, and warehouse from one system.</div>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <div class="item-icon">📊</div>
+            <div class="item-text">
+              <div class="item-name">Enterprise Dashboard</div>
+              <div class="item-desc">Bird's eye view across every department, every location, every job.</div>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <div class="item-icon">🌐</div>
+            <div class="item-text">
+              <div class="item-name">Multi-Site Management</div>
+              <div class="item-desc">One admin panel. Multiple facilities. Total visibility.</div>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <div class="item-icon">📈</div>
+            <div class="item-text">
+              <div class="item-name">Advanced Reporting</div>
+              <div class="item-desc">Job throughput, bottleneck detection, shift performance — all automated.</div>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <div class="item-icon">🔌</div>
+            <div class="item-text">
+              <div class="item-name">API Access</div>
+              <div class="item-desc">Connect TRACE to your existing MES, ERP, or custom systems.</div>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <div class="item-icon">🚀</div>
+            <div class="item-text">
+              <div class="item-name">Custom Onboarding</div>
+              <div class="item-desc">White-glove setup for enterprise teams. Your floor, your way.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- CALLOUT -->
+  <div class="build-callout reveal">
+    <div class="build-callout-title">WANT TO SHAPE<br>WHAT GETS BUILT?</div>
+    <div class="build-callout-sub">Get on the early access list and your feedback directly influences what we build next. The floor should drive the roadmap.</div>
+    <a href="./index.html#demo" class="build-callout-btn">
+      Get Early Access
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-top">
+        <div>
+          <img src="./trace-logo-cropped.png" style="height:36px;width:auto;mix-blend-mode:screen;filter:drop-shadow(0 0 8px rgba(42,127,255,0.4));opacity:0.7;" alt="TRACE"/>
+          <p class="footer-brand-sub">Built for the floor. Trusted by the team.</p>
+          <a href="mailto:hello@traceinventory.org" class="footer-email">hello@traceinventory.org</a>
+        </div>
+        <div class="footer-links-group">
+          <div class="footer-links-title">Product</div>
+          <a href="./index.html#about" class="footer-link">About</a>
+          <a href="./index.html#why" class="footer-link">Why TRACE</a>
+          <a href="./index.html#product" class="footer-link">See It In Action</a>
+          <a href="./index.html#coming-soon" class="footer-link">Coming Soon</a>
+          <a href="./the-build.html" class="footer-link">The Build</a>
+        </div>
+        <div class="footer-links-group">
+          <div class="footer-links-title">Get Started</div>
+          <a href="./index.html#demo" class="footer-link">Get Early Access</a>
+          <a href="mailto:hello@traceinventory.org" class="footer-link">Contact Us</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-copy">© 2026 McCoy Hartsell. All rights reserved.</div>
+        <div class="footer-tag">WE TRACK. YOU IMPROVE.</div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // CURSOR
+    const cursor = document.getElementById('cursor');
+    const ring = document.getElementById('cursorRing');
+    let mx = 0, my = 0, rx = 0, ry = 0;
+    document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+    function animCursor() {
+      cursor.style.left = mx + 'px'; cursor.style.top = my + 'px';
+      rx += (mx - rx) * 0.12; ry += (my - ry) * 0.12;
+      ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+      requestAnimationFrame(animCursor);
+    }
+    animCursor();
+    document.querySelectorAll('a, button').forEach(el => {
+      el.addEventListener('mouseenter', () => { cursor.style.width = '20px'; cursor.style.height = '20px'; ring.style.width = '52px'; ring.style.height = '52px'; });
+      el.addEventListener('mouseleave', () => { cursor.style.width = '12px'; cursor.style.height = '12px'; ring.style.width = '36px'; ring.style.height = '36px'; });
+    });
+
+    // MOBILE NAV
+    const hamburger = document.getElementById('navHamburger');
+    const navMobile = document.getElementById('navMobile');
+    hamburger.addEventListener('click', () => { hamburger.classList.toggle('open'); navMobile.classList.toggle('open'); });
+    document.querySelectorAll('.nav-mobile-link').forEach(link => {
+      link.addEventListener('click', () => { hamburger.classList.remove('open'); navMobile.classList.remove('open'); });
+    });
+
+    // NAV SCROLL
+    window.addEventListener('scroll', () => { document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 40); });
+
+    // SCROLL REVEAL
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((e, i) => {
+        if (e.isIntersecting) {
+          setTimeout(() => e.target.classList.add('visible'), i * 80);
+          observer.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.15 });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // PROGRESS BAR
+    const fill = document.getElementById('buildFill');
+    if (fill) {
+      const po = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            setTimeout(() => { fill.style.width = '72%'; }, 300);
+            po.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.5 });
+      po.observe(fill);
+    }
+  </script>
+</body>
+</html>
