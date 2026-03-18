@@ -1037,41 +1037,56 @@ function launchConfetti(canvasId = 'confettiCanvas') {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 
-  const pieces = Array.from({length: 120}, () => ({
-    x: Math.random() * canvas.width,
-    y: Math.random() * -canvas.height,
-    w: Math.random() * 10 + 5,
-    h: Math.random() * 5 + 3,
-    r: Math.random() * Math.PI * 2,
-    rs: (Math.random() - 0.5) * 0.2,
-    vx: (Math.random() - 0.5) * 4,
-    vy: Math.random() * 4 + 2,
-    color: ['#2a7fff','#5aa3ff','#ffffff','#8aff8a','#ffd166'][Math.floor(Math.random()*5)]
-  }));
+  const pieces = Array.from({length: 160}, () => {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = Math.random() * 12 + 4;
+    return {
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 6,
+      w: Math.random() * 10 + 5,
+      h: Math.random() * 5 + 3,
+      r: Math.random() * Math.PI * 2,
+      rs: (Math.random() - 0.5) * 0.25,
+      gravity: 0.35,
+      drag: 0.97,
+      opacity: 1,
+      color: ['#2a7fff','#5aa3ff','#ffffff','#8aff8a','#ffd166','#ff6b6b'][Math.floor(Math.random()*6)]
+    };
+  });
 
   let frame;
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let alive = false;
     pieces.forEach(p => {
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(p.r);
-      ctx.fillStyle = p.color;
-      ctx.globalAlpha = 0.85;
-      ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
-      ctx.restore();
+      p.vy += p.gravity;
+      p.vx *= p.drag;
+      p.vy *= p.drag;
       p.x += p.vx;
       p.y += p.vy;
       p.r += p.rs;
-      if (p.y > canvas.height) {
-        p.y = -10;
-        p.x = Math.random() * canvas.width;
+      p.opacity -= 0.012;
+      if (p.opacity > 0 && p.y < canvas.height + 20) {
+        alive = true;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.opacity);
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.r);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+        ctx.restore();
       }
     });
-    frame = requestAnimationFrame(draw);
+    if (alive) {
+      frame = requestAnimationFrame(draw);
+    } else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      cancelAnimationFrame(frame);
+    }
   }
   draw();
-  setTimeout(() => { cancelAnimationFrame(frame); ctx.clearRect(0,0,canvas.width,canvas.height); }, 3500);
 }
   </script>
 </body>
