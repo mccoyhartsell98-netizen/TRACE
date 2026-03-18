@@ -524,7 +524,9 @@ async function loadCommitLog() {
       if (fileOnly.test(msg)) return false;
       if (boring.test(msg)) return false;
       return msg.length > 8;
-    }).slice(0, 15);
+    }).filter((c, index, self) =>
+  index === self.findIndex(x => x.commit.message.split('\n')[0] === c.commit.message.split('\n')[0])
+).slice(0, 15);
 
     container.innerHTML = '';
 
