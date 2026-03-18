@@ -875,13 +875,22 @@
   </div>
   <input class="demo-input" type="email" name="email" placeholder="Work Email" id="demoEmail" required/>
   <input class="demo-input" type="text" name="company" placeholder="Company Name" id="demoCompany"/>
-  <select class="demo-input" name="team_size" id="demoPlan" style="cursor:none;">
-    <option value="" disabled selected>Team Size...</option>
-    <option>1–10 people</option>
-    <option>11–50 people</option>
-    <option>51–200 people</option>
-    <option>200+ people</option>
-  </select>
+  <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:20px 18px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--blue);opacity:0.8;">Team Size</div>
+    <div style="display:flex;align-items:baseline;gap:6px;">
+      <div id="sliderNum" style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;color:#fff;line-height:1;transition:color 0.2s;">25</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);">PEOPLE</div>
+    </div>
+  </div>
+  <input type="range" id="teamSlider" min="1" max="500" value="25" style="width:100%;appearance:none;-webkit-appearance:none;height:4px;border-radius:999px;background:rgba(42,127,255,0.15);outline:none;cursor:pointer;accent-color:var(--blue);">
+  <div style="display:flex;justify-content:space-between;margin-top:10px;">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.15em;color:rgba(234,242,255,0.2);">1</div>
+    <div id="sliderLabel" style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.15em;color:var(--blue);transition:color 0.2s;">GROWING OPERATION</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.15em;color:rgba(234,242,255,0.2);">500+</div>
+  </div>
+  <input type="hidden" name="team_size" id="teamSizeValue" value="25 people"/>
+</div>
   <input type="hidden" name="form_name" value="Early Access Form"/>
   <button type="submit" class="demo-submit">Get Early Access →</button>
   <div class="demo-note">We'll be in touch when TRACE is ready to roll.</div>
@@ -1228,6 +1237,46 @@ if (progressFill) {
   }, { threshold: 0.5 });
   progressObserver.observe(progressFill);
 }
+
+// TEAM SIZE SLIDER
+const slider = document.getElementById('teamSlider');
+const sliderNum = document.getElementById('sliderNum');
+const sliderLabel = document.getElementById('sliderLabel');
+const sliderValue = document.getElementById('teamSizeValue');
+
+function getLabel(val) {
+  if (val <= 10) return 'SMALL TEAM';
+  if (val <= 50) return 'GROWING OPERATION';
+  if (val <= 150) return 'MID-SIZE FACILITY';
+  if (val <= 300) return 'LARGE OPERATION';
+  return 'ENTERPRISE';
+}
+
+function getColor(val) {
+  if (val <= 10) return '#5aa3ff';
+  if (val <= 50) return '#5aa3ff';
+  if (val <= 150) return '#8aff8a';
+  if (val <= 300) return '#ffd166';
+  return '#ff8a8a';
+}
+
+function updateSlider() {
+  const val = parseInt(slider.value);
+  const display = val >= 500 ? '500+' : val;
+  const color = getColor(val);
+  sliderNum.textContent = display;
+  sliderNum.style.color = color;
+  sliderLabel.textContent = getLabel(val);
+  sliderLabel.style.color = color;
+  sliderValue.value = `${display} people`;
+  
+  // Update track fill
+  const pct = ((val - 1) / (500 - 1)) * 100;
+  slider.style.background = `linear-gradient(90deg, ${color} ${pct}%, rgba(42,127,255,0.15) ${pct}%)`;
+}
+
+slider.addEventListener('input', updateSlider);
+updateSlider();
   </script>
 </body>
 </html>
