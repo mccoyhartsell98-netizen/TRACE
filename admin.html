@@ -1807,6 +1807,14 @@ async function apiFetch(path, opts = {}) {
     ...(opts.headers || {})
   });
   const res = await fetch(url, { ...opts, headers });
+  if (res.status === 401) {
+    localStorage.removeItem("trace_token");
+    localStorage.removeItem("trace_email");
+    sessionStorage.removeItem("trace_intro_seen");
+    toast("Session expired — please log in again");
+    setTimeout(() => location.reload(), 1500);
+    throw new Error("Session expired");
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
   return data;
@@ -2790,13 +2798,14 @@ async function deleteSelected(){
 
   try{
     await apiDelete(`/items/${selectedId}`);
-    await loadLocations();
-    await loadInventory();
-    clearForm();
-    renderLaneList();
-    renderMachineList();
-    renderGlobalSearch();
-    await refreshHistoryFromDb();
+selectedId = null;
+await loadLocations();
+await loadInventory();
+clearForm();
+renderLaneList();
+renderMachineList();
+renderGlobalSearch();
+await refreshHistoryFromDb();
   }catch(err){
     console.error("DELETE FAILED", err);
     let msg = "Delete failed. ";
@@ -2815,7 +2824,7 @@ function openMoveOverlay(id){
   els.moveTitle.textContent = `Move Item #${item.job}`;
 
   els.moveLaneGrid.innerHTML = "";
-  locations.filter(l => l.type === "lane").sort((a,b) => a.laneNum - b.laneNum).forEach(loc => {
+  locations.filter(l => l.type === "lane").sort((a,b) => String(a.laneNum).localeCompare(String(b.laneNum), undefined, {numeric: true})).forEach(loc => {
     const lane = `Lane ${loc.laneNum}`;
     const btn = document.createElement("div");
     btn.className = "laneBtn";
@@ -2994,14 +3003,20 @@ function toast(msg){
 }
 
 // ====== LOADING ======
+let loadingCount = 0;
 function showLoading(message = "Loading...") {
+  loadingCount++;
   const overlay = document.getElementById("loadingOverlay");
   const text = document.getElementById("loadingText");
   if (overlay && text) { text.textContent = message; overlay.classList.add("show"); }
 }
 function hideLoading() {
-  const overlay = document.getElementById("loadingOverlay");
-  if (overlay) overlay.classList.remove("show");
+  loadingCount--;
+  if (loadingCount <= 0) {
+    loadingCount = 0;
+    const overlay = document.getElementById("loadingOverlay");
+    if (overlay) overlay.classList.remove("show");
+  }
 }
 
 // ====== EVENTS ======
@@ -3256,16 +3271,22 @@ function renderQueuePage(){
     `;
     const btn = div.querySelector("[data-move-lane]");
     btn.addEventListener("click", async () => {
-      const lane = await uiPrompt("Move From Queue", `Move Item #${item.job} to which lane?`, {
-        placeholder: "Lane # (1-12)", hint: "Example: 7", mask: false
-      });
-      if(lane === null) return;
-      const n = parseInt(String(lane).trim(), 10);
-      if(!Number.isFinite(n) || n < 1 || n > 12){
-        await uiAlert("Invalid Lane", "Lane must be 1–12.");
-        return;
-      }
-      await moveToLane(item.id, `Lane ${n}`);
+      const availableLanes = locations
+  .filter(l => l.type === "lane" && l.laneNum)
+  .sort((a,b) => String(a.laneNum).localeCompare(String(b.laneNum), undefined, {numeric: true}))
+  .map(l => l.laneNum);
+
+const lane = await uiPrompt("Move From Queue", `Move Item #${item.job} to which lane?\n\nAvailable: ${availableLanes.join(", ")}`, {
+  placeholder: "e.g. 7 or 1A", hint: "Must match an existing lane", mask: false
+});
+if(lane === null) return;
+const n = String(lane).trim().toUpperCase();
+const match = locations.find(l => l.type === "lane" && String(l.laneNum).toUpperCase() === n);
+if(!match){
+  await uiAlert("Invalid Lane", `Lane "${n}" doesn't exist. Available: ${availableLanes.join(", ")}`);
+  return;
+}
+await moveToLane(item.id, `Lane ${n}`);
       await loadInventory();
       renderQueuePage();
     });
@@ -3491,7 +3512,7 @@ if(!n || n.length > 6){
       msg.style.color = "var(--bad)";
       return;
     }
-    const exists = locations.some(l => l.type === "lane" && String(l.laneNum) === n);
+    const exists = locations.some(l => l.type === "lane" && String(l.laneNum).trim().toLowerCase() === n.trim().toLowerCase());
 if(exists){
   msg.textContent = `Lane ${n} already exists.`;
       msg.style.color = "var(--bad)";
