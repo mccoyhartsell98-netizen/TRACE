@@ -516,7 +516,7 @@ async function loadCommitLog() {
     }
 
     // Filter out generic commits
-    const boring = /^(update|add files via upload|initial commit|minor|fix|test|wip|misc|cleanup|clean up|typo)/i;
+    const boring = /^(update|add files via upload|initial commit|minor|wip|misc|cleanup|clean up|typo)/i;
     const fileOnly = /^(update|add|delete|remove|rename)\s+[\w\-\.]+\.(html|css|js|json|md|txt)\s*$/i;
 
     const filtered = commits.filter(c => {
