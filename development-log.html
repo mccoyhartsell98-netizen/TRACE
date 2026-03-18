@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Development Log — TRACE</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #080b10; --bg2: #0c1018; --blue: #2a7fff; --blue2: #5aa3ff;
+      --text: #eaf2ff; --muted: rgba(234,242,255,0.55); --border: rgba(255,255,255,0.08);
+      --panel: rgba(255,255,255,0.03); --good: #8aff8a; --warn: #ffd166;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; overflow-x: hidden; cursor: none; }
+
+    /* CURSOR */
+    .cursor { position: fixed; width: 12px; height: 12px; border-radius: 50%; background: var(--blue); pointer-events: none; z-index: 99999; transform: translate(-50%,-50%); mix-blend-mode: screen; box-shadow: 0 0 20px var(--blue), 0 0 40px rgba(42,127,255,0.4); transition: width 0.2s, height 0.2s; }
+    .cursor-ring { position: fixed; width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(42,127,255,0.5); pointer-events: none; z-index: 99998; transform: translate(-50%,-50%); transition: width 0.2s, height 0.2s, left 0.18s ease, top 0.18s ease; }
+
+    /* GRAIN */
+    .grain { position: fixed; inset: 0; z-index: 99997; pointer-events: none; opacity: 0.035; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E"); background-size: 180px 180px; animation: grainShift 0.8s steps(2) infinite; }
+    @keyframes grainShift { 0%{transform:translate(0,0)} 25%{transform:translate(-2px,1px)} 50%{transform:translate(1px,-2px)} 75%{transform:translate(2px,1px)} 100%{transform:translate(-1px,2px)} }
+
+    /* NAV */
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; display: flex; align-items: center; justify-content: space-between; padding: 18px 48px; border-bottom: 1px solid transparent; transition: background 0.3s, border-color 0.3s; }
+    nav.scrolled { background: rgba(8,11,16,0.45); border-color: var(--border); backdrop-filter: blur(8px); }
+    .nav-links { display: flex; gap: 36px; list-style: none; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; transition: color 0.2s; }
+    .nav-links a:hover, .nav-links a.active { color: #fff; }
+    .nav-cta { background: rgba(42,127,255,0.15); border: 1px solid rgba(42,127,255,0.45); color: var(--blue2) !important; padding: 10px 22px; border-radius: 999px; font-weight: 700 !important; }
+    .nav-cta:hover { background: rgba(42,127,255,0.28) !important; color: #fff !important; }
+
+    /* HAMBURGER */
+    .nav-hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: none; padding: 4px; z-index: 1001; }
+    .nav-hamburger span { display: block; width: 24px; height: 2px; background: #fff; border-radius: 2px; transition: transform 0.3s ease, opacity 0.3s ease; }
+    .nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-hamburger.open span:nth-child(2) { opacity: 0; }
+    .nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+    .nav-mobile { display: none; position: fixed; top: 72px; left: 0; right: 0; background: rgba(8,11,16,0.97); backdrop-filter: blur(14px); border-bottom: 1px solid var(--border); flex-direction: column; padding: 16px 24px 24px; gap: 4px; z-index: 999; transform: translateY(-10px); opacity: 0; pointer-events: none; transition: transform 0.3s ease, opacity 0.3s ease; }
+    .nav-mobile.open { transform: translateY(0); opacity: 1; pointer-events: auto; }
+    .nav-mobile-link { color: var(--muted); text-decoration: none; font-size: 15px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; padding: 14px 0; border-bottom: 1px solid var(--border); transition: color 0.2s; }
+    .nav-mobile-link:last-child { border-bottom: none; }
+    .nav-mobile-link:hover { color: #fff; }
+    .nav-mobile-cta { color: var(--blue2) !important; font-weight: 700; }
+    @media (max-width: 900px) { .nav-hamburger { display: flex; } .nav-mobile { display: flex; } .nav-links { display: none; } nav { padding: 16px 24px; } }
+
+    /* HERO */
+    .log-hero {
+      min-height: 40vh; display: flex; align-items: center; justify-content: center;
+      position: relative; overflow: hidden; padding: 140px 24px 60px; text-align: center;
+    }
+    .log-hero-bg {
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 800px 500px at 50% 40%, rgba(42,127,255,0.08), transparent 65%);
+    }
+    .log-hero-grid {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(42,127,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(42,127,255,0.06) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, black, transparent);
+    }
+    .log-hero-inner { position: relative; max-width: 600px; margin: 0 auto; }
+    .log-badge {
+      display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px;
+      border: 1px solid rgba(42,127,255,0.35); border-radius: 999px;
+      background: rgba(42,127,255,0.08); font-size: 11px;
+      font-family: 'JetBrains Mono', monospace; letter-spacing: 0.2em;
+      color: var(--blue2); margin-bottom: 24px;
+      opacity: 0; animation: fadeUp 0.8s ease forwards 0.2s;
+    }
+    .log-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--good); box-shadow: 0 0 10px rgba(138,255,138,0.6); animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:0.6;transform:scale(0.9)} 50%{opacity:1;transform:scale(1.1)} }
+    .log-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(52px, 10vw, 96px); line-height: 0.92; letter-spacing: 6px; color: #fff; opacity: 0; animation: fadeUp 0.9s ease forwards 0.4s; }
+    .log-title span { -webkit-text-fill-color: transparent; background: linear-gradient(135deg, #5aa3ff, #2a7fff); -webkit-background-clip: text; background-clip: text; }
+    .log-sub { margin-top: 20px; font-size: 15px; color: var(--muted); line-height: 1.7; font-weight: 300; opacity: 0; animation: fadeUp 0.9s ease forwards 0.6s; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+
+    /* STATS ROW */
+    .log-stats {
+      display: flex; gap: 0; justify-content: center;
+      max-width: 600px; margin: 0 auto;
+      padding: 0 24px 60px;
+      opacity: 0; animation: fadeUp 0.9s ease forwards 0.8s;
+    }
+    .log-stat {
+      flex: 1; text-align: center; padding: 20px;
+      border: 1px solid var(--border); background: var(--panel);
+    }
+    .log-stat:first-child { border-radius: 14px 0 0 14px; }
+    .log-stat:last-child { border-radius: 0 14px 14px 0; border-left: none; }
+    .log-stat:not(:first-child):not(:last-child) { border-left: none; }
+    .log-stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 2px; color: #fff; line-height: 1; }
+    .log-stat-num span { color: var(--blue); }
+    .log-stat-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+
+    /* SECTION DIVIDER */
+    .section-divider { height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); margin: 0 48px 60px; }
+
+    /* LOG CONTAINER */
+    .log-wrap { max-width: 700px; margin: 0 auto; padding: 0 24px 120px; }
+    .log-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .log-section-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--blue); opacity: 0.9; }
+    .log-live-badge { display: flex; align-items: center; gap: 8px; }
+    .log-live-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(138,255,138,0.95); box-shadow: 0 0 8px rgba(138,255,138,0.5); animation: pulse 1.5s ease-in-out infinite; }
+    .log-live-text { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.15em; color: rgba(138,255,138,0.85); }
+
+    .log-container { border: 1px solid var(--border); border-radius: 16px; background: rgba(255,255,255,0.02); overflow: hidden; }
+
+    .log-entry {
+      display: flex; align-items: flex-start; gap: 16px;
+      padding: 14px 18px; border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    .log-entry:hover { background: rgba(42,127,255,0.04); }
+    .log-entry:last-child { border-bottom: none; }
+    .log-date {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: var(--blue); opacity: 0.7; white-space: nowrap;
+      padding-top: 2px; flex-shrink: 0; min-width: 52px;
+    }
+    .log-msg { font-size: 14px; color: rgba(234,242,255,0.8); line-height: 1.5; font-weight: 400; }
+    .log-sha {
+      font-family: 'JetBrains Mono', monospace; font-size: 10px;
+      color: rgba(255,255,255,0.2); margin-top: 4px; letter-spacing: 0.05em;
+    }
+
+    .log-loading { padding: 40px; text-align: center; color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.15em; }
+    .log-spinner { width: 20px; height: 20px; border-radius: 50%; border: 2px solid rgba(255,255,255,.1); border-top-color: var(--blue); animation: spin 800ms linear infinite; margin: 0 auto 14px; }
+    @keyframes spin { to{ transform: rotate(360deg); } }
+
+    .log-load-more {
+      display: block; width: 100%; padding: 14px;
+      background: transparent; border: none; border-top: 1px solid var(--border);
+      color: var(--muted); font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+      cursor: pointer; transition: background 0.15s, color 0.15s;
+      text-align: center;
+    }
+    .log-load-more:hover { background: rgba(42,127,255,0.06); color: var(--blue2); }
+
+    /* BACK LINK */
+    .back-link {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--muted); text-decoration: none;
+      transition: color 0.2s; margin-bottom: 32px; display: block;
+    }
+    .back-link:hover { color: #fff; }
+
+    /* FOOTER */
+    footer { border-top: 1px solid var(--border); background: var(--bg2); padding: 60px 24px 32px; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-top { display: grid; grid-template-columns: 1.8fr 1fr 1fr; gap: 48px; margin-bottom: 48px; padding-bottom: 48px; border-bottom: 1px solid var(--border); }
+    .footer-brand-sub { font-size: 13px; color: var(--muted); margin-top: 12px; margin-bottom: 16px; font-weight: 300; line-height: 1.6; max-width: 260px; }
+    .footer-email { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--blue2); text-decoration: none; letter-spacing: 0.05em; transition: color 0.2s; }
+    .footer-email:hover { color: #fff; }
+    .footer-links-group { display: flex; flex-direction: column; gap: 12px; }
+    .footer-links-title { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--blue); margin-bottom: 4px; }
+    .footer-link { font-size: 13px; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+    .footer-link:hover { color: #fff; }
+    .footer-bottom { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .footer-copy { font-size: 12px; color: rgba(255,255,255,0.2); font-family: 'JetBrains Mono', monospace; }
+    .footer-tag { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(42,127,255,0.5); font-family: 'JetBrains Mono', monospace; }
+
+    @media (max-width: 900px) {
+      .footer-top { grid-template-columns: 1fr; gap: 32px; }
+      .log-stats { flex-direction: column; }
+      .log-stat { border-radius: 0 !important; border-left: 1px solid var(--border) !important; }
+      .log-stat:first-child { border-radius: 14px 14px 0 0 !important; }
+      .log-stat:last-child { border-radius: 0 0 14px 14px !important; border-top: none !important; }
+      .cursor { display: none !important; }
+      .cursor-ring { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="grain"></div>
+  <div class="cursor" id="cursor"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+
+  <!-- NAV -->
+  <nav id="nav">
+    <a href="./home.html"><img src="./trace-logo-cropped.png" style="height:48px;width:auto;mix-blend-mode:screen;filter:drop-shadow(0 0 12px rgba(42,127,255,0.6));" alt="TRACE"/></a>
+    <button class="nav-hamburger" id="navHamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links">
+      <li><a href="./home.html#about">About</a></li>
+      <li><a href="./home.html#why">Why TRACE</a></li>
+      <li><a href="./home.html#coming-soon">Coming Soon</a></li>
+      <li><a href="./the-blueprint.html">The Blueprint</a></li>
+      <li><a href="./development-log.html" class="active">DEVELOPMENT LOG.</a></li>
+      <li><a href="./home.html#demo" class="nav-cta">Get Early Access</a></li>
+    </ul>
+  </nav>
+  <div class="nav-mobile" id="navMobile">
+    <a href="./home.html#about" class="nav-mobile-link">About</a>
+    <a href="./home.html#why" class="nav-mobile-link">Why TRACE</a>
+    <a href="./home.html#coming-soon" class="nav-mobile-link">Coming Soon</a>
+    <a href="./the-blueprint.html" class="nav-mobile-link">The Blueprint</a>
+    <a href="./development-log.html" class="nav-mobile-link">DEVELOPMENT LOG.</a>
+    <a href="./home.html#demo" class="nav-mobile-link nav-mobile-cta">Get Early Access</a>
+  </div>
+
+  <!-- HERO -->
+  <section class="log-hero">
+    <div class="log-hero-bg"></div>
+    <div class="log-hero-grid"></div>
+    <div class="log-hero-inner">
+      <div class="log-badge">
+        <div class="log-badge-dot"></div>
+        LIVE — UPDATES ON EVERY PUSH
+      </div>
+      <h1 class="log-title">DEV<br><span>LOG.</span></h1>
+      <p class="log-sub">Every commit. Every fix. Every push. The full history of building TRACE — unfiltered, updated automatically.</p>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div class="log-stats" id="logStats">
+    <div class="log-stat">
+      <div class="log-stat-num" id="statCommits">—</div>
+      <div class="log-stat-label">Total Commits</div>
+    </div>
+    <div class="log-stat">
+      <div class="log-stat-num" id="statToday">—</div>
+      <div class="log-stat-label">Today</div>
+    </div>
+    <div class="log-stat">
+      <div class="log-stat-num" id="statDays">—</div>
+      <div class="log-stat-label">Days Building</div>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- LOG -->
+  <div class="log-wrap">
+    <a href="./the-blueprint.html" class="back-link">← Back to The Blueprint</a>
+    <div class="log-header-row">
+      <div class="log-section-label">// Commit History</div>
+      <div class="log-live-badge">
+        <div class="log-live-dot"></div>
+        <div class="log-live-text">LIVE</div>
+      </div>
+    </div>
+    <div class="log-container" id="logContainer">
+      <div class="log-loading">
+        <div class="log-spinner"></div>
+        LOADING COMMITS...
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-top">
+        <div>
+          <img src="./trace-logo-cropped.png" style="height:36px;width:auto;mix-blend-mode:screen;filter:drop-shadow(0 0 8px rgba(42,127,255,0.4));opacity:0.7;" alt="TRACE"/>
+          <p class="footer-brand-sub">Built for the floor. Trusted by the team.</p>
+          <a href="mailto:hello@traceinventory.org" class="footer-email">hello@traceinventory.org</a>
+        </div>
+        <div class="footer-links-group">
+          <div class="footer-links-title">Product</div>
+          <a href="./home.html#about" class="footer-link">About</a>
+          <a href="./home.html#why" class="footer-link">Why TRACE</a>
+          <a href="./home.html#product" class="footer-link">See It In Action</a>
+          <a href="./home.html#coming-soon" class="footer-link">Coming Soon</a>
+          <a href="./the-blueprint.html" class="footer-link">The Blueprint</a>
+          <a href="./development-log.html" class="footer-link">DEVELOPMENT LOG.</a>
+        </div>
+        <div class="footer-links-group">
+          <div class="footer-links-title">Get Started</div>
+          <a href="./home.html#demo" class="footer-link">Get Early Access</a>
+          <a href="mailto:hello@traceinventory.org" class="footer-link">Contact Us</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-copy">© 2026 McCoy Hartsell. All rights reserved.</div>
+        <div class="footer-tag">WE TRACK. YOU IMPROVE.</div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // CURSOR
+    const cursor = document.getElementById('cursor');
+    const ring = document.getElementById('cursorRing');
+    let mx = 0, my = 0, rx = 0, ry = 0;
+    document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+    function animCursor() {
+      cursor.style.left = mx + 'px'; cursor.style.top = my + 'px';
+      rx += (mx - rx) * 0.12; ry += (my - ry) * 0.12;
+      ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+      requestAnimationFrame(animCursor);
+    }
+    animCursor();
+    document.querySelectorAll('a, button').forEach(el => {
+      el.addEventListener('mouseenter', () => { cursor.style.width = '20px'; cursor.style.height = '20px'; ring.style.width = '52px'; ring.style.height = '52px'; });
+      el.addEventListener('mouseleave', () => { cursor.style.width = '12px'; cursor.style.height = '12px'; ring.style.width = '36px'; ring.style.height = '36px'; });
+    });
+
+    // MOBILE NAV
+    const hamburger = document.getElementById('navHamburger');
+    const navMobile = document.getElementById('navMobile');
+    hamburger.addEventListener('click', () => { hamburger.classList.toggle('open'); navMobile.classList.toggle('open'); });
+    document.querySelectorAll('.nav-mobile-link').forEach(link => {
+      link.addEventListener('click', () => { hamburger.classList.remove('open'); navMobile.classList.remove('open'); });
+    });
+
+    // NAV SCROLL
+    window.addEventListener('scroll', () => { document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 40); });
+
+    // DEVELOPMENT LOG.
+    let allCommits = [];
+    let page = 1;
+    const PER_PAGE = 30;
+    const REPO = 'mccoyhartsell98-netizen/TRACE';
+
+    async function fetchCommits(pageNum) {
+      const res = await fetch(`https://api.github.com/repos/${REPO}/commits?per_page=${PER_PAGE}&page=${pageNum}`);
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    }
+
+    function formatDate(iso) {
+      const d = new Date(iso);
+      return `[${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}]`;
+    }
+
+    function renderCommits(commits, append = false) {
+      const container = document.getElementById('logContainer');
+      const loadMoreBtn = document.getElementById('loadMoreBtn');
+      if (loadMoreBtn) loadMoreBtn.remove();
+
+      if (!append) container.innerHTML = '';
+
+      commits.forEach(c => {
+        const msg = c.commit.message.split('\n')[0];
+        const date = formatDate(c.commit.author.date);
+        const sha = c.sha.slice(0, 7);
+        const div = document.createElement('div');
+        div.className = 'log-entry';
+        div.innerHTML = `
+          <span class="log-date">${date}</span>
+          <div>
+            <div class="log-msg">${msg}</div>
+            <div class="log-sha">${sha}</div>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+
+      if (commits.length === PER_PAGE) {
+        const btn = document.createElement('button');
+        btn.className = 'log-load-more';
+        btn.id = 'loadMoreBtn';
+        btn.textContent = 'LOAD MORE →';
+        btn.addEventListener('click', loadMore);
+        container.appendChild(btn);
+      }
+    }
+
+    async function loadMore() {
+      const btn = document.getElementById('loadMoreBtn');
+      if (btn) { btn.textContent = 'LOADING...'; btn.disabled = true; }
+      page++;
+      const commits = await fetchCommits(page);
+      allCommits = [...allCommits, ...commits];
+      renderCommits(commits, true);
+    }
+
+    async function updateStats(commits) {
+      const today = new Date().toDateString();
+      const todayCount = commits.filter(c => new Date(c.commit.author.date).toDateString() === today).length;
+
+      // Days building — from first commit Jan 20 2026
+      const start = new Date('2026-01-20');
+      const days = Math.floor((Date.now() - start.getTime()) / 86400000);
+
+      document.getElementById('statCommits').innerHTML = `${commits.length}<span>+</span>`;
+      document.getElementById('statToday').textContent = todayCount;
+      document.getElementById('statDays').textContent = days;
+    }
+
+    async function initLog() {
+      try {
+        const commits = await fetchCommits(1);
+        allCommits = commits;
+        if (commits.length === 0) {
+          document.getElementById('logContainer').innerHTML = `<div class="log-loading">No commits found.</div>`;
+          return;
+        }
+        renderCommits(commits);
+        updateStats(commits);
+      } catch(e) {
+        document.getElementById('logContainer').innerHTML = `<div class="log-loading">Could not load commits. Check back soon.</div>`;
+      }
+    }
+
+    initLog();
+  </script>
+</body>
+</html>
