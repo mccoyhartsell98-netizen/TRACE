@@ -762,11 +762,12 @@
           TRACE is still being built. Drop your email and you'll be the first to know when it's ready to roll out on your floor.
         </p>
       </div>
-      <div class="waitlist-form reveal" id="waitlistForm">
-        <input class="demo-input" type="email" placeholder="Your Work Email" id="waitlistEmail"/>
-        <button class="demo-submit" id="waitlistSubmit">Get Early Access →</button>
-        <div class="demo-note">No spam. Just a heads up when TRACE is ready.</div>
-      </div>
+      <form class="waitlist-form reveal" id="waitlistForm" action="https://formspree.io/f/xvzwdwlw" method="POST">
+  <input class="demo-input" type="email" name="email" placeholder="Your Work Email" id="waitlistEmail" required/>
+  <input type="hidden" name="form_name" value="Waitlist Form"/>
+  <button type="submit" class="demo-submit">Get Early Access →</button>
+  <div class="demo-note">No spam. Just a heads up when TRACE is ready.</div>
+</form>
       <div class="demo-success" id="waitlistSuccess">
         <div class="demo-success-icon">✅</div>
         <div class="demo-success-title">YOU'RE ON THE LIST.</div>
@@ -786,23 +787,24 @@
         <p class="section-sub" style="margin: 0 auto; text-align:center;">Drop your info below and we'll reach out as soon as TRACE is ready for your team.</p>
       </div>
 
-      <div class="demo-form reveal" id="demoForm">
-        <div class="demo-row">
-          <input class="demo-input" type="text" placeholder="First Name" id="demoFirst"/>
-          <input class="demo-input" type="text" placeholder="Last Name" id="demoLast"/>
-        </div>
-        <input class="demo-input" type="email" placeholder="Work Email" id="demoEmail"/>
-        <input class="demo-input" type="text" placeholder="Company Name" id="demoCompany"/>
-        <select class="demo-input" id="demoPlan" style="cursor:none;">
-          <option value="" disabled selected>Team Size...</option>
-          <option>1–10 people</option>
-          <option>11–50 people</option>
-          <option>51–200 people</option>
-          <option>200+ people</option>
-        </select>
-        <button class="demo-submit" id="demoSubmit">Get Early Access →</button>
-        <div class="demo-note">We'll be in touch when TRACE is ready to roll.</div>
-      </div>
+      <form class="demo-form reveal" id="demoForm" action="https://formspree.io/f/xvzwdwlw" method="POST">
+  <div class="demo-row">
+    <input class="demo-input" type="text" name="first_name" placeholder="First Name" id="demoFirst" required/>
+    <input class="demo-input" type="text" name="last_name" placeholder="Last Name" id="demoLast"/>
+  </div>
+  <input class="demo-input" type="email" name="email" placeholder="Work Email" id="demoEmail" required/>
+  <input class="demo-input" type="text" name="company" placeholder="Company Name" id="demoCompany"/>
+  <select class="demo-input" name="team_size" id="demoPlan" style="cursor:none;">
+    <option value="" disabled selected>Team Size...</option>
+    <option>1–10 people</option>
+    <option>11–50 people</option>
+    <option>51–200 people</option>
+    <option>200+ people</option>
+  </select>
+  <input type="hidden" name="form_name" value="Early Access Form"/>
+  <button type="submit" class="demo-submit">Get Early Access →</button>
+  <div class="demo-note">We'll be in touch when TRACE is ready to roll.</div>
+</form>
 
       <div class="demo-success" id="demoSuccess">
         <div class="demo-success-icon">✅</div>
@@ -900,25 +902,20 @@
     reveals.forEach(el => observer.observe(el));
 
     // WAITLIST FORM
-    document.getElementById('waitlistSubmit').addEventListener('click', () => {
-      const email = document.getElementById('waitlistEmail').value.trim();
-      if (!email) { document.getElementById('waitlistEmail').style.borderColor = 'rgba(255,100,100,0.5)'; return; }
-      document.getElementById('waitlistForm').style.display = 'none';
-      document.getElementById('waitlistSuccess').style.display = 'block';
-    });
+document.getElementById('waitlistForm').addEventListener('submit', () => {
+  setTimeout(() => {
+    document.getElementById('waitlistForm').style.display = 'none';
+    document.getElementById('waitlistSuccess').style.display = 'block';
+  }, 500);
+});
 
-    // DEMO FORM
-    document.getElementById('demoSubmit').addEventListener('click', () => {
-      const first = document.getElementById('demoFirst').value.trim();
-      const email = document.getElementById('demoEmail').value.trim();
-      if (!first || !email) {
-        document.getElementById('demoFirst').style.borderColor = !first ? 'rgba(255,100,100,0.5)' : '';
-        document.getElementById('demoEmail').style.borderColor = !email ? 'rgba(255,100,100,0.5)' : '';
-        return;
-      }
-      document.getElementById('demoForm').style.display = 'none';
-      document.getElementById('demoSuccess').style.display = 'block';
-    });
+// DEMO FORM
+document.getElementById('demoForm').addEventListener('submit', () => {
+  setTimeout(() => {
+    document.getElementById('demoForm').style.display = 'none';
+    document.getElementById('demoSuccess').style.display = 'block';
+  }, 500);
+});
 
     // ABOUT CARD LIVE FEED
     (function () {
