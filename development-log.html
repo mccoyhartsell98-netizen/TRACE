@@ -215,7 +215,7 @@
         <div class="log-badge-dot"></div>
         LIVE — UPDATES ON EVERY PUSH
       </div>
-      <h1 class="log-title">DEV<br><span>LOG.</span></h1>
+      <h1 class="log-title">DEVELOPMENT<br><span>LOG.</span></h1>
       <p class="log-sub">Every commit. Every fix. Every push. The full history of building TRACE — unfiltered, updated automatically.</p>
     </div>
   </section>
@@ -380,10 +380,10 @@
       const todayCount = commits.filter(c => new Date(c.commit.author.date).toDateString() === today).length;
 
       // Days building — from first commit Jan 20 2026
-      const start = new Date('2026-01-20');
+      const start = new Date('2025-12-19');
       const days = Math.floor((Date.now() - start.getTime()) / 86400000);
 
-      document.getElementById('statCommits').innerHTML = `${commits.length}<span>+</span>`;
+      document.getElementById('statCommits').innerHTML = `417<span>+</span>`;
       document.getElementById('statToday').textContent = todayCount;
       document.getElementById('statDays').textContent = days;
     }
