@@ -508,20 +508,38 @@ async function loadCommitLog() {
   const container = document.getElementById('liveLog');
   if (!container) return;
   try {
-    const res = await fetch('https://api.github.com/repos/mccoyhartsell98-netizen/TRACE/commits?per_page=20');
+    const res = await fetch('https://api.github.com/repos/mccoyhartsell98-netizen/TRACE/commits?per_page=100');
     const commits = await res.json();
     if (!Array.isArray(commits)) {
       container.innerHTML = `<div class="log-entry" style="border-bottom:none;"><span class="log-date">--</span><span class="log-msg" style="color:var(--muted);">Could not load commit log.</span></div>`;
       return;
     }
+
+    // Filter out generic commits
+    const boring = /^(update|add files via upload|initial commit|minor|fix|test|wip|misc|cleanup|clean up|typo)/i;
+    const fileOnly = /^(update|add|delete|remove|rename)\s+[\w\-\.]+\.(html|css|js|json|md|txt)\s*$/i;
+
+    const filtered = commits.filter(c => {
+      const msg = c.commit.message.split('\n')[0].trim();
+      if (fileOnly.test(msg)) return false;
+      if (boring.test(msg)) return false;
+      return msg.length > 8;
+    }).slice(0, 15);
+
     container.innerHTML = '';
-    commits.forEach((c, i) => {
+
+    if (filtered.length === 0) {
+      container.innerHTML = `<div class="log-entry" style="border-bottom:none;"><span class="log-date">--</span><span class="log-msg" style="color:var(--muted);">No meaningful commits yet — push something real.</span></div>`;
+      return;
+    }
+
+    filtered.forEach((c, i) => {
       const date = new Date(c.commit.author.date);
       const formatted = `[${String(date.getMonth()+1).padStart(2,'0')}/${String(date.getDate()).padStart(2,'0')}]`;
       const msg = c.commit.message.split('\n')[0];
       const div = document.createElement('div');
       div.className = 'log-entry';
-      if (i === commits.length - 1) div.style.borderBottom = 'none';
+      if (i === filtered.length - 1) div.style.borderBottom = 'none';
       div.innerHTML = `<span class="log-date">${formatted}</span><span class="log-msg">${msg}</span>`;
       container.appendChild(div);
     });
