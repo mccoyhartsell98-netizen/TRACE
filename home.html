@@ -768,11 +768,14 @@
   <button type="submit" class="demo-submit">Get Early Access →</button>
   <div class="demo-note">No spam. Just a heads up when TRACE is ready.</div>
 </form>
-      <div class="demo-success" id="waitlistSuccess">
-        <div class="demo-success-icon">✅</div>
-        <div class="demo-success-title">YOU'RE ON THE LIST.</div>
-        <div class="demo-success-sub">We'll reach out as soon as TRACE is ready for your team.</div>
-      </div>
+     <div class="demo-success" id="waitlistSuccess">
+  <canvas id="confettiCanvas" style="position:fixed;inset:0;pointer-events:none;z-index:99999;"></canvas>
+  <div class="demo-success-title" style="font-size:clamp(36px,6vw,72px);margin-bottom:12px;">YOU'RE IN.</div>
+  <div class="demo-success-sub" style="font-size:18px;color:#fff;font-weight:600;max-width:420px;margin:0 auto;line-height:1.6;">
+    When TRACE hits the floor,<br>you'll be the <span style="color:var(--blue);filter:drop-shadow(0 0 8px rgba(42,127,255,0.8));">first call we make.</span>
+  </div>
+  <div style="margin-top:16px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.2em;color:var(--muted);">WE TRACK. YOU IMPROVE.</div>
+</div>
     </div>
   </section>
 
@@ -807,10 +810,13 @@
 </form>
 
       <div class="demo-success" id="demoSuccess">
-        <div class="demo-success-icon">✅</div>
-        <div class="demo-success-title">YOU'RE ON THE LIST.</div>
-        <div class="demo-success-sub">We'll reach out as soon as TRACE is ready for your team.</div>
-      </div>
+  <canvas id="confettiCanvas2" style="position:fixed;inset:0;pointer-events:none;z-index:99999;"></canvas>
+  <div class="demo-success-title" style="font-size:clamp(36px,6vw,72px);margin-bottom:12px;">YOU'RE FIRST.</div>
+  <div class="demo-success-sub" style="font-size:18px;color:#fff;font-weight:600;max-width:420px;margin:0 auto;line-height:1.6;">
+    When TRACE hits the floor,<br>you'll be the <span style="color:var(--blue);filter:drop-shadow(0 0 8px rgba(42,127,255,0.8));">first call we make.</span>
+  </div>
+  <div style="margin-top:16px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.2em;color:var(--muted);">WE TRACK. YOU IMPROVE.</div>
+</div>
     </div>
   </section>
 
@@ -908,6 +914,7 @@ document.getElementById('waitlistForm').addEventListener('submit', async (e) => 
   await fetch('https://formspree.io/f/xvzwdwlw', { method:'POST', body: data, headers:{ 'Accept':'application/json' }});
   document.getElementById('waitlistForm').style.display = 'none';
   document.getElementById('waitlistSuccess').style.display = 'block';
+  launchConfetti();
 });
 
 // DEMO FORM
@@ -917,6 +924,7 @@ document.getElementById('demoForm').addEventListener('submit', async (e) => {
   await fetch('https://formspree.io/f/xvzwdwlw', { method:'POST', body: data, headers:{ 'Accept':'application/json' }});
   document.getElementById('demoForm').style.display = 'none';
   document.getElementById('demoSuccess').style.display = 'block';
+  launchConfetti('confettiCanvas2');
 });
 
     // ABOUT CARD LIVE FEED
@@ -1021,6 +1029,50 @@ document.getElementById('demoForm').addEventListener('submit', async (e) => {
       }
       setTimeout(runDemo, 1200);
     })();
+
+function launchConfetti(canvasId = 'confettiCanvas') {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const pieces = Array.from({length: 120}, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * -canvas.height,
+    w: Math.random() * 10 + 5,
+    h: Math.random() * 5 + 3,
+    r: Math.random() * Math.PI * 2,
+    rs: (Math.random() - 0.5) * 0.2,
+    vx: (Math.random() - 0.5) * 4,
+    vy: Math.random() * 4 + 2,
+    color: ['#2a7fff','#5aa3ff','#ffffff','#8aff8a','#ffd166'][Math.floor(Math.random()*5)]
+  }));
+
+  let frame;
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pieces.forEach(p => {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.r);
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+      ctx.restore();
+      p.x += p.vx;
+      p.y += p.vy;
+      p.r += p.rs;
+      if (p.y > canvas.height) {
+        p.y = -10;
+        p.x = Math.random() * canvas.width;
+      }
+    });
+    frame = requestAnimationFrame(draw);
+  }
+  draw();
+  setTimeout(() => { cancelAnimationFrame(frame); ctx.clearRect(0,0,canvas.width,canvas.height); }, 3500);
+}
   </script>
 </body>
 </html>
