@@ -901,20 +901,22 @@
     }, { threshold: 0.2 });
     reveals.forEach(el => observer.observe(el));
 
-    // WAITLIST FORM
-document.getElementById('waitlistForm').addEventListener('submit', () => {
-  setTimeout(() => {
-    document.getElementById('waitlistForm').style.display = 'none';
-    document.getElementById('waitlistSuccess').style.display = 'block';
-  }, 500);
+   // WAITLIST FORM
+document.getElementById('waitlistForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = new FormData(e.target);
+  await fetch('https://formspree.io/f/xvzwdwlw', { method:'POST', body: data, headers:{ 'Accept':'application/json' }});
+  document.getElementById('waitlistForm').style.display = 'none';
+  document.getElementById('waitlistSuccess').style.display = 'block';
 });
 
 // DEMO FORM
-document.getElementById('demoForm').addEventListener('submit', () => {
-  setTimeout(() => {
-    document.getElementById('demoForm').style.display = 'none';
-    document.getElementById('demoSuccess').style.display = 'block';
-  }, 500);
+document.getElementById('demoForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = new FormData(e.target);
+  await fetch('https://formspree.io/f/xvzwdwlw', { method:'POST', body: data, headers:{ 'Accept':'application/json' }});
+  document.getElementById('demoForm').style.display = 'none';
+  document.getElementById('demoSuccess').style.display = 'block';
 });
 
     // ABOUT CARD LIVE FEED
