@@ -1374,11 +1374,39 @@
               <div>
                 <input id="qty" type="number" min="0" step="1" placeholder="Qty">
               </div>
-              <div>
-              <select id="status" style="padding:14px;font-size:16px;border-radius:10px;border:1px solid var(--stroke);background:var(--panel2);color:var(--text);outline:none;width:100%;">
-                <option value="">Status...</option>
-               </select>
-              </div>
+             <div style="position:relative;">
+  <div id="statusTrigger" style="
+    padding:14px;
+    font-size:16px;
+    border-radius:10px;
+    border:1px solid var(--stroke);
+    background:var(--panel2);
+    color:var(--muted);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    user-select:none;
+  ">
+    <span id="statusTriggerText">Status...</span>
+    <span style="opacity:.5;font-size:12px;">▼</span>
+  </div>
+  <input type="hidden" id="status" value="">
+  <div id="statusDropdown" style="
+    display:none;
+    position:absolute;
+    top:calc(100% + 4px);
+    left:0;right:0;
+    z-index:9999;
+    background:rgba(22,26,34,.98);
+    border:1px solid rgba(58,122,254,.35);
+    border-radius:10px;
+    overflow:hidden;
+    box-shadow:0 10px 40px rgba(0,0,0,.6);
+    max-height:220px;
+    overflow-y:auto;
+  "></div>
+</div>
               <div class="full">
                 <input id="notes" type="text" placeholder="Notes (optional)">
               </div>
@@ -2738,6 +2766,8 @@ function clearForm(){
   els.job.value = "";
   els.qty.value = "";
   els.status.value = "";
+const triggerText = document.getElementById("statusTriggerText");
+if(triggerText){ triggerText.textContent = "Status..."; triggerText.style.color = "var(--muted)"; }
   els.notes.value = "";
   els.updatedBy.value = "";
   els.job.disabled = false;
@@ -2751,7 +2781,12 @@ function loadToForm(id){
   els.mo.value = item.mo ?? "";
   els.job.value = item.job ?? "";
   els.qty.value = String(item.qty ?? 0);
-  els.status.value = item.status ?? "";
+ els.status.value = item.status ?? "";
+const triggerText = document.getElementById("statusTriggerText");
+if(triggerText){ 
+  triggerText.textContent = item.status || "Status...";
+  triggerText.style.color = item.status ? "#fff" : "var(--muted)";
+}
   els.notes.value = item.notes ?? "";
   els.updatedBy.value = item.updatedBy ?? "";
   updateFormUI();
@@ -4626,18 +4661,53 @@ function renderStatusesPage(){
 
 // ====== STATUS PILLS ======
 function buildStatusPills(){
-  const select = document.getElementById("status");
-  if(!select) return;
-  const current = select.value;
+  const dropdown = document.getElementById("statusDropdown");
+  const trigger = document.getElementById("statusTrigger");
+  const triggerText = document.getElementById("statusTriggerText");
+  const hiddenInput = document.getElementById("status");
+  if(!dropdown || !trigger) return;
+
   const list = loadStatuses();
-  select.innerHTML = `<option value="">Status...</option>`;
-  list.forEach(s => {
-    const opt = document.createElement("option");
-    opt.value = s;
-    opt.textContent = s;
-    if(s === current) opt.selected = true;
-    select.appendChild(opt);
+  dropdown.innerHTML = "";
+
+  // Add blank option
+  const blank = document.createElement("div");
+  blank.textContent = "Status...";
+  blank.style.cssText = "padding:12px 14px;font-size:14px;font-weight:700;color:rgba(255,255,255,.35);cursor:pointer;border-bottom:1px solid rgba(255,255,255,.06);";
+  blank.addEventListener("click", () => {
+    hiddenInput.value = "";
+    triggerText.textContent = "Status...";
+    triggerText.style.color = "var(--muted)";
+    dropdown.style.display = "none";
   });
+  dropdown.appendChild(blank);
+
+  list.forEach(s => {
+    const item = document.createElement("div");
+    item.textContent = s;
+    item.style.cssText = "padding:12px 14px;font-size:14px;font-weight:700;color:var(--text);cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04);";
+    item.addEventListener("mouseenter", () => item.style.background = "rgba(58,122,254,.18)");
+    item.addEventListener("mouseleave", () => item.style.background = "transparent");
+    item.addEventListener("click", () => {
+      hiddenInput.value = s;
+      triggerText.textContent = s;
+      triggerText.style.color = "#fff";
+      dropdown.style.display = "none";
+    });
+    dropdown.appendChild(item);
+  });
+
+  // Toggle open/close
+  trigger.onclick = () => {
+    dropdown.style.display = dropdown.style.display === "none" ? "block" : "none";
+  };
+
+  // Close on outside click
+  document.addEventListener("click", (e) => {
+    if(!e.target.closest("#statusTrigger") && !e.target.closest("#statusDropdown")){
+      dropdown.style.display = "none";
+    }
+  }, { once: false });
 }
 
 document.getElementById("addStatusBtn").addEventListener("click", () => {
