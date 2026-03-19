@@ -1375,7 +1375,8 @@
                 <input id="qty" type="number" min="0" step="1" placeholder="Qty">
               </div>
               <div>
-                <input id="status" type="text" placeholder="Status (example: RUNNING)">
+               <input id="status" type="text" placeholder="Status (example: RUNNING)">
+               <div id="statusPills" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
               </div>
               <div class="full">
                 <input id="notes" type="text" placeholder="Notes (optional)">
@@ -3108,6 +3109,7 @@ document.addEventListener("keydown", (e) => {
 // ====== INIT ======
 window.initApp = async function initApp() {
   try {
+    buildStatusPills();
     buildLaneButtons();
     buildMachineButtons();
     els.laneTitle.textContent = selectedLane;
@@ -4621,6 +4623,43 @@ function renderStatusesPage(){
   });
 }
 
+// ====== STATUS PILLS ======
+function buildStatusPills(){
+  const container = document.getElementById("statusPills");
+  if(!container) return;
+  const list = loadStatuses();
+  container.innerHTML = "";
+  list.forEach(s => {
+    const pill = document.createElement("button");
+    pill.type = "button";
+    pill.textContent = s;
+    pill.style.cssText = `
+      padding:6px 12px;
+      border-radius:999px;
+      border:1px solid rgba(58,122,254,.35);
+      background:rgba(58,122,254,.12);
+      color:rgba(180,205,255,.9);
+      font-size:12px;
+      font-weight:900;
+      cursor:pointer;
+      white-space:nowrap;
+    `;
+    pill.addEventListener("click", () => {
+      document.getElementById("status").value = s;
+      // Highlight selected
+      container.querySelectorAll("button").forEach(b => {
+        b.style.background = "rgba(58,122,254,.12)";
+        b.style.borderColor = "rgba(58,122,254,.35)";
+        b.style.color = "rgba(180,205,255,.9)";
+      });
+      pill.style.background = "rgba(58,122,254,.35)";
+      pill.style.borderColor = "rgba(58,122,254,.8)";
+      pill.style.color = "#fff";
+    });
+    container.appendChild(pill);
+  });
+}
+
 document.getElementById("addStatusBtn").addEventListener("click", () => {
   const input = document.getElementById("newStatusInput");
   const msg = document.getElementById("statusMsg");
@@ -4635,6 +4674,7 @@ document.getElementById("addStatusBtn").addEventListener("click", () => {
   input.value = "";
   msg.textContent = "";
   renderStatusesPage();
+  buildStatusPills(); // ← ADD THIS
   toast(`✅ Added "${val}"`);
 });
 
