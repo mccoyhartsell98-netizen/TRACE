@@ -1617,6 +1617,17 @@
   </div>
 </div>
 
+<!-- HISTORY TIMELINE MODAL -->
+<div class="overlay" id="historyTimelineOverlay">
+  <div class="modal" style="max-width:520px;">
+    <div class="modalTop">
+      <div class="modalTitle" id="historyTimelineTitle">Move History</div>
+      <button class="ghost" id="historyTimelineClose">Close</button>
+    </div>
+    <div id="historyTimelineBody" style="display:flex;flex-direction:column;gap:8px;margin-top:4px;"></div>
+  </div>
+</div>
+
 <!-- MOVE NOTIFICATION -->
 <div id="moveNotif" class="moveNotif">
   <div class="moveNotif-top">
@@ -3365,7 +3376,16 @@ function renderFeedPage(){
         <span>👤 ${escapeHtml(by)}</span>
         <span>${escapeHtml(when)}</span>
       </div>
+      <div style="margin-top:8px;">
+        <button class="ghost" style="font-size:12px;padding:5px 10px;" data-history="${item.id}">📋 View History</button>
+      </div>
     `;
+     
+     div.querySelector("[data-history]").addEventListener("click", (e) => {
+      e.stopPropagation();
+      showJobHistory(item.id, item.job);
+    });
+
     div.addEventListener("click", () => {
       hidePage("feedPage");
       if(item.machine) selectMachine(item.machine);
@@ -4385,6 +4405,96 @@ async function stopQRScan(silent=false){
     setTimeout(() => window.showTutorial(), 1400);
   }
 })();
+
+// ====== JOB HISTORY TIMELINE ======
+const TIMELINE_COLORS = [
+  "rgba(255,209,102,.9)",  // yellow
+  "rgba(58,122,254,.9)",   // blue
+  "rgba(138,255,138,.9)",  // green
+  "rgba(255,107,107,.9)",  // red
+  "rgba(180,130,255,.9)",  // purple
+];
+
+document.getElementById("historyTimelineClose").addEventListener("click", () => {
+  document.getElementById("historyTimelineOverlay").classList.remove("show");
+});
+document.getElementById("historyTimelineOverlay").addEventListener("click", (e) => {
+  if(e.target === document.getElementById("historyTimelineOverlay"))
+    document.getElementById("historyTimelineOverlay").classList.remove("show");
+});
+
+async function showJobHistory(itemId, jobNumber){
+  const title = document.getElementById("historyTimelineTitle");
+  const body  = document.getElementById("historyTimelineBody");
+  const overlay = document.getElementById("historyTimelineOverlay");
+
+  title.textContent = `Job #${jobNumber} — Move History`;
+  body.innerHTML = `<div style="color:var(--muted);font-size:13px;">Loading...</div>`;
+  overlay.classList.add("show");
+
+  try{
+    const d = await apiGet(`/items/${itemId}/history`);
+    const history = Array.isArray(d.history) ? d.history : [];
+
+    if(history.length === 0){
+      body.innerHTML = `
+        <div class="emptyState">
+          <div class="emptyState-icon">📭</div>
+          <div class="emptyState-title">No History Yet</div>
+          <div class="emptyState-sub">Moves made from today onwards will appear here.</div>
+        </div>`;
+      return;
+    }
+
+    body.innerHTML = "";
+
+    // Divider line
+    const line = document.createElement("div");
+    line.style.cssText = "border-left:2px solid rgba(58,122,254,.25);margin-left:18px;padding-left:0;display:flex;flex-direction:column;gap:0;";
+
+    history.forEach((move, i) => {
+      const color = TIMELINE_COLORS[i % TIMELINE_COLORS.length];
+      const from = move.from_lane ? `Lane ${move.from_lane}` : (move.from_machine ? move.from_machine : "—");
+      const to   = move.to_lane   ? `Lane ${move.to_lane}`   : (move.to_machine   ? move.to_machine   : "—");
+      const when = formatTimestamp(move.moved_at);
+      const by   = move.moved_by || "—";
+
+      const row = document.createElement("div");
+      row.style.cssText = "display:flex;align-items:flex-start;gap:12px;padding:10px 0;position:relative;margin-left:-9px;";
+      row.innerHTML = `
+        <div style="
+          width:18px;height:18px;border-radius:50%;
+          background:${color};
+          box-shadow:0 0 10px ${color};
+          flex-shrink:0;margin-top:2px;
+        "></div>
+        <div style="flex:1;">
+          <div style="font-weight:900;font-size:15px;color:#fff;">
+            ${escapeHtml(from)} → ${escapeHtml(to)}
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:4px;">
+            <span style="font-size:12px;color:rgba(180,205,255,.85);">👤 ${escapeHtml(by)}</span>
+            <span style="font-size:12px;color:rgba(255,255,255,.4);">${escapeHtml(when)}</span>
+          </div>
+        </div>
+      `;
+      line.appendChild(row);
+
+      // Divider between rows
+      if(i < history.length - 1){
+        const sep = document.createElement("div");
+        sep.style.cssText = "height:1px;background:rgba(255,255,255,.06);margin-left:9px;";
+        line.appendChild(sep);
+      }
+    });
+
+    body.appendChild(line);
+
+  }catch(e){
+    body.innerHTML = `<div style="color:var(--bad);font-weight:900;">Failed to load history: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
 
 // ====== PARTIAL PICKS LOG ======
 let partialPicksCache = [];
