@@ -3046,6 +3046,7 @@ els.machineSearch.addEventListener("input", renderMachineList);
 
 // Form buttons
 els.saveBtn.addEventListener("click", upsertItem);
+els.deleteBtn.addEventListener("click", deleteSelected);
 document.getElementById("moveBtn").addEventListener("click", () => {
   if (selectedId) openMoveOverlay(selectedId);
 });
