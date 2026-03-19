@@ -1375,8 +1375,9 @@
                 <input id="qty" type="number" min="0" step="1" placeholder="Qty">
               </div>
               <div>
-               <input id="status" type="text" placeholder="Status (example: RUNNING)">
-               <div id="statusPills" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+              <select id="status" style="padding:14px;font-size:16px;border-radius:10px;border:1px solid var(--stroke);background:var(--panel2);color:var(--text);outline:none;width:100%;">
+                <option value="">Status...</option>
+               </select>
               </div>
               <div class="full">
                 <input id="notes" type="text" placeholder="Notes (optional)">
@@ -4625,38 +4626,17 @@ function renderStatusesPage(){
 
 // ====== STATUS PILLS ======
 function buildStatusPills(){
-  const container = document.getElementById("statusPills");
-  if(!container) return;
+  const select = document.getElementById("status");
+  if(!select) return;
+  const current = select.value;
   const list = loadStatuses();
-  container.innerHTML = "";
+  select.innerHTML = `<option value="">Status...</option>`;
   list.forEach(s => {
-    const pill = document.createElement("button");
-    pill.type = "button";
-    pill.textContent = s;
-    pill.style.cssText = `
-      padding:6px 12px;
-      border-radius:999px;
-      border:1px solid rgba(58,122,254,.35);
-      background:rgba(58,122,254,.12);
-      color:rgba(180,205,255,.9);
-      font-size:12px;
-      font-weight:900;
-      cursor:pointer;
-      white-space:nowrap;
-    `;
-    pill.addEventListener("click", () => {
-      document.getElementById("status").value = s;
-      // Highlight selected
-      container.querySelectorAll("button").forEach(b => {
-        b.style.background = "rgba(58,122,254,.12)";
-        b.style.borderColor = "rgba(58,122,254,.35)";
-        b.style.color = "rgba(180,205,255,.9)";
-      });
-      pill.style.background = "rgba(58,122,254,.35)";
-      pill.style.borderColor = "rgba(58,122,254,.8)";
-      pill.style.color = "#fff";
-    });
-    container.appendChild(pill);
+    const opt = document.createElement("option");
+    opt.value = s;
+    opt.textContent = s;
+    if(s === current) opt.selected = true;
+    select.appendChild(opt);
   });
 }
 
