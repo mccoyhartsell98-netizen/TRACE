@@ -343,22 +343,22 @@
   max-width:1100px;
   height:100vh;
   margin:0 auto;
-  padding:18px 18px 16px;
+  padding:12px 18px 10px;
   display:flex;
   flex-direction:column;
-  gap:6px;
+  gap:8px;
 }
     .top{
-      display:grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items:center;
-      gap:10px;
-      flex:0 0 auto;
-    }
+  display:grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items:center;
+  gap:10px;
+  flex:0 0 auto;
+}
     .logo{
   grid-column:2;
   justify-self:center;
-  width:500px;
+  width:320px;
   max-width:96vw;
   height:auto;
   display:block;
@@ -451,12 +451,13 @@
     .ghost:hover{background:rgba(255,255,255,.06)}
 
     .grid{
-      flex:1 1 auto;
-      min-height:0;
-      display:grid;
-      grid-template-columns: 1.2fr .8fr;
-      gap:14px;
-    }
+  flex:1 1 auto;
+  min-height:0;
+  display:grid;
+  grid-template-columns: 1.2fr .8fr;
+  gap:14px;
+  margin-top:48px;
+}
     .card{
       background:var(--panel);
       border:1px solid var(--stroke);
@@ -1237,7 +1238,7 @@
   <div class="traceBoot" id="traceBoot" aria-hidden="false">
     <div class="traceBoot-inner">
       <div class="traceLogo-wrap">
-        <img class="traceLogo" src="./trace-logo.png.png" alt="TRACE" />
+        <img class="traceLogo" src="./Offcial-Trace-Logo.png" alt="TRACE" />
       </div>
       <div class="traceTagline">WE TRACK. YOU IMPROVE.</div>
       <div class="traceHud">
@@ -1269,7 +1270,7 @@
 
       <div class="top">
         <div></div>
-        <img src="./trace-logo.png.png" alt="TRACE" class="logo">
+        <img src="./Offcial-Trace-Logo.png" alt="TRACE" class="logo">
         <div class="status"></div>
       </div>
 
@@ -2189,7 +2190,7 @@ function downloadJobQr(){
 
   const logo = new Image();
   logo.crossOrigin = "anonymous";
-  logo.src = "./trace-logo.png.png";
+  logo.src = "./Offcial-Trace-Logo.png";
   logo.onload = () => {
     // Step 1: draw logo to a temp canvas to find actual content bounds
     const tmp = document.createElement("canvas");
@@ -3956,7 +3957,7 @@ document.getElementById("downloadQrBtn").addEventListener("click", () => {
 
   const logo = new Image();
   logo.crossOrigin = "anonymous";
-  logo.src = "./trace-logo.png.png";
+  logo.src = "./Offcial-Trace-Logo.png";
   logo.onload = () => {
     const tmp = document.createElement("canvas");
     tmp.width = logo.naturalWidth;
