@@ -4503,7 +4503,7 @@ function closeTutorial(){
   overlay.classList.remove("show");
   localStorage.setItem(STORAGE_KEY, "1");
   closeSideMenu();
-  
+}
 
   nextBtn.addEventListener("click", () => {
     if(current < STEPS.length - 1) goTo(current + 1);
@@ -4803,7 +4803,7 @@ document.getElementById("addStatusBtn").addEventListener("click", () => {
   input.value = "";
   msg.textContent = "";
   renderStatusesPage();
-  buildStatusPills(); 
+  buildStatusPills(); // ← ADD THIS
   toast(`✅ Added "${val}"`);
 });
 
