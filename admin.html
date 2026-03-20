@@ -4340,7 +4340,7 @@ const STEPS = [
 
   function positionTooltip(rect){
     const TW = Math.min(320, window.innerWidth * 0.88);
-    const TH = 220;
+    const TH = tooltip.offsetHeight || 220;
     const pad = 16;
     let top, left;
 
