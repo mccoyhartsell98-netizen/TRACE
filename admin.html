@@ -356,16 +356,17 @@
       flex:0 0 auto;
     }
     .logo{
-      grid-column:2;
-      justify-self:center;
-      width:680px;
-      max-width:96vw;
-      height:auto;
-      display:block;
-      filter:
-        drop-shadow(0 0 12px rgba(58,122,254,0.35))
-        drop-shadow(0 0 28px rgba(58,122,254,0.15));
-    }
+  grid-column:2;
+  justify-self:center;
+  width:420px;
+  max-width:96vw;
+  height:60px;
+  object-fit:contain;
+  display:block;
+  filter:
+    drop-shadow(0 0 12px rgba(58,122,254,0.35))
+    drop-shadow(0 0 28px rgba(58,122,254,0.15));
+}
     .status{
       grid-column:3;
       justify-self:end;
@@ -1196,6 +1197,7 @@
 .tutorialSkip:hover{color:rgba(255,255,255,.6);}
 .tutorialNext{padding:8px 18px;border-radius:10px;font-weight:900;font-size:13px;background:rgba(58,122,254,.28);border:1px solid rgba(58,122,254,.55);color:#fff;cursor:pointer;}
 .tutorialNext:hover{background:rgba(58,122,254,.4);}
+#loadingOverlay.show { display:flex !important; }
   </style>
 </head>
 
@@ -1656,6 +1658,32 @@
       <button class="ghost" id="historyTimelineClose">Close</button>
     </div>
     <div id="historyTimelineBody" style="display:flex;flex-direction:column;gap:8px;margin-top:4px;"></div>
+  </div>
+</div>
+
+<!-- LOADING OVERLAY -->
+<div id="loadingOverlay" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.55);
+  z-index:999995;
+  align-items:center;
+  justify-content:center;
+  backdrop-filter:blur(4px);
+">
+  <div style="
+    background:rgba(12,14,18,.95);
+    border:1px solid rgba(58,122,254,.45);
+    border-radius:16px;
+    padding:24px 32px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    box-shadow:0 20px 60px rgba(0,0,0,.6);
+  ">
+    <div style="width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.22);border-top-color:rgba(58,122,254,.9);animation:spin 800ms linear infinite;"></div>
+    <div id="loadingText" style="font-weight:900;font-size:15px;letter-spacing:.04em;color:#fff;">Loading...</div>
   </div>
 </div>
 
@@ -4818,6 +4846,7 @@ document.getElementById("openStatusesBtn").addEventListener("click", () => {
   showPage("statusesPage");
   renderStatusesPage();
 });
+
 
 </script>
 </body>
