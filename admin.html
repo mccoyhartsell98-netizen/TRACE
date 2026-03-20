@@ -3175,6 +3175,11 @@ updateTabBadges();
   renderMachineList();
   renderGlobalSearch();
   updateTabBadges();
+  // Re-render whichever page is currently open
+  const feedPage = document.getElementById("feedPage");
+  const queuePage = document.getElementById("queuePage");
+  if(feedPage && !feedPage.classList.contains("hidden")) renderFeedPage();
+  if(queuePage && !queuePage.classList.contains("hidden")) renderQueuePage();
 }, 15000);
 
   } catch (err) { 
