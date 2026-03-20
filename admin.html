@@ -359,13 +359,10 @@
     .logo{
   grid-column:2;
   justify-self:center;
-  width:340px;
+  width:400px;
   max-width:96vw;
-  height:55px;
-  object-fit:contain;
-  object-position:center;
+  height:auto;
   display:block;
-  margin:0 0 -20px 0
   filter:
     drop-shadow(0 0 12px rgba(58,122,254,0.35))
     drop-shadow(0 0 28px rgba(58,122,254,0.15));
@@ -455,12 +452,13 @@
     .ghost:hover{background:rgba(255,255,255,.06)}
 
     .grid{
-      flex:1 1 auto;
-      min-height:0;
-      display:grid;
-      grid-template-columns: 1.2fr .8fr;
-      gap:14px;
-    }
+  flex:1 1 auto;
+  min-height:0;
+  display:grid;
+  grid-template-columns: 1.2fr .8fr;
+  gap:14px;
+  margin-top:16px;
+}
     .card{
       background:var(--panel);
       border:1px solid var(--stroke);
