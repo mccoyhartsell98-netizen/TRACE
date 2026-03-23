@@ -5003,12 +5003,9 @@ document.getElementById("addStatusBtn").addEventListener("click", () => {
 document.getElementById("statusesPageBack").addEventListener("click", () => hidePage("statusesPage"));
 document.getElementById("openStatusesBtn").addEventListener("click", () => {
   closeSideMenu();
-  requestAnimationFrame(() => {
-    showPage("statusesPage");
-    renderStatusesPage();
-  });
+  showPage("statusesPage");
+  renderStatusesPage();
 });
-
 
 </script>
 </body>
