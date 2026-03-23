@@ -4999,8 +4999,10 @@ document.getElementById("addStatusBtn").addEventListener("click", () => {
 document.getElementById("statusesPageBack").addEventListener("click", () => hidePage("statusesPage"));
 document.getElementById("openStatusesBtn").addEventListener("click", () => {
   closeSideMenu();
-  showPage("statusesPage");
-  renderStatusesPage();
+  requestAnimationFrame(() => {
+    showPage("statusesPage");
+    renderStatusesPage();
+  });
 });
 
 
