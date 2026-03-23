@@ -4972,12 +4972,15 @@ function buildStatusPills(){
   };
 
   // Close on outside click
-  document.addEventListener("click", (e) => {
-    if(!e.target.closest("#statusTrigger") && !e.target.closest("#statusDropdown")){
-      dropdown.style.display = "none";
-    }
-  }, { once: false });
-}
+  if(!window._statusDropdownListenerAdded){
+    window._statusDropdownListenerAdded = true;
+    document.addEventListener("click", (e) => {
+      if(!e.target.closest("#statusTrigger") && !e.target.closest("#statusDropdown") && !e.target.closest("#sideMenu")){
+        const dd = document.getElementById("statusDropdown");
+        if(dd) dd.style.display = "none";
+      }
+    });
+  }
 
 document.getElementById("addStatusBtn").addEventListener("click", () => {
   const input = document.getElementById("newStatusInput");
