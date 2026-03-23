@@ -101,7 +101,7 @@
             <button class="btn" id="hubMove">MOVE</button>
             <button class="btn" id="hubStatus">STATUS</button>
             <button class="btn" id="hubSearch">SEARCH</button>
-            <button class="btn" id="hubAdmin">ADMIN</button>
+            <button class="btn sec" id="hubAdmin">ADMIN</button>
           </div>
           <div class="section">
             <div style="display:flex;justify-content:space-between;align-items:center">
@@ -346,8 +346,18 @@ async function enterHub(user){
 function setActive(item){
   activeItem=item;
   const loc=item.machine?`Machine ${item.machine}`:(item.lane||"No location");
-  $("jobLine").innerHTML=`<span style="color:#eaf2ff;font-weight:700;">Job ${item.job} &bull; MO ${item.mo||"-"} &bull; QTY ${item.qty}</span><br><span style="color:#6dbf8a;font-size:13px;">Location: ${loc}</span>`;
+  const moStr = item.mo ? `MO ${item.mo} &bull; ` : `<span style="color:#ff7f7f;font-size:12px;">MO missing &bull; </span>`;
+$("jobLine").innerHTML=`<span style="color:#eaf2ff;font-weight:700;">Job ${item.job} &bull; </span>${moStr}<span style="color:#eaf2ff;font-weight:700;">QTY ${item.qty}</span><br><span style="color:#6dbf8a;font-size:13px;">Location: ${loc}</span>`;
   $("jobStatus").textContent=item.status||"active";
+const statusColors={
+  "Printed":"#1a3a1a;color:#7fff7f",
+  "On Press":"#3a2a00;color:#ffd166",
+  "On Hold":"#3a1a1a;color:#ff7f7f",
+  "Completed":"#1a3a1a;color:#7fff7f",
+  "Tauro Queue":"#1a2a3a;color:#4fc3f7",
+};
+const sc=statusColors[item.status]||"transparent;color:var(--muted)";
+$("jobStatus").style.cssText=`background:${sc.split(";")[0]};${sc.split(";")[1]};border-color:transparent;`;
 }
 
 $("hubLogout").onclick=()=>{
@@ -579,7 +589,7 @@ pendingSearch=m[0];
 $("searchMsg").textContent="";
 const loc=m[0].machine?`Machine ${m[0].machine}`:(m[0].lane||"No location");
 $("srTitle").textContent=`Job ${m[0].job} \u2022 MO ${m[0].mo||"-"} \u2022 QTY ${m[0].qty}`;
-$("srSub").innerHTML=`<span style="color:#4fc3f7;font-weight:900;font-size:14px;">📍 Location: ${loc}</span>`;
+$("srSub").innerHTML=`<span style="color:#6dbf8a;font-size:13px;">Location: ${loc}</span>`;
 $("searchResult").classList.remove("hide");
 };  // ← closes btnDoSearch.onclick
 
@@ -643,8 +653,8 @@ async function applyStatus(status){
   renderPin();
   try{
     const r=await fetch(`${API}/health`,{cache:"no-store"});
-    $("pillStatus").textContent=r.ok?"LOCKED \u2022 API OK":"LOCKED \u2022 API DOWN";
-  }catch(e){$("pillStatus").textContent="LOCKED \u2022 API DOWN";}
+    $("pillStatus").textContent="LOCKED";
+  }catch(e){$("pillStatus").textContent="LOCKED";}
   const {token,user}=auth();
   if(token&&user) enterHub(user);
 })();
