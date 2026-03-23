@@ -4971,7 +4971,7 @@ function buildStatusPills(){
     dropdown.style.display = dropdown.style.display === "none" ? "block" : "none";
   };
 
-  // Close on outside click
+   // Close on outside click
   if(!window._statusDropdownListenerAdded){
     window._statusDropdownListenerAdded = true;
     document.addEventListener("click", (e) => {
@@ -4981,6 +4981,7 @@ function buildStatusPills(){
       }
     });
   }
+}
 
 document.getElementById("addStatusBtn").addEventListener("click", () => {
   const input = document.getElementById("newStatusInput");
