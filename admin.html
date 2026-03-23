@@ -440,17 +440,20 @@
       box-shadow: 0 0 0 3px rgba(58,122,254,.18);
     }
     button{
-      border:none;
-      border-radius:10px;
-      padding:10px 12px;
-      font-size:14px;
-      font-weight:900;
-      color:var(--text);
-      background:rgba(255,255,255,.08);
-      cursor:pointer;
-      border:1px solid var(--stroke);
-      white-space:nowrap;
-    }
+  position: relative;
+  overflow: hidden;
+
+  border:none;
+  border-radius:10px;
+  padding:10px 12px;
+  font-size:14px;
+  font-weight:900;
+  color:var(--text);
+  background:rgba(255,255,255,.08);
+  cursor:pointer;
+  border:1px solid var(--stroke);
+  white-space:nowrap;
+}
     button:hover{background:rgba(255,255,255,.11)}
     button:disabled{opacity:.4; cursor:not-allowed;}
     .primary{background:rgba(58,122,254,.24); border-color:rgba(58,122,254,.55)}
@@ -459,6 +462,38 @@
     .danger:hover:not(:disabled){background:rgba(255,107,107,.22)}
     .ghost{background:transparent}
     .ghost:hover{background:rgba(255,255,255,.06)}
+
+/* TRACE blue sweep effect */
+button::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -75%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent,
+    rgba(58,122,254,0.6),
+    transparent
+  );
+  transform: skewX(-20deg);
+  opacity: 0;
+}
+
+button:hover::before {
+  animation: traceShine 0.7s ease forwards;
+  opacity: 1;
+}
+
+@keyframes traceShine {
+  from {
+    left: -75%;
+  }
+  to {
+    left: 125%;
+  }
+}
 
     .grid{
   flex:1 1 auto;
