@@ -440,20 +440,17 @@
       box-shadow: 0 0 0 3px rgba(58,122,254,.18);
     }
     button{
-  position: relative;
-  overflow: hidden;
-
-  border:none;
-  border-radius:10px;
-  padding:10px 12px;
-  font-size:14px;
-  font-weight:900;
-  color:var(--text);
-  background:rgba(255,255,255,.08);
-  cursor:pointer;
-  border:1px solid var(--stroke);
-  white-space:nowrap;
-}
+      border:none;
+      border-radius:10px;
+      padding:10px 12px;
+      font-size:14px;
+      font-weight:900;
+      color:var(--text);
+      background:rgba(255,255,255,.08);
+      cursor:pointer;
+      border:1px solid var(--stroke);
+      white-space:nowrap;
+    }
     button:hover{background:rgba(255,255,255,.11)}
     button:disabled{opacity:.4; cursor:not-allowed;}
     .primary{background:rgba(58,122,254,.24); border-color:rgba(58,122,254,.55)}
@@ -462,46 +459,6 @@
     .danger:hover:not(:disabled){background:rgba(255,107,107,.22)}
     .ghost{background:transparent}
     .ghost:hover{background:rgba(255,255,255,.06)}
-
-/* TRACE blue sweep effect */
-button:hover {
-  background: rgba(255,255,255,.11);
-  box-shadow: 0 0 12px rgba(58,122,254,0.35);
-}
-
-/* shine element */
-button::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 60%;
-  height: 100%;
-  background: linear-gradient(
-    120deg,
-    transparent,
-    rgba(58,122,254,0.8),
-    transparent
-  );
-  transform: skewX(-20deg);
-  opacity: 0;
-}
-
-/* trigger animation */
-button:hover::before {
-  animation: traceShine 1.2s ease;
-  opacity: 1;
-}
-
-/* animation */
-@keyframes traceShine {
-  0% {
-    left: -100%;
-  }
-  100% {
-    left: 140%;
-  }
-}
 
     .grid{
   flex:1 1 auto;
@@ -1634,7 +1591,7 @@ button:hover::before {
   <div class="wrap" style="max-width:900px;">
     <div class="pageHeader">
       <button class="ghost" id="usersPageBack">← Back</button>
-      <h2 style="margin:0;font-size:18px;">User Management</h2>
+      <h2 style="margin:0;font-size:18px;">👤 User Management</h2>
       <div style="display:flex;align-items:center;gap:8px;">
         <span id="userCount" class="completedCount">0</span>
         <span style="font-size:12px;color:var(--muted);">accounts</span>
@@ -1663,15 +1620,34 @@ button:hover::before {
           </select>
         </div>
         <div>
-               <div>
+          <div class="pinSection">
           <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">4-Digit PIN *</label>
-          <input id="uPin" type="password" maxlength="4" placeholder="••••"
-            style="letter-spacing:8px;font-size:18px;text-align:center;width:100%;padding:14px;border-radius:10px;border:1px solid var(--stroke);background:var(--panel2);color:#fff;outline:none;"
-            onfocus="this.type='text'"
-            onblur="this.type='password'">
-               </div>
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div class="pinDisplay" id="pinDisplay">
+              <div class="pinDot" id="pd0"></div>
+              <div class="pinDot" id="pd1"></div>
+              <div class="pinDot" id="pd2"></div>
+              <div class="pinDot" id="pd3"></div>
             </div>
-      <div class="btnRow" style="margin-top:16px;margin-bottom:20px;">
+            <span style="font-size:11px;color:rgba(255,255,255,.25);letter-spacing:.06em;">ENTER BELOW</span>
+          </div>
+          <div class="pinGrid">
+            <div class="pinKey" data-pin="1">1</div>
+            <div class="pinKey" data-pin="2">2</div>
+            <div class="pinKey" data-pin="3">3</div>
+            <div class="pinKey" data-pin="4">4</div>
+            <div class="pinKey" data-pin="5">5</div>
+            <div class="pinKey" data-pin="6">6</div>
+            <div class="pinKey" data-pin="7">7</div>
+            <div class="pinKey" data-pin="8">8</div>
+            <div class="pinKey" data-pin="9">9</div>
+            <div class="pinKey del" data-pin="clear">✕</div>
+            <div class="pinKey" data-pin="0">0</div>
+            <div class="pinKey del" data-pin="back">⌫</div>
+          </div>
+        </div>
+      </div>
+      <div class="btnRow" style="margin-top:16px;">
         <button class="primary" id="saveUserBtn">Save Account</button>
         <button class="ghost" id="cancelUserEditBtn" style="display:none;">Cancel Edit</button>
       </div>
@@ -3399,7 +3375,6 @@ function hidePage(pageId){
   clearForm();
 }
 
-
 // History page
 document.getElementById("historyPageBack").addEventListener("click", () => hidePage("historyPage"));
 document.getElementById("clearHistoryBtn2").addEventListener("click", async () => {
@@ -3940,11 +3915,11 @@ function startEditUser(id){
   document.getElementById("uRole").value = u.role;
   document.getElementById("userFormTitle").textContent = `Edit: ${u.name}`;
   document.getElementById("cancelUserEditBtn").style.display = "inline-block";
-  document.getElementById("saveUserBtn").textContent = "Update Account";
+  document.getElementById("saveUserBtn").textContent = "💾 Update Account";
   document.getElementById("userFormMsg").textContent = "Leave PIN blank to keep current PIN.";
   document.getElementById("userFormMsg").style.color = "var(--warn)";
-  document.getElementById("uPin").value = "";
-    document.getElementById("userFormCard").scrollIntoView({ behavior:"smooth" });
+  updatePinDisplay();
+  document.getElementById("userFormCard").scrollIntoView({ behavior:"smooth" });
 }
 
 function cancelUserEdit(){
@@ -3953,10 +3928,9 @@ function cancelUserEdit(){
   document.getElementById("uName").value = "";
   document.getElementById("uBadge").value = "";
   document.getElementById("uRole").value = "driver";
-  document.getElementById("uPin").value = "";
   document.getElementById("userFormTitle").textContent = "Create New Account";
   document.getElementById("cancelUserEditBtn").style.display = "none";
-  document.getElementById("saveUserBtn").textContent = "Save Account";
+  document.getElementById("saveUserBtn").textContent = "💾 Save Account";
   document.getElementById("userFormMsg").textContent = "";
   updatePinDisplay();
 }
@@ -3987,10 +3961,10 @@ async function saveUser(){
   const dupBadge = usersList.find(u => u.badge.toLowerCase() === badge.toLowerCase() && u.id !== editingUserId);
   if(dupBadge){ msgEl.textContent = `⚠️ Badge ID "${badge}" already belongs to ${dupBadge.name}.`; msgEl.style.color="var(--bad)"; return; }
 
-  if(!editingUserId && document.getElementById("uPin").value.length !== 4){
+  if(!editingUserId && currentPin.length !== 4){
     msgEl.textContent = "⚠️ Please enter a full 4-digit PIN."; msgEl.style.color="var(--bad)"; return;
   }
-  if(editingUserId && document.getElementById("uPin").value.length > 0 && document.getElementById("uPin").value.length < 4){
+  if(editingUserId && currentPin.length > 0 && currentPin.length < 4){
     msgEl.textContent = "⚠️ PIN must be exactly 4 digits."; msgEl.style.color="var(--bad)"; return;
   }
 
@@ -3998,7 +3972,7 @@ async function saveUser(){
   btn.disabled = true;
 
   const existingPin = usersList.find(u => u.id === editingUserId)?.pin || "";
-  const finalPin = document.getElementById("uPin").value.length === 4 ? document.getElementById("uPin").value : existingPin;
+  const finalPin = currentPin.length === 4 ? currentPin : existingPin;
 
   const newUser = {
     id: editingUserId || ("u_" + Date.now()),
@@ -4972,15 +4946,12 @@ function buildStatusPills(){
   };
 
   // Close on outside click
-  if(!window._statusDropdownListenerAdded){
-    window._statusDropdownListenerAdded = true;
-    document.addEventListener("click", (e) => {
-      if(!e.target.closest("#statusTrigger") && !e.target.closest("#statusDropdown") && !e.target.closest("#sideMenu")){
-        const dd = document.getElementById("statusDropdown");
-        if(dd) dd.style.display = "none";
-      }
-    });
-  }
+  document.addEventListener("click", (e) => {
+    if(!e.target.closest("#statusTrigger") && !e.target.closest("#statusDropdown")){
+      dropdown.style.display = "none";
+    }
+  }, { once: false });
+}
 
 document.getElementById("addStatusBtn").addEventListener("click", () => {
   const input = document.getElementById("newStatusInput");
@@ -5006,6 +4977,7 @@ document.getElementById("openStatusesBtn").addEventListener("click", () => {
   showPage("statusesPage");
   renderStatusesPage();
 });
+
 
 </script>
 </body>
