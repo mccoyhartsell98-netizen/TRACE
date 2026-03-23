@@ -638,28 +638,121 @@
     }
 
 /* ===== USER MANAGEMENT ===== */
-    .userTable{width:100%;border-collapse:collapse;margin-top:10px;}
-    .userTable th{text-align:left;padding:10px 12px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--stroke);font-weight:900;}
-    .userTable td{padding:12px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:14px;vertical-align:middle;}
-    .userTable tr:last-child td{border-bottom:none;}
-    .userTable tr:hover td{background:rgba(255,255,255,.02);}
-    .rolePill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:900;}
-    .rolePill.driver{background:rgba(58,122,254,.18);border:1px solid rgba(58,122,254,.35);color:rgba(180,205,255,.9);}
-    .rolePill.supervisor{background:rgba(255,209,102,.14);border:1px solid rgba(255,209,102,.35);color:rgba(255,230,140,.9);}
-    .rolePill.admin{background:rgba(138,255,138,.12);border:1px solid rgba(138,255,138,.30);color:rgba(138,255,138,.9);}
-    .rolePill.operator{background:rgba(255,167,38,.14);border:1px solid rgba(255,167,38,.35);color:rgba(255,210,120,.9);}
-    .userFormCard{background:var(--panel2);border:1px solid var(--stroke);border-radius:12px;padding:16px;margin-bottom:16px;}
-    .userFormCard h3{margin:0 0 14px 0;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:900;}
-    .pinGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;}
-    .pinKey{padding:16px 10px;font-size:20px;font-weight:900;border-radius:12px;border:1px solid var(--stroke);background:rgba(255,255,255,.04);color:var(--text);cursor:pointer;text-align:center;user-select:none;transition:background 100ms;}
-    .pinKey:hover{background:rgba(58,122,254,.18);border-color:rgba(58,122,254,.45);}
-    .pinKey:active{transform:scale(.96);}
-    .pinKey.del{font-size:16px;background:rgba(255,107,107,.08);}
-    .pinKey.del:hover{background:rgba(255,107,107,.18);}
-    .pinDisplay{display:flex;gap:12px;justify-content:center;margin:14px 0 4px;}
-    .pinDot{width:16px;height:16px;border-radius:50%;border:2px solid rgba(58,122,254,.45);background:transparent;transition:background 120ms;}
-    .pinDot.filled{background:rgba(58,122,254,.9);border-color:rgba(58,122,254,.9);box-shadow:0 0 10px rgba(58,122,254,.4);}
-    .userActionsRow{display:flex;gap:8px;flex-wrap:wrap;}
+.userTable{width:100%;border-collapse:collapse;margin-top:10px;}
+.userTable th{
+  text-align:left;padding:10px 16px;
+  font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:rgba(255,255,255,.35);
+  border-bottom:1px solid rgba(255,255,255,.06);
+  font-weight:700;
+}
+.userTable td{
+  padding:14px 16px;
+  border-bottom:1px solid rgba(255,255,255,.04);
+  font-size:14px;vertical-align:middle;
+}
+.userTable tr:last-child td{border-bottom:none;}
+.userTable tr:hover td{background:rgba(255,255,255,.02);}
+
+.rolePill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.04em;}
+.rolePill.driver{background:rgba(58,122,254,.12);border:1px solid rgba(58,122,254,.25);color:rgba(140,180,255,.9);}
+.rolePill.supervisor{background:rgba(255,209,102,.10);border:1px solid rgba(255,209,102,.25);color:rgba(255,220,120,.9);}
+.rolePill.admin{background:rgba(138,255,138,.08);border:1px solid rgba(138,255,138,.22);color:rgba(138,255,138,.9);}
+.rolePill.operator{background:rgba(255,167,38,.10);border:1px solid rgba(255,167,38,.25);color:rgba(255,200,100,.9);}
+
+.userFormCard{
+  background:rgba(18,22,32,.85);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:16px;
+  padding:24px;
+  margin-bottom:20px;
+  backdrop-filter:blur(8px);
+}
+.userFormCard h3{
+  margin:0 0 20px 0;
+  font-size:11px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:rgba(58,122,254,.8);
+  font-weight:700;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.userFormCard h3::before{
+  content:"";
+  display:inline-block;
+  width:18px;height:2px;
+  background:rgba(58,122,254,.6);
+  border-radius:999px;
+}
+
+/* PIN — compact inline style */
+.pinSection{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.pinDisplay{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  margin:0;
+}
+.pinDot{
+  width:10px;height:10px;
+  border-radius:50%;
+  border:1.5px solid rgba(58,122,254,.35);
+  background:transparent;
+  transition:background 120ms, border-color 120ms, box-shadow 120ms;
+}
+.pinDot.filled{
+  background:rgba(58,122,254,.9);
+  border-color:rgba(58,122,254,.9);
+  box-shadow:0 0 8px rgba(58,122,254,.45);
+}
+
+/* Compact 3-column PIN grid */
+.pinGrid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:6px;
+  max-width:200px;
+}
+.pinKey{
+  padding:10px 6px;
+  font-size:15px;
+  font-weight:700;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.04);
+  color:var(--text);
+  cursor:pointer;
+  text-align:center;
+  user-select:none;
+  transition:background 100ms, border-color 100ms, transform 80ms;
+  line-height:1;
+}
+.pinKey:hover{
+  background:rgba(58,122,254,.15);
+  border-color:rgba(58,122,254,.35);
+}
+.pinKey:active{
+  transform:scale(.94);
+  background:rgba(58,122,254,.25);
+}
+.pinKey.del{
+  font-size:13px;
+  background:rgba(255,107,107,.06);
+  border-color:rgba(255,107,107,.15);
+  color:rgba(255,130,130,.8);
+}
+.pinKey.del:hover{
+  background:rgba(255,107,107,.14);
+  border-color:rgba(255,107,107,.3);
+}
+
+.userActionsRow{display:flex;gap:8px;flex-wrap:wrap;}
 
 
     @media (max-width: 980px){
@@ -1527,12 +1620,16 @@
           </select>
         </div>
         <div>
+          <div class="pinSection">
           <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">4-Digit PIN *</label>
-          <div class="pinDisplay" id="pinDisplay">
-            <div class="pinDot" id="pd0"></div>
-            <div class="pinDot" id="pd1"></div>
-            <div class="pinDot" id="pd2"></div>
-            <div class="pinDot" id="pd3"></div>
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div class="pinDisplay" id="pinDisplay">
+              <div class="pinDot" id="pd0"></div>
+              <div class="pinDot" id="pd1"></div>
+              <div class="pinDot" id="pd2"></div>
+              <div class="pinDot" id="pd3"></div>
+            </div>
+            <span style="font-size:11px;color:rgba(255,255,255,.25);letter-spacing:.06em;">ENTER BELOW</span>
           </div>
           <div class="pinGrid">
             <div class="pinKey" data-pin="1">1</div>
@@ -1544,7 +1641,7 @@
             <div class="pinKey" data-pin="7">7</div>
             <div class="pinKey" data-pin="8">8</div>
             <div class="pinKey" data-pin="9">9</div>
-            <div class="pinKey del" data-pin="clear">✕ Clear</div>
+            <div class="pinKey del" data-pin="clear">✕</div>
             <div class="pinKey" data-pin="0">0</div>
             <div class="pinKey del" data-pin="back">⌫</div>
           </div>
