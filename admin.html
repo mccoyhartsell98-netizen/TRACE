@@ -464,34 +464,42 @@
     .ghost:hover{background:rgba(255,255,255,.06)}
 
 /* TRACE blue sweep effect */
+button:hover {
+  background: rgba(255,255,255,.11);
+  box-shadow: 0 0 12px rgba(58,122,254,0.35);
+}
+
+/* shine element */
 button::before {
   content: "";
   position: absolute;
   top: 0;
-  left: -75%;
-  width: 50%;
+  left: -100%;
+  width: 60%;
   height: 100%;
   background: linear-gradient(
     120deg,
     transparent,
-    rgba(58,122,254,0.6),
+    rgba(58,122,254,0.8),
     transparent
   );
   transform: skewX(-20deg);
   opacity: 0;
 }
 
+/* trigger animation */
 button:hover::before {
-  animation: traceShine 0.7s ease forwards;
+  animation: traceShine 1.2s ease;
   opacity: 1;
 }
 
+/* animation */
 @keyframes traceShine {
-  from {
-    left: -75%;
+  0% {
+    left: -100%;
   }
-  to {
-    left: 125%;
+  100% {
+    left: 140%;
   }
 }
 
