@@ -3946,7 +3946,15 @@ document.getElementById("replayTutorialBtn").addEventListener("click", () => {
   window.showTutorial();
 });
 
-document.getElementById("qrPageBack").addEventListener("click", () => hidePage("qrPage"));
+document.getElementById("qrPageBack").addEventListener("click", () => {
+  // Clear the QR page state on every back navigation
+  document.getElementById("qrJob").value = "";
+  document.getElementById("qrPageCanvas").innerHTML = "";
+  document.getElementById("qrPageCanvas").style.display = "none";
+  document.getElementById("qrPageUrlPreview").textContent = "";
+  document.getElementById("downloadQrBtn").disabled = true;
+  hidePage("qrPage");
+});
 
 document.getElementById("qrJob").addEventListener("input", (e) => {
   e.target.value = cleanJob(e.target.value);
