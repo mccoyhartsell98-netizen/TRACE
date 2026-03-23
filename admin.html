@@ -1620,32 +1620,10 @@
           </select>
         </div>
         <div>
-          <div class="pinSection">
+          <div>
           <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">4-Digit PIN *</label>
-          <div style="display:flex;align-items:center;gap:14px;">
-            <div class="pinDisplay" id="pinDisplay">
-              <div class="pinDot" id="pd0"></div>
-              <div class="pinDot" id="pd1"></div>
-              <div class="pinDot" id="pd2"></div>
-              <div class="pinDot" id="pd3"></div>
-            </div>
-            <span style="font-size:11px;color:rgba(255,255,255,.25);letter-spacing:.06em;">ENTER BELOW</span>
-          </div>
-          <div class="pinGrid">
-            <div class="pinKey" data-pin="1">1</div>
-            <div class="pinKey" data-pin="2">2</div>
-            <div class="pinKey" data-pin="3">3</div>
-            <div class="pinKey" data-pin="4">4</div>
-            <div class="pinKey" data-pin="5">5</div>
-            <div class="pinKey" data-pin="6">6</div>
-            <div class="pinKey" data-pin="7">7</div>
-            <div class="pinKey" data-pin="8">8</div>
-            <div class="pinKey" data-pin="9">9</div>
-            <div class="pinKey del" data-pin="clear">✕</div>
-            <div class="pinKey" data-pin="0">0</div>
-            <div class="pinKey del" data-pin="back">⌫</div>
-          </div>
-        </div>
+          <input id="uPin" type="password" maxlength="4" placeholder="••••"
+            style="letter-spacing:8px;font-size:22px;text-align:center;width:100%;padding:14px;border-radius:10px;border:1px solid var(--stroke);background:var(--panel2);color:#fff;outline:none;">
       </div>
       <div class="btnRow" style="margin-top:16px;">
         <button class="primary" id="saveUserBtn">Save Account</button>
@@ -3928,9 +3906,10 @@ function cancelUserEdit(){
   document.getElementById("uName").value = "";
   document.getElementById("uBadge").value = "";
   document.getElementById("uRole").value = "driver";
+  document.getElementById("uPin").value = "";
   document.getElementById("userFormTitle").textContent = "Create New Account";
   document.getElementById("cancelUserEditBtn").style.display = "none";
-  document.getElementById("saveUserBtn").textContent = "💾 Save Account";
+  document.getElementById("saveUserBtn").textContent = "Save Account";
   document.getElementById("userFormMsg").textContent = "";
   updatePinDisplay();
 }
@@ -3961,10 +3940,10 @@ async function saveUser(){
   const dupBadge = usersList.find(u => u.badge.toLowerCase() === badge.toLowerCase() && u.id !== editingUserId);
   if(dupBadge){ msgEl.textContent = `⚠️ Badge ID "${badge}" already belongs to ${dupBadge.name}.`; msgEl.style.color="var(--bad)"; return; }
 
-  if(!editingUserId && currentPin.length !== 4){
+  if(!editingUserId && document.getElementById("uPin").value.length !== 4){
     msgEl.textContent = "⚠️ Please enter a full 4-digit PIN."; msgEl.style.color="var(--bad)"; return;
   }
-  if(editingUserId && currentPin.length > 0 && currentPin.length < 4){
+  if(editingUserId && document.getElementById("uPin").value.length > 0 && document.getElementById("uPin").value.length < 4){
     msgEl.textContent = "⚠️ PIN must be exactly 4 digits."; msgEl.style.color="var(--bad)"; return;
   }
 
@@ -3972,7 +3951,7 @@ async function saveUser(){
   btn.disabled = true;
 
   const existingPin = usersList.find(u => u.id === editingUserId)?.pin || "";
-  const finalPin = currentPin.length === 4 ? currentPin : existingPin;
+  const finalPin = document.getElementById("uPin").value.length === 4 ? document.getElementById("uPin").value : existingPin;
 
   const newUser = {
     id: editingUserId || ("u_" + Date.now()),
