@@ -3648,7 +3648,7 @@ updateTabBadges();
 renderLaneList();
 renderMachineList();
 closeAddLocation();
-toast(`✅ ${type === "lane" ? `Lane ${payload.lane}` : payload.machine} added`);
+toast(`✅ ${type === "lane" ? `Lane ${n}` : payload.machine} added`);
   }catch(e){
     msg.textContent = e.message || "Failed to add location.";
     msg.style.color = "var(--bad)";
