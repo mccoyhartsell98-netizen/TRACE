@@ -3389,16 +3389,13 @@ function updateTabBadges(){
 
 // ====== PAGE NAVIGATION ======
 function showPage(pageId){
-  document.getElementById("appRoot").style.opacity = "0";
-  document.getElementById("appRoot").style.pointerEvents = "none";
-  const page = document.getElementById(pageId);
-  page.classList.remove("hidden");
-  page.style.zIndex = "600";
+  document.getElementById("appRoot").classList.add("isHidden");
+  document.getElementById(pageId).classList.remove("hidden");
 }
 function hidePage(pageId){
   document.getElementById(pageId).classList.add("hidden");
-  document.getElementById("appRoot").style.opacity = "1";
-  document.getElementById("appRoot").style.pointerEvents = "auto";
+  document.getElementById("appRoot").classList.remove("isHidden");
+  document.getElementById("appRoot").classList.add("isVisible");
   clearForm();
 }
 
