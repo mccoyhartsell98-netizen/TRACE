@@ -346,7 +346,7 @@ async function enterHub(user){
 function setActive(item){
   activeItem=item;
   const loc=item.machine?`Machine ${item.machine}`:(item.lane||"No location");
-  $("jobLine").innerHTML=`Job ${item.job} &bull; MO ${item.mo||"-"} &bull; QTY ${item.qty}<br><span style="color:#4fc3f7;font-weight:900;font-size:14px;letter-spacing:.03em;">📍 Location: ${loc}</span>`;
+  $("jobLine").innerHTML=`<span style="color:#eaf2ff;font-weight:700;">Job ${item.job} &bull; MO ${item.mo||"-"} &bull; QTY ${item.qty}</span><br><span style="color:#6dbf8a;font-size:13px;">Location: ${loc}</span>`;
   $("jobStatus").textContent=item.status||"active";
 }
 
