@@ -346,7 +346,7 @@ async function enterHub(user){
 function setActive(item){
   activeItem=item;
   const loc=item.machine?`Machine ${item.machine}`:(item.lane||"No location");
-  $("jobLine").textContent=`Job ${item.job} \u2022 MO ${item.mo||"-"} \u2022 QTY ${item.qty} \u2022 ${loc}`;
+  $("jobLine").innerHTML=`Job ${item.job} &bull; MO ${item.mo||"-"} &bull; QTY ${item.qty}<br><span style="color:#4fc3f7;font-weight:900;font-size:14px;letter-spacing:.03em;">📍 Location: ${loc}</span>`;
   $("jobStatus").textContent=item.status||"active";
 }
 
@@ -563,14 +563,25 @@ $("btnDoSearch").onclick=()=>{
   const q=$("searchInput").value.trim();
   if(!q){$("searchMsg").textContent="Enter a job number or MO.";return;}
   const m=findJob(q);
-  if(!m.length){$("searchMsg").textContent="Not found in TRACE.";$("searchResult").classList.add("hide");return;}
-  pendingSearch=m[0];
-  $("searchMsg").textContent="";
-  const loc=m[0].machine?`Machine ${m[0].machine}`:(m[0].lane||"No location");
-  $("srTitle").textContent=`Job ${m[0].job} \u2022 MO ${m[0].mo||"-"} \u2022 QTY ${m[0].qty}`;
-  $("srSub").textContent=loc;
-  $("searchResult").classList.remove("hide");
-};
+if(!m.length){$("searchMsg").textContent="Not found in TRACE.";$("searchResult").classList.add("hide");return;}
+
+// Multiple matches — show the which-pallet picker then load result
+if(m.length>1){
+  $("ovSearch").classList.add("hide");
+  showWhich(m, picked=>{
+    setActive(picked);
+    toast("Job loaded");
+  });
+  return;
+}
+
+pendingSearch=m[0];
+$("searchMsg").textContent="";
+const loc=m[0].machine?`Machine ${m[0].machine}`:(m[0].lane||"No location");
+$("srTitle").textContent=`Job ${m[0].job} \u2022 MO ${m[0].mo||"-"} \u2022 QTY ${m[0].qty}`;
+$("srSub").innerHTML=`<span style="color:#4fc3f7;font-weight:900;font-size:14px;">📍 Location: ${loc}</span>`;
+$("searchResult").classList.remove("hide");
+};  // ← closes btnDoSearch.onclick
 
 $("btnLoadSearchJob").onclick=()=>{
   if(!pendingSearch) return;
