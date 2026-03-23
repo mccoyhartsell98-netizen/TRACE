@@ -2548,7 +2548,7 @@ function renderHistory(){
       <div class="meta">
         Deleted: ${escapeHtml(item.deleted_at || "")}
         ${item.deleted_by ? ` • By: ${escapeHtml(item.deleted_by)}` : ""}
-        ${item.delete_reason ? ` • Reason: ${escapeHtml(item.delete_reason)}` : ""}
+        ${item.delete_reason === "auto_expired" ? ` • Auto-expired from machine` : ` • Manually deleted`}
         • From: ${escapeHtml(from)}
       </div>
     `;
@@ -3313,7 +3313,7 @@ function renderHistoryPage(){
       <div class="meta">
         Deleted: ${escapeHtml(item.deleted_at || "")}
         ${item.deleted_by ? ` • By: ${escapeHtml(item.deleted_by)}` : ""}
-        ${item.delete_reason ? ` • Reason: ${escapeHtml(item.delete_reason)}` : ""}
+        ${item.delete_reason === "auto_expired" ? ` • Auto-expired from machine` : ` • Manually deleted`}
         • From: ${escapeHtml(from)}
       </div>
     `;
@@ -3390,7 +3390,7 @@ await moveToLane(item.id, `Lane ${n}`);
   );
   if(!ok) return;
   try{
-    await apiDelete(`/items/${item.id}`);
+    await apiFetch(`/items/${item.id}`, { method: "DELETE", body: JSON.stringify({ delete_reason: "ui_delete" }) });
     await loadInventory();
     renderQueuePage();
     toast(`🗑 Deleted ${item.job} from queue`);
@@ -3559,7 +3559,7 @@ async function runMachineExpiryCheck(){
 
   for(const item of expired){
     try{
-      await apiDelete(`/items/${item.id}`);
+      await apiFetch(`/items/${item.id}`, { method: "DELETE", body: JSON.stringify({ delete_reason: "auto_expired" }) });
       clearMachineTimestamp(item.id);
       console.log(`✅ Soft-expired: ${item.job} from ${item.machine}`);
     }catch(e){
