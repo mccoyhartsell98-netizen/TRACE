@@ -1264,7 +1264,6 @@
   <span style="font-size:11px;font-weight:900;letter-spacing:.25em;text-transform:uppercase;color:rgba(138,255,138,.85);">Admin</span>
   <span style="font-size:10px;font-weight:900;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,209,102,.85);background:rgba(255,209,102,.1);border:1px solid rgba(255,209,102,.25);padding:3px 8px;border-radius:999px;">Beta</span>
 </div>
-</div>
 <img src="./CT Gradient Logo PNG.png" alt="CT" style="position:fixed;top:12px;right:12px;height:62px;width:auto;z-index:120;opacity:.92;filter:drop-shadow(0 0 10px rgba(58,122,254,0.45)) drop-shadow(0 0 24px rgba(58,122,254,0.18));transition:filter 300ms ease,transform 300ms ease;" onmouseover="this.style.filter='drop-shadow(0 0 14px rgba(58,122,254,0.65)) drop-shadow(0 0 32px rgba(58,122,254,0.28))';this.style.transform='scale(1.04)'" onmouseout="this.style.filter='drop-shadow(0 0 10px rgba(58,122,254,0.45)) drop-shadow(0 0 24px rgba(58,122,254,0.18))';this.style.transform='scale(1)'">
   <!-- APP ROOT -->
   <div id="appRoot" class="appRoot isHidden">
@@ -2100,8 +2099,8 @@ const els = {
   scanBody: document.getElementById("scanBody"),
   scanCloseBtn: document.getElementById("scanCloseBtn"),
   scanMoveBtn: document.getElementById("scanMoveBtn"),
-  genJobQrBtn: document.getElementById("genJobQrBtn"),
-  downloadJobQrBtn: document.getElementById("downloadJobQrBtn"),
+  genJobQrBtn: document.getElementById("genQrBtn"),
+  downloadJobQrBtn: document.getElementById("downloadQrBtn"),
   queueJobBtn: document.getElementById("queueJobBtn"),
   jobQrCanvas: document.getElementById("qrPageCanvas"),
   jobQrUrlPreview: document.getElementById("qrPageUrlPreview"),
@@ -2261,11 +2260,11 @@ function downloadJobQr(){
     a.click();
   };
   logo.onerror = () => {
-    const a = document.createElement("a");
-    a.download = `TRACE_JOB_${job}.png`;
-    a.href = out.toDataURL("image/png");
-    a.click();
-  };
+  const a = document.createElement("a");
+  a.download = `TRACE_JOB_${job}.png`;
+  a.href = qrCanvas.toDataURL("image/png");
+  a.click();
+};
 }
 async function queueCurrentJob(){
   const admin = (role === "admin" && adminUnlocked);
@@ -3121,6 +3120,21 @@ document.getElementById("moveBtn").addEventListener("click", () => {
   if (selectedId) openMoveOverlay(selectedId);
 });
 
+if(els.clearHistoryBtn){
+  els.clearHistoryBtn.addEventListener("click", async () => {
+    const ok = await uiConfirm("Clear History", "This will permanently delete deleted jobs older than 7 days.", "Clear", "Cancel");
+    if(!ok) return;
+    try{
+      await apiDelete("/deleted-items/cleanup?days=7");
+      await refreshHistoryFromDb();
+      renderHistory();
+      toast("Old deleted jobs removed.");
+    }catch(e){
+      await uiAlert("Error", "Failed to clear history.");
+    }
+  });
+}
+
 // ===== QR + QUEUE EVENTS =====
 if (els.genJobQrBtn) els.genJobQrBtn.addEventListener("click", generateJobQr);
 if (els.downloadJobQrBtn) els.downloadJobQrBtn.addEventListener("click", downloadJobQr);
@@ -3604,7 +3618,7 @@ if(exists){
       msg.style.color = "var(--bad)";
       return;
     }
-    payload = { machine: `Lane ${n}`, area: "lane" };
+    payload = { lane: n };
   } else {
     const name = document.getElementById("addMachineName").value.trim();
     if(!name){
