@@ -1620,10 +1620,11 @@
           </select>
         </div>
         <div>
-          <div>
+              <div>
           <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">4-Digit PIN *</label>
           <input id="uPin" type="password" maxlength="4" placeholder="••••"
             style="letter-spacing:8px;font-size:22px;text-align:center;width:100%;padding:14px;border-radius:10px;border:1px solid var(--stroke);background:var(--panel2);color:#fff;outline:none;">
+        </div>
       </div>
       <div class="btnRow" style="margin-top:16px;">
         <button class="primary" id="saveUserBtn">Save Account</button>
@@ -3893,11 +3894,11 @@ function startEditUser(id){
   document.getElementById("uRole").value = u.role;
   document.getElementById("userFormTitle").textContent = `Edit: ${u.name}`;
   document.getElementById("cancelUserEditBtn").style.display = "inline-block";
-  document.getElementById("saveUserBtn").textContent = "💾 Update Account";
+  document.getElementById("saveUserBtn").textContent = "Update Account";
   document.getElementById("userFormMsg").textContent = "Leave PIN blank to keep current PIN.";
   document.getElementById("userFormMsg").style.color = "var(--warn)";
-  updatePinDisplay();
-  document.getElementById("userFormCard").scrollIntoView({ behavior:"smooth" });
+  document.getElementById("uPin").value = "";
+    document.getElementById("userFormCard").scrollIntoView({ behavior:"smooth" });
 }
 
 function cancelUserEdit(){
