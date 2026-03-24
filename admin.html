@@ -1408,7 +1408,14 @@ button:hover::before {
 /* ===== TUTORIAL SPOTLIGHT ===== */
 .tutorialOverlay{position:fixed;inset:0;z-index:999990;display:none;pointer-events:none;}
 .tutorialOverlay.show{display:block;}
-.tutorialDim{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:999990;}
+.tutorialDim{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.58);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  z-index:999990;
+}
 .tutorialSpotlight{
   position:fixed;
   z-index:999991;
@@ -1425,10 +1432,15 @@ button:hover::before {
   border:1px solid rgba(58,122,254,.45);
   border-radius:16px;
   padding:18px 18px 14px;
-  box-shadow:0 20px 60px rgba(0,0,0,.7);
+  box-shadow:
+    0 20px 60px rgba(0,0,0,.7),
+    0 0 0 1px rgba(58,122,254,.18),
+    0 0 30px rgba(58,122,254,.22);
   pointer-events:auto;
   transition:all 350ms cubic-bezier(.2,.9,.2,1);
   overflow:hidden;
+  animation:tutorialPop .22s ease-out;
+  transform-origin:center;
 }
 .tutorialTooltipArrow{
   position:absolute;
@@ -1451,6 +1463,16 @@ button:hover::before {
 .tutorialSkip:hover{color:rgba(255,255,255,.6);}
 .tutorialNext{padding:8px 18px;border-radius:10px;font-weight:900;font-size:13px;background:rgba(58,122,254,.28);border:1px solid rgba(58,122,254,.55);color:#fff;cursor:pointer;}
 .tutorialNext:hover{background:rgba(58,122,254,.4);}
+@keyframes tutorialPop{
+  0%{
+    opacity:0;
+    transform:scale(.965) translateY(8px);
+  }
+  100%{
+    opacity:1;
+    transform:scale(1) translateY(0);
+  }
+}
 #loadingOverlay.show { display:flex !important; }
   </style>
 </head>
@@ -4721,7 +4743,6 @@ const STEPS = [
     stepTitle.textContent = step.title;
     stepBody.textContent = step.body;
     nextBtn.textContent = idx === STEPS.length - 1 ? "Got it ✓" : "Next →";
-    if(idx === STEPS.length - 1) fireConfetti();
 
     current = idx;
     document.querySelectorAll(".tutorialPip").forEach((p, i) => p.classList.toggle("active", i === idx));
@@ -4796,7 +4817,7 @@ const STEPS = [
     let alive = false;
     pieces.forEach(p => {
       p.vy += p.gravity; p.vx *= p.drag; p.vy *= p.drag;
-      p.x += p.vx; p.y += p.vy; p.r += p.rs; p.opacity -= 0.014;
+      p.x += p.vx; p.y += p.vy; p.r += p.rs; p.opacity -= 0.010;
       if(p.opacity <= 0 || p.y > canvas.height + 20) return;
       alive = true;
       ctx.save();
@@ -4822,9 +4843,13 @@ function closeTutorial(){
 }
 
   nextBtn.addEventListener("click", () => {
-    if(current < STEPS.length - 1) goTo(current + 1);
-    else closeTutorial();
-  });
+  if(current < STEPS.length - 1){
+    goTo(current + 1);
+  } else {
+    fireConfetti();
+    setTimeout(() => closeTutorial(), 450);
+  }
+});
 
   skipBtn.addEventListener("click", closeTutorial);
 
