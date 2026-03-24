@@ -2581,57 +2581,22 @@ if(!qLocId){
   return;
 }
 
-  // If selectedId exists, queue that item. If not, try to find job in inventory.
-  let item = selectedId ? inventory.find(x => x.id === selectedId) : inventory.find(x => x.job === job);
 
-  if(!item){
-    // Double check API before creating to avoid duplicates
-    try{
-      const found = await apiGet(`/items/lookup?job=${encodeURIComponent(job)}`);
-      if(found?.item){
-        const loc = locations.find(l => l.location_id === Number(found.item.location_id));
-        item = {
-          id: found.item.id,
-          job: found.item.job_number,
-          mo: found.item.mo || "",
-          qty: found.item.qty,
-          status: found.item.status,
-          lane: loc?.type === "lane" ? `Lane ${loc.laneNum}` : "",
-          machine: loc?.type === "machine" ? loc.machineName : "",
-          location_id: found.item.location_id
-        };
-      }
-    }catch(e){}
-  }
-
-  if(!item){
-    try{
-      const payload = {
-        job_number: job,
-        mo: cleanJob(els.mo?.value || ""),
-        qty: Math.max(0, parseInt(els.qty?.value || "0", 10)),
-        status: (els.status?.value || "").trim().slice(0, 40),
-        notes: (els.notes?.value || "").trim().slice(0, 120),
-        updated_by: (els.updatedBy?.value || "").trim().slice(0, 10),
-        location_id: qLocId
-      };
-      await apiPost(`/items`, payload);
-    }catch(e){
-      await uiAlert("Queue Failed", e.message || "Could not create + queue job.");
-      return;
-    }
-  } else {
-    // job exists -> create new queue entry instead of moving it
-    const payload = {
-      job_number: job,
-      location_id: qLocId,
-      mo: cleanJob(els.mo?.value || ""),
-      qty: Math.max(0, parseInt(els.qty?.value || "0", 10)),
-      status: (els.status?.value || "").trim().slice(0, 40),
-      notes: (els.notes?.value || "").trim().slice(0, 120),
-      updated_by: (els.updatedBy?.value || "").trim().slice(0, 10),
-    };
-    await apiPost(`/items`, payload);
+  // Always create a new entry — whether job exists or not
+  const newPayload = {
+    job_number: job,
+    location_id: qLocId,
+    mo: cleanJob(els.mo?.value || ""),
+    qty: Math.max(0, parseInt(els.qty?.value || "0", 10)),
+    status: (els.status?.value || "").trim().slice(0, 40),
+    notes: (els.notes?.value || "").trim().slice(0, 120),
+    updated_by: (els.updatedBy?.value || "").trim().slice(0, 10),
+  };
+  try{
+    await apiPost(`/items`, newPayload);
+  }catch(e){
+    await uiAlert("Queue Failed", e.message || "Could not add job to queue.");
+    return;
   }
   await loadLocations();
   await loadInventory();
