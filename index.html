@@ -486,6 +486,17 @@ async function doMove(label, destId){
       // ── PARTIAL: reduce original, create new record ─────────────────────
       const remaining=item.qty-takingQty;
 
+      // Check for existing partial of same job at destination
+      const existing=inventory.find(x=>
+        x.job===item.job && x.location_id===destId && x.id!==item.id
+      );
+      if(existing){
+        const confirmed=confirm(
+          `⚠️ Job ${item.job} already has a partial in ${label} (QTY ${existing.qty}).\n\nDo you still want to add ${takingQty} more there?`
+        );
+        if(!confirmed){takingQty=null;return;}
+      }
+
       // 1. Reduce qty on original (stays in same location)
       await put(item.id,{
         location_id:item.location_id, mo:item.mo||"", qty:remaining,
