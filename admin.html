@@ -372,10 +372,23 @@
   max-width:96vw;
   height:auto;
   display:block;
-  filter:
-    drop-shadow(0 0 12px rgba(58,122,254,0.35))
-    drop-shadow(0 0 28px rgba(58,122,254,0.15));
+
+  animation: tracePulse 3.5s ease-in-out infinite;
 }
+
+@keyframes tracePulse{
+  0%,100%{
+    filter:
+      drop-shadow(0 0 16px rgba(58,122,254,0.45))
+      drop-shadow(0 0 32px rgba(58,122,254,0.20));
+  }
+  50%{
+    filter:
+      drop-shadow(0 0 22px rgba(58,122,254,0.65))
+      drop-shadow(0 0 48px rgba(58,122,254,0.30));
+  }
+}
+
     .status{
       grid-column:3;
       justify-self:end;
