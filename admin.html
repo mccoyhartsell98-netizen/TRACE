@@ -716,6 +716,35 @@ button:hover::before {
   filter: blur(0.5px);
 }
 
+.topBar{
+  position: fixed;
+  top: 12px;
+  right: 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 120;
+}
+
+.topLogo{
+  height: 36px;  
+  width: auto;
+  opacity: 0.9;
+
+  filter:
+    drop-shadow(0 0 10px rgba(58,122,254,0.25));
+
+  transition: transform 200ms ease, filter 200ms ease;
+}
+
+.topLogo:hover{
+  transform: scale(1.05);
+  filter:
+    drop-shadow(0 0 14px rgba(58,122,254,0.35));
+}
+
 
 /* ===== USER MANAGEMENT ===== */
 .userTable{width:100%;border-collapse:collapse;margin-top:10px;}
