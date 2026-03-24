@@ -365,28 +365,44 @@
   gap:10px;
   flex:0 0 auto;
 }
-    .logo{
-  grid-column:2;
-  justify-self:center;
+
+.logoWrap{
+  grid-column: 2;
+  justify-self: center;
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+}
+
+.logo{
   width:320px;
   max-width:96vw;
   height:auto;
   display:block;
-
-  animation: tracePulse 4.5s ease-in-out infinite;
 }
 
-@keyframes tracePulse{
-  0%,100%{
-    filter:
-      drop-shadow(0 0 14px rgba(58,122,254,0.4))
-      drop-shadow(0 0 28px rgba(58,122,254,0.18));
-  }
-  50%{
-    filter:
-      drop-shadow(0 0 20px rgba(58,122,254,0.55))
-      drop-shadow(0 0 40px rgba(58,122,254,0.22));
-  }
+.logoWrap::after{
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent,
+    rgba(255,255,255,0.15),
+    transparent
+  );
+  transform: skewX(-20deg);
+  pointer-events: none;
+  animation: traceShine 5.5s ease-in-out infinite;
+}
+
+@keyframes traceShine{
+  0%{ left: -100%; }
+  50%{ left: 120%; }
+  100%{ left: 120%; }
 }
 
     .status{
@@ -1503,10 +1519,14 @@ button:hover::before {
     <div class="wrap">
 
       <div class="top">
-        <div></div>
-        <img src="./Offcial-Trace-Logo.png" alt="TRACE" class="logo">
-        <div class="status"></div>
-      </div>
+  <div></div>
+
+  <div class="logoWrap">
+    <img src="./Offcial-Trace-Logo.png" alt="TRACE" class="logo">
+  </div>
+
+  <div class="status"></div>
+</div>
 
       <div class="rolebar">
         <div class="roleLeft">
