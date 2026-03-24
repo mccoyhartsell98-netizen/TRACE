@@ -2837,7 +2837,20 @@ function renderHistory(){
 // ====== BUTTON BUILDERS ======
 function buildLaneButtons(){
   els.laneGrid.innerHTML = "";
-  const laneNums = locations.filter(l => l.type === "lane" && l.laneNum).map(l => String(l.laneNum)).sort((a,b) => a.localeCompare(b, undefined, { numeric: true }));
+  const laneNums = locations
+  .filter(l => l.type === "lane" && l.laneNum)
+  .map(l => String(l.laneNum))
+  .sort((a, b) => {
+    const aNum = parseInt(a, 10);
+    const bNum = parseInt(b, 10);
+    const aIsA = /[A-Za-z]/.test(a);
+    const bIsA = /[A-Za-z]/.test(b);
+    // Regular lanes first, then A lanes
+    if (aIsA !== bIsA) return aIsA ? 1 : -1;
+    // Within same group, sort by number first, then letter
+    if (aNum !== bNum) return aNum - bNum;
+    return a.localeCompare(b, undefined, { numeric: true });
+  });
   laneNums.forEach(i => {
     const lane = `Lane ${i}`;
     const count = inventory.filter(x => x.lane === lane).length;
@@ -3180,7 +3193,14 @@ function openMoveOverlay(id){
   els.moveTitle.textContent = `Move Item #${item.job}`;
 
   els.moveLaneGrid.innerHTML = "";
-  locations.filter(l => l.type === "lane").sort((a,b) => String(a.laneNum).localeCompare(String(b.laneNum), undefined, {numeric: true})).forEach(loc => {
+  locations.filter(l => l.type === "lane").sort((a, b) => {
+  const aStr = String(a.laneNum), bStr = String(b.laneNum);
+  const aNum = parseInt(aStr, 10), bNum = parseInt(bStr, 10);
+  const aIsA = /[A-Za-z]/.test(aStr), bIsA = /[A-Za-z]/.test(bStr);
+  if (aIsA !== bIsA) return aIsA ? 1 : -1;
+  if (aNum !== bNum) return aNum - bNum;
+  return aStr.localeCompare(bStr, undefined, { numeric: true });
+}).forEach(loc => {
     const lane = `Lane ${loc.laneNum}`;
     const btn = document.createElement("div");
     btn.className = "laneBtn";
