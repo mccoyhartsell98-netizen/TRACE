@@ -379,13 +379,13 @@
 @keyframes tracePulse{
   0%,100%{
     filter:
-      drop-shadow(0 0 16px rgba(58,122,254,0.45))
-      drop-shadow(0 0 32px rgba(58,122,254,0.20));
+      drop-shadow(0 0 14px rgba(58,122,254,0.4))
+      drop-shadow(0 0 28px rgba(58,122,254,0.18));
   }
   50%{
     filter:
-      drop-shadow(0 0 22px rgba(58,122,254,0.65))
-      drop-shadow(0 0 48px rgba(58,122,254,0.30));
+      drop-shadow(0 0 20px rgba(58,122,254,0.55))
+      drop-shadow(0 0 40px rgba(58,122,254,0.22));
   }
 }
 
@@ -731,25 +731,31 @@ button:hover::before {
 
 .topBar{
   position: fixed;
-  top: 12px;
-  right: 18px;
-
+  top: 22px;
+  right: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-
   z-index: 120;
+  pointer-events: none;
 }
 
 .topLogo{
-  height: 65px;  
+  height: 60px;   
   width: auto;
-  opacity: 0.9;
+  opacity: 0.88;
 
   filter:
-    drop-shadow(0 0 10px rgba(58,122,254,0.25));
+    drop-shadow(0 0 10px rgba(58,122,254,0.22));
 
-  transition: transform 200ms ease, filter 200ms ease;
+  transition: transform 200ms ease, filter 200ms ease, opacity 200ms ease;
+}
+
+.topLogo:hover{
+  transform: scale(1.04);
+  opacity: 1;
+  filter:
+    drop-shadow(0 0 14px rgba(58,122,254,0.30));
 }
 
 .topLogo:hover{
