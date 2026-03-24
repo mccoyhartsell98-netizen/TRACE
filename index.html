@@ -474,49 +474,38 @@ async function doMove(label, destId){
   const item=activeItem;
 
   try{
-    if(takingQty===null){
-      // ── FULL JOB: just move it ──────────────────────────────────────────
-      await put(item.id,{
-        location_id:destId, mo:item.mo||"", qty:item.qty,
-        status:item.status||"active", notes:item.notes||"", updated_by:by
-      },token);
-      toast(`Job ${item.job} moved to ${label}`);
+    const body={location_id:destId, updated_by:by};
+    if(takingQty!==null) body.qty=takingQty;
 
-    } else {
-      // ── PARTIAL: reduce original, create new record ─────────────────────
+    const r=await fetch(`${API}/items/${item.id}/move`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
+      body:JSON.stringify(body)
+    });
+    if(r.status===401){
+      clearAuth();
+      toast("Session expired — please log in again",true);
+      setTimeout(()=>{
+        activeItem=null;takingQty=null;
+        $("viewHub").classList.add("hide");
+        $("viewPin").classList.remove("hide");
+        $("pillStatus").textContent="LOCKED";
+      },1500);
+      return;
+    }
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||d.ok===false) throw new Error(d.error||"Move failed");
+
+    if(takingQty!==null){
       const remaining=item.qty-takingQty;
-
-      // Check for existing partial of same job at destination
-      const existing=inventory.find(x=>
-        x.job===item.job && x.location_id===destId && x.id!==item.id
-      );
-      if(existing){
-        const confirmed=confirm(
-          `⚠️ Job ${item.job} already has a partial in ${label} (QTY ${existing.qty}).\n\nDo you still want to add ${takingQty} more there?`
-        );
-        if(!confirmed){takingQty=null;return;}
-      }
-
-      // 1. Reduce qty on original (stays in same location)
-      await put(item.id,{
-        location_id:item.location_id, mo:item.mo||"", qty:remaining,
-        status:item.status||"active", notes:item.notes||"", updated_by:by
-      },token);
-
-      // 2. New record at destination with the taken qty
-      await post({
-        job_number:item.job, mo:item.mo||"", qty:takingQty,
-        location_id:destId, status:item.status||"active",
-        updated_by:by, notes:`Partial from ${item.lane||item.machine||"?"}`
-      },token);
-
       toast(`${takingQty} of ${item.job} \u2192 ${label} \u2022 ${remaining} remaining`);
-
       // Non-blocking email notify
       fetch(`${API}/notify/partial-pick`,{
         method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({job:item.job,mo:item.mo,taken:takingQty,remaining,destination:label,driver:by})
       }).catch(()=>{});
+    } else {
+      toast(`Job ${item.job} moved to ${label}`);
     }
 
     takingQty=null;
