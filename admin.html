@@ -680,6 +680,43 @@ button:hover::before {
       text-transform:uppercase;
     }
 
+.topCompanyBadge{
+  position: fixed;
+  top: 12px;
+  right: 18px;
+  height: 52px;
+  padding: 8px 12px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(7, 12, 24, 0.72);
+  border: 1px solid rgba(58,122,254,0.18);
+  border-radius: 14px;
+
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.02) inset,
+    0 8px 24px rgba(0,0,0,0.28);
+
+  z-index: 120;
+}
+
+.topCompanyBadge::after{
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: -8px;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(58,122,254,0.35), transparent);
+  filter: blur(0.5px);
+}
+
+
 /* ===== USER MANAGEMENT ===== */
 .userTable{width:100%;border-collapse:collapse;margin-top:10px;}
 .userTable th{
@@ -1410,7 +1447,9 @@ button:hover::before {
   <span style="font-size:11px;font-weight:900;letter-spacing:.25em;text-transform:uppercase;color:rgba(138,255,138,.85);">Admin</span>
   <span style="font-size:10px;font-weight:900;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,209,102,.85);background:rgba(255,209,102,.1);border:1px solid rgba(255,209,102,.25);padding:3px 8px;border-radius:999px;">Beta</span>
 </div>
-<img src="./CT Gradient Logo PNG.png" alt="CT" style="position:fixed;top:16px;right:80px;height:62px;width:auto;z-index:120;height:62px;width:auto;z-index:120;opacity:.92;filter:drop-shadow(0 0 10px rgba(58,122,254,0.45)) drop-shadow(0 0 24px rgba(58,122,254,0.18));transition:filter 300ms ease,transform 300ms ease;" onmouseover="this.style.filter='drop-shadow(0 0 14px rgba(58,122,254,0.65)) drop-shadow(0 0 32px rgba(58,122,254,0.28))';this.style.transform='scale(1.04)'" onmouseout="this.style.filter='drop-shadow(0 0 10px rgba(58,122,254,0.45)) drop-shadow(0 0 24px rgba(58,122,254,0.18))';this.style.transform='scale(1)'">
+<div class="topBar">
+  <img src="./CT Gradient Logo PNG.png" alt="CT" class="topLogo">
+</div>
   <!-- APP ROOT -->
   <div id="appRoot" class="appRoot isHidden">
     <div class="wrap">
