@@ -443,19 +443,33 @@ function buildKioskLaneButtons(){
   g.innerHTML="";
   const sorted = locations
     .filter(l=>l.laneNum)
-    .sort((a,b)=>String(a.laneNum).localeCompare(String(b.laneNum), undefined, {numeric:true}));
+    .sort((a,b)=>{
+      const aStr=String(a.laneNum), bStr=String(b.laneNum);
+      const aNum=parseInt(aStr,10), bNum=parseInt(bStr,10);
+      const aIsA=/[A-Za-z]/.test(aStr), bIsA=/[A-Za-z]/.test(bStr);
+      if(aIsA!==bIsA) return aIsA?1:-1;
+      if(aNum!==bNum) return aNum-bNum;
+      return aStr.localeCompare(bStr,undefined,{numeric:true});
+    });
   if(sorted.length===0){
     g.innerHTML=`<div style="color:var(--muted);font-size:13px;grid-column:1/-1;">No lanes found.</div>`;
     return;
   }
+  let dividerAdded = false;
   sorted.forEach(l=>{
+    const isALane = /[A-Za-z]/.test(l.laneNum);
+    if(isALane && !dividerAdded){
+      dividerAdded = true;
+      const div = document.createElement("div");
+      div.style.cssText = "grid-column:1/-1;height:1px;background:rgba(42,127,255,.3);margin:4px 0;";
+      g.appendChild(div);
+    }
     const label="Lane "+l.laneNum;
     const b=document.createElement("button");
     b.className="sbtn";b.textContent=label;
     b.onclick=()=>doMove(label, locByLane.get(label));
     g.appendChild(b);
   });
-}
 
 // Build machine buttons
 ["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane"].forEach(m=>{
