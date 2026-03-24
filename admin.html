@@ -2851,16 +2851,23 @@ function buildLaneButtons(){
     if (aNum !== bNum) return aNum - bNum;
     return a.localeCompare(b, undefined, { numeric: true });
   });
-  laneNums.forEach(i => {
-    const lane = `Lane ${i}`;
-    const count = inventory.filter(x => x.lane === lane).length;
-    const btn = document.createElement("div");
-    btn.className = "laneBtn" + (lane===selectedLane ? " active" : "");
-    btn.innerHTML = `${lane} ${count > 0 ? `<span class="laneBtnBadge">${count}</span>` : ""}`;
-    btn.addEventListener("click", () => selectLane(lane));
-    els.laneGrid.appendChild(btn);
-  });
-}
+  let dividerAdded = false;
+laneNums.forEach(i => {
+  const isALane = /[A-Za-z]/.test(i);
+  if (isALane && !dividerAdded) {
+    dividerAdded = true;
+    const divider = document.createElement("div");
+    divider.style.cssText = "grid-column: 1 / -1; height: 1px; background: rgba(58,122,254,.25); margin: 4px 0;";
+    els.laneGrid.appendChild(divider);
+  }
+  const lane = `Lane ${i}`;
+  const count = inventory.filter(x => x.lane === lane).length;
+  const btn = document.createElement("div");
+  btn.className = "laneBtn" + (lane===selectedLane ? " active" : "");
+  btn.innerHTML = `${lane} ${count > 0 ? `<span class="laneBtnBadge">${count}</span>` : ""}`;
+  btn.addEventListener("click", () => selectLane(lane));
+  els.laneGrid.appendChild(btn);
+});
 
 
 function buildMachineButtons(){
