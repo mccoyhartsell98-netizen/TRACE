@@ -375,29 +375,36 @@
 }
 
 .logo{
+  grid-column:2;
+  justify-self:center;
   width:320px;
   max-width:96vw;
   height:auto;
   display:block;
+
+  position: relative;
+  overflow: hidden;
 }
 
-.logoWrap::after{
+.logo::after{
   content: "";
   position: absolute;
-  top: 0;
-  left: -100%;
-  width: 25%;
-  height: 100%;
+  inset: 0;
+
   background: linear-gradient(
     120deg,
     transparent,
-    rgba(255,255,255,0.08),
+    rgba(255,255,255,0.18),
     transparent
   );
-  transform: skewX(-20deg);
+
+  transform: translateX(-100%) skewX(-20deg);
+  animation: traceShine 5.5s ease-in-out infinite;
+
   pointer-events: none;
-  animation: traceShine 7s ease-in-out infinite;
+  mix-blend-mode: screen;
 }
+
 
 @keyframes traceShine{
   0%{ left: -100%; }
