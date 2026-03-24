@@ -4744,6 +4744,8 @@ const STEPS = [
     stepBody.textContent = step.body;
     nextBtn.textContent = idx === STEPS.length - 1 ? "Got it ✓" : "Next →";
 
+     if(idx === STEPS.length - 1) fireConfetti();
+
     current = idx;
     document.querySelectorAll(".tutorialPip").forEach((p, i) => p.classList.toggle("active", i === idx));
 
@@ -4834,8 +4836,6 @@ const STEPS = [
   }
   draw();
 }
-
-if(idx === STEPS.length - 1) fireConfetti();
 
 function closeTutorial(){
   overlay.classList.remove("show");
