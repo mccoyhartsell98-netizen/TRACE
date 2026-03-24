@@ -3192,10 +3192,10 @@ async function moveToLane(id, lane){
   const originalLocation = item?.lane || item?.machine || "Unknown";
   try{
     showLoading(`Moving to ${lane}...`);
-    await apiPut(`/items/${id}/move`, {
-      location_id,
-      updated_by: item?.updatedBy || ""
-    });
+    await apiPost(`/items/${id}/move`, {
+  location_id,
+  updated_by: item?.updatedBy || ""
+});
     await loadLocations();
     await loadInventory();
     hideLoading();
@@ -3225,10 +3225,10 @@ async function moveToMachine(id, machine){
   const originalLocation = item?.lane || item?.machine || "Unknown";
   try{
     showLoading(`Moving to ${machine}...`);
-    await apiPut(`/items/${id}/move`, {
-      location_id,
-      updated_by: item?.updatedBy || ""
-    });
+    await apiPost(`/items/${id}/move`, {
+  location_id,
+  updated_by: item?.updatedBy || ""
+});
     await loadLocations();
     await loadInventory();
     hideLoading();
