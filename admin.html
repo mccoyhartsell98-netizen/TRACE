@@ -1595,6 +1595,7 @@ button:hover::before {
   <div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#6C86A8;padding:4px 2px;margin-top:8px;border-bottom:1px solid rgba(42,127,255,0.15);margin-bottom:4px;">Administration</div>
   <button class="ghost" id="openUsersBtn">User Management</button>
   <button class="ghost" id="openStatusesBtn">Status Options</button>
+  <button class="ghost" id="exportReportBtn">Export Lane Report</button>
 </div>
       </aside>
 
@@ -5147,6 +5148,275 @@ document.getElementById("openStatusesBtn").addEventListener("click", () => {
   showPage("statusesPage");
   renderStatusesPage();
 });
+
+// ====== EXPORT LANE REPORT (PDF) ======
+document.getElementById("exportReportBtn").addEventListener("click", () => {
+  closeSideMenu();
+  generateLaneReport();
+});
+
+function generateLaneReport(){
+  const now = new Date();
+  const dateStr = now.toLocaleDateString(undefined, { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+  const timeStr = now.toLocaleTimeString(undefined, { hour:"2-digit", minute:"2-digit" });
+
+  // Group by lane, sorted regular lanes first then A lanes
+  const laneMap = new Map();
+  inventory
+    .filter(x => x.lane)
+    .forEach(item => {
+      if(!laneMap.has(item.lane)) laneMap.set(item.lane, []);
+      laneMap.get(item.lane).push(item);
+    });
+
+  const sortedLanes = [...laneMap.keys()].sort((a, b) => {
+    const aStr = a.replace("Lane ",""), bStr = b.replace("Lane ","");
+    const aNum = parseInt(aStr,10), bNum = parseInt(bStr,10);
+    const aIsA = /[A-Za-z]/.test(aStr), bIsA = /[A-Za-z]/.test(bStr);
+    if(aIsA !== bIsA) return aIsA ? 1 : -1;
+    if(aNum !== bNum) return aNum - bNum;
+    return aStr.localeCompare(bStr, undefined, {numeric:true});
+  });
+
+  const totalItems = inventory.filter(x => x.lane).length;
+
+  // Build lane table HTML
+  let lanesHtml = "";
+  sortedLanes.forEach(lane => {
+    const items = laneMap.get(lane).sort((a,b) => (parseInt(a.job,10)||0) - (parseInt(b.job,10)||0));
+    const rows = items.map((item, idx) => `
+      <tr class="${idx % 2 === 0 ? 'row-even' : 'row-odd'}">
+        <td>${escapeHtml(item.job)}</td>
+        <td>${escapeHtml(item.mo || "—")}</td>
+        <td style="text-align:center;">${item.qty ?? 0}</td>
+        <td><span class="status-pill">${escapeHtml(item.status || "—")}</span></td>
+        <td>${escapeHtml(item.notes || "—")}</td>
+      </tr>
+    `).join("");
+
+    lanesHtml += `
+      <div class="lane-block">
+        <div class="lane-header">
+          <span class="lane-name">${escapeHtml(lane)}</span>
+          <span class="lane-count">${items.length} item${items.length !== 1 ? "s" : ""}</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Item #</th>
+              <th>MO #</th>
+              <th>Qty</th>
+              <th>Status</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+  });
+
+  if(sortedLanes.length === 0){
+    lanesHtml = `<div style="text-align:center;padding:60px;color:#666;font-size:16px;">No items currently in any lane.</div>`;
+  }
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>TRACE Lane Report — ${dateStr}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', Arial, sans-serif;
+      background: #fff;
+      color: #111;
+      font-size: 12px;
+      padding: 0;
+    }
+
+    /* ── Cover header ── */
+    .page-header {
+      background: linear-gradient(135deg, #0a0f1e 0%, #0d1a35 60%, #0f2248 100%);
+      color: #fff;
+      padding: 32px 40px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 3px solid #2a7fff;
+    }
+    .header-left { display: flex; flex-direction: column; gap: 6px; }
+    .report-title {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: .04em;
+      color: #fff;
+    }
+    .report-sub {
+      font-size: 11px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: rgba(180,205,255,.75);
+    }
+    .header-right { text-align: right; }
+    .report-date { font-size: 13px; font-weight: 700; color: #cfe0ff; }
+    .report-time { font-size: 11px; color: rgba(180,205,255,.6); margin-top: 3px; }
+    .report-summary {
+      font-size: 11px;
+      color: rgba(180,205,255,.7);
+      margin-top: 6px;
+      letter-spacing: .05em;
+    }
+
+    /* ── Watermark logo area ── */
+    .logo-watermark {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: .25em;
+      color: rgba(42,127,255,.18);
+      text-transform: uppercase;
+    }
+
+    /* ── Body ── */
+    .content { padding: 24px 40px 40px; }
+
+    /* ── Lane block ── */
+    .lane-block {
+      margin-bottom: 24px;
+      border: 1px solid #dde4f0;
+      border-radius: 8px;
+      overflow: hidden;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .lane-header {
+      background: linear-gradient(90deg, #0d1a35, #122547);
+      color: #fff;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .lane-name {
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: .06em;
+      color: #cfe0ff;
+    }
+    .lane-count {
+      font-size: 11px;
+      background: rgba(42,127,255,.3);
+      border: 1px solid rgba(42,127,255,.5);
+      color: rgba(180,205,255,.9);
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-weight: 700;
+    }
+
+    /* ── Table ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+    }
+    thead tr {
+      background: #f0f4fb;
+    }
+    th {
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 700;
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: #445;
+      border-bottom: 1px solid #dde4f0;
+    }
+    td {
+      padding: 9px 12px;
+      border-bottom: 1px solid #eef1f8;
+      vertical-align: middle;
+      color: #222;
+    }
+    .row-even { background: #fff; }
+    .row-odd  { background: #f8faff; }
+    tr:last-child td { border-bottom: none; }
+
+    /* ── Status pill ── */
+    .status-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      background: #e8eef8;
+      color: #334;
+      border: 1px solid #ccd6ec;
+    }
+
+    /* ── Footer ── */
+    .page-footer {
+      margin-top: 32px;
+      padding-top: 12px;
+      border-top: 1px solid #dde4f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #999;
+      font-size: 10px;
+      letter-spacing: .06em;
+    }
+
+    /* ── Print ── */
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .page-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .lane-header  { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .lane-block { page-break-inside: avoid; }
+      @page { margin: 0.5in; size: letter portrait; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <div class="header-left">
+      <div class="report-title">TRACE — Lane Inventory Report</div>
+      <div class="report-sub">Print Shop • Admin Export</div>
+      <div class="report-summary" style="margin-top:10px;">
+        ${sortedLanes.length} lane${sortedLanes.length !== 1 ? "s" : ""} &nbsp;•&nbsp; ${totalItems} total item${totalItems !== 1 ? "s" : ""}
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="logo-watermark">TRACE</div>
+      <div class="report-date">${dateStr}</div>
+      <div class="report-time">Generated at ${timeStr}</div>
+    </div>
+  </div>
+
+  <div class="content">
+    ${lanesHtml}
+
+    <div class="page-footer">
+      <span>TRACE Inventory System &nbsp;•&nbsp; traceinventory.org</span>
+      <span>© 2026 McCoy Hartsell &nbsp;•&nbsp; Confidential</span>
+    </div>
+  </div>
+
+  <script>
+    window.onload = () => { window.print(); };
+  <\/script>
+</body>
+</html>`;
+
+  const win = window.open("", "_blank");
+  if(!win){ toast("Pop-up blocked — allow pop-ups for this site", true); return; }
+  win.document.write(html);
+  win.document.close();
+}
 
 </script>
 </body>
