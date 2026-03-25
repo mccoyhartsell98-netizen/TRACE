@@ -5215,21 +5215,25 @@ function generateLaneReport(){
 
   // Group by lane, sorted regular lanes first then A lanes
   const laneMap = new Map();
-  inventory
-    .filter(x => x.lane)
-    .forEach(item => {
-      if(!laneMap.has(item.lane)) laneMap.set(item.lane, []);
-      laneMap.get(item.lane).push(item);
-    });
-
-  const sortedLanes = [...laneMap.keys()].sort((a, b) => {
-    const aStr = a.replace("Lane ",""), bStr = b.replace("Lane ","");
-    const aNum = parseInt(aStr,10), bNum = parseInt(bStr,10);
-    const aIsA = /[A-Za-z]/.test(aStr), bIsA = /[A-Za-z]/.test(bStr);
-    if(aIsA !== bIsA) return aIsA ? 1 : -1;
-    if(aNum !== bNum) return aNum - bNum;
-    return aStr.localeCompare(bStr, undefined, {numeric:true});
+inventory
+  .filter(x => x.lane)
+  .forEach(item => {
+    if (!laneMap.has(item.lane)) laneMap.set(item.lane, []);
+    laneMap.get(item.lane).push(item);
   });
+
+const sortedLanes = [...laneMap.keys()].sort((a, b) => {
+  const aStr = a.replace("Lane ", "");
+  const bStr = b.replace("Lane ", "");
+  const aNum = parseInt(aStr, 10);
+  const bNum = parseInt(bStr, 10);
+  const aIsA = /[A-Za-z]/.test(aStr);
+  const bIsA = /[A-Za-z]/.test(bStr);
+
+  if (aIsA !== bIsA) return aIsA ? 1 : -1;
+  if (aNum !== bNum) return aNum - bNum;
+  return aStr.localeCompare(bStr, undefined, { numeric: true });
+});
 
   const totalItems = inventory.filter(x => x.lane).length;
 
