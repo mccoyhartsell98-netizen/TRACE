@@ -3116,7 +3116,7 @@ function renderHistory(){
       <div class="historyDesc">${escapeHtml(item.description || "No description")}</div>
 
       <div class="historyMeta">
-        <span><strong>Time:</strong> ${escapeHtml(item.deleted_at || "—")}</span>
+        <span><strong>Time:</strong> ${formatTime(item.deleted_at)}</span>
         <span><strong>From:</strong> ${escapeHtml(from)}</span>
         <span><strong>Reason:</strong> ${escapeHtml(reasonText)}</span>
         ${item.deleted_by ? `<span><strong>By:</strong> ${escapeHtml(item.deleted_by)}</span>` : ""}
@@ -3921,6 +3921,19 @@ document.getElementById("clearHistoryBtn2").addEventListener("click", async () =
 });
 document.getElementById("historySearch2").addEventListener("input", renderHistoryPage);
 
+function formatTime(ts){
+  if(!ts) return "—";
+
+  const d = new Date(ts);
+
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  });
+}
+
 function renderHistoryPage(){
   const q = normalize(document.getElementById("historySearch2")?.value || "");
   let list = deletedDbCache;
@@ -3973,7 +3986,7 @@ function renderHistoryPage(){
       <div class="historyDesc">${escapeHtml(item.description || "No description")}</div>
 
       <div class="historyMeta">
-        <span><strong>Time:</strong> ${escapeHtml(item.deleted_at || "—")}</span>
+        <span><strong>Time:</strong> ${formatTime(item.deleted_at)}</span>
         <span><strong>From:</strong> ${escapeHtml(from)}</span>
         <span><strong>Reason:</strong> ${escapeHtml(reasonText)}</span>
         ${item.deleted_by ? `<span><strong>By:</strong> ${escapeHtml(item.deleted_by)}</span>` : ""}
