@@ -1866,8 +1866,8 @@ button:hover::before {
         </div>
       </div>
       <div class="btnRow" style="margin-top:14px;">
-        <button class="primary" id="genQrBtn">Generate QR</button>
-        <button class="ghost" id="downloadQrBtn" disabled>Download PNG</button>
+        <button type="button" class="primary" id="genQrBtn">Generate QR</button>
+        <button type="button" class="ghost" id="downloadQrBtn" disabled>Download PNG</button>
       </div>
       <div style="display:flex;justify-content:center;margin-top:18px;">
         <div id="qrPageCanvas" style="background:#fff;padding:10px;border-radius:12px;display:none;"></div>
@@ -3408,8 +3408,21 @@ if(els.clearHistoryBtn){
 }
 
 // ===== QR + QUEUE EVENTS =====
-if (els.genJobQrBtn) els.genJobQrBtn.addEventListener("click", generateJobQr);
-if (els.downloadJobQrBtn) els.downloadJobQrBtn.addEventListener("click", downloadJobQr);
+if (els.genJobQrBtn) {
+  els.genJobQrBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    generateJobQr();
+  });
+}
+
+if (els.downloadJobQrBtn) {
+  els.downloadJobQrBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    downloadJobQr();
+  });
+}
 if (els.queueJobBtn) els.queueJobBtn.addEventListener("click", queueCurrentJob);
 
 // Undo
