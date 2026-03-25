@@ -4312,30 +4312,34 @@ document.getElementById("downloadQrBtn").addEventListener("click", () => {
     ctx.fillText(job, totalWidth/2, padding+logoDrawH+gap+qrCanvas.height+gap+26);
 
 out.toBlob((blob) => {
-  if(!blob){ uiAlert("Download Error", "Could not generate image. Try again."); return; }
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.download = `TRACE_JOB_${job}.png`;
-  a.href = url;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-}, "image/png");
+      if(!blob){ uiAlert("Download Error", "Could not generate image. Try again."); return; }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.download = `TRACE_JOB_${job}.png`;
+      a.href = url;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }, "image/png");
 
-logo.onerror = () => {
-  qrCanvas.toBlob((blob) => {
-    if(!blob) return;
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.download = `TRACE_JOB_${job}.png`;
-    a.href = url;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-  }, "image/png");
-};
+  };  // ← closes logo.onload
+
+  logo.onerror = () => {
+    qrCanvas.toBlob((blob) => {
+      if(!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.download = `TRACE_JOB_${job}.png`;
+      a.href = url;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }, "image/png");
+  };  // ← closes logo.onerror
+
+});
 
 
 
