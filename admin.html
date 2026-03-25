@@ -1603,14 +1603,37 @@ button:hover::before {
 
 .historyChevron{
   margin-left:10px;
-  font-size:14px;
-  color:rgba(165,188,236,.72);
-  transition:transform 180ms ease, color 180ms ease;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
 }
 
-.historyCard.isOpen .historyChevron{
+.historyChevron::after {
+  content: "";
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid rgba(180,205,255,.8);
+  border-bottom: 2px solid rgba(180,205,255,.8);
+  transform: rotate(45deg) translate(-1px, -2px);
+  transition: border-color 180ms ease;
+}
+
+.historyCard.isOpen .historyChevron {
   transform: rotate(180deg);
-  color:#fff;
+  background: rgba(58,122,254,.18);
+  border-color: rgba(58,122,254,.35);
+}
+
+.historyCard.isOpen .historyChevron::after {
+  border-color: rgba(58,122,254,.9);
 }
 
 @media (max-width: 700px){
@@ -3086,7 +3109,7 @@ function renderHistory(){
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
           <span class="historyBadge">Deleted</span>
-          <span class="historyChevron">⌄</span>
+          <span class="historyChevron">›</span>
         </div>
       </div>
 
@@ -3943,7 +3966,7 @@ function renderHistoryPage(){
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
           <span class="historyBadge">Deleted</span>
-          <span class="historyChevron">⌄</span>
+          <span class="historyChevron"></span>
         </div>
       </div>
 
