@@ -5155,51 +5155,87 @@ document.getElementById("exportReportBtn").addEventListener("click", () => {
 
 function generateLaneReport(){
   const now = new Date();
-  const dateStr = now.toLocaleDateString(undefined, { weekday:"long", year:"numeric", month:"long", day:"numeric" });
-  const timeStr = now.toLocaleTimeString(undefined, { hour:"2-digit", minute:"2-digit" });
- const TRACE_LOGO = "./Offcial-Trace-Logo.png";
+  const dateStr = now.toLocaleDateString(undefined, {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  });
+  const timeStr = now.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 
-  // Group by lane, sorted regular lanes first then A lanes
+  const TRACE_LOGO = "./Offcial-Trace-Logo.png";
+
+  // Group items by lane
   const laneMap = new Map();
   inventory
     .filter(x => x.lane)
     .forEach(item => {
-      if(!laneMap.has(item.lane)) laneMap.set(item.lane, []);
+      if (!laneMap.has(item.lane)) laneMap.set(item.lane, []);
       laneMap.get(item.lane).push(item);
     });
 
+  // Sort normal lanes first, then A lanes
   const sortedLanes = [...laneMap.keys()].sort((a, b) => {
-    const aStr = a.replace("Lane ",""), bStr = b.replace("Lane ","");
-    const aNum = parseInt(aStr,10), bNum = parseInt(bStr,10);
-    const aIsA = /[A-Za-z]/.test(aStr), bIsA = /[A-Za-z]/.test(bStr);
-    if(aIsA !== bIsA) return aIsA ? 1 : -1;
-    if(aNum !== bNum) return aNum - bNum;
-    return aStr.localeCompare(bStr, undefined, {numeric:true});
+    const aStr = a.replace("Lane ", "");
+    const bStr = b.replace("Lane ", "");
+    const aNum = parseInt(aStr, 10);
+    const bNum = parseInt(bStr, 10);
+    const aIsA = /[A-Za-z]/.test(aStr);
+    const bIsA = /[A-Za-z]/.test(bStr);
+
+    if (aIsA !== bIsA) return aIsA ? 1 : -1;
+    if (aNum !== bNum) return aNum - bNum;
+    return aStr.localeCompare(bStr, undefined, { numeric: true });
   });
 
   const totalItems = inventory.filter(x => x.lane).length;
 
-  // Build lane table HTML
+  function getStatusClass(status){
+    const s = String(status || "").trim().toLowerCase();
+    if (s.includes("complete")) return "status-completed";
+    if (s.includes("queue")) return "status-queue";
+    if (s.includes("hold")) return "status-hold";
+    if (s.includes("print")) return "status-printed";
+    return "status-default";
+  }
+
   let lanesHtml = "";
+
   sortedLanes.forEach(lane => {
-    const items = laneMap.get(lane).sort((a,b) => (parseInt(a.job,10)||0) - (parseInt(b.job,10)||0));
+    const items = laneMap
+      .get(lane)
+      .sort((a, b) => (parseInt(a.job, 10) || 0) - (parseInt(b.job, 10) || 0));
+
     const rows = items.map((item, idx) => `
-      <tr class="${idx % 2 === 0 ? 'row-even' : 'row-odd'}">
-        <td>${escapeHtml(item.job)}</td>
+      <tr class="${idx % 2 === 0 ? "row-even" : "row-odd"}">
+        <td class="job-cell">${escapeHtml(item.job)}</td>
         <td>${escapeHtml(item.mo || "—")}</td>
-        <td style="text-align:center;">${item.qty ?? 0}</td>
-        <td><span class="status-pill">${escapeHtml(item.status || "—")}</span></td>
-        <td>${escapeHtml(item.notes || "—")}</td>
+        <td class="qty-cell">${item.qty ?? 0}</td>
+        <td>
+          <span class="status-pill ${getStatusClass(item.status)}">
+            ${escapeHtml(item.status || "—")}
+          </span>
+        </td>
+        <td class="notes-cell">${escapeHtml(item.notes || "—")}</td>
       </tr>
     `).join("");
 
     lanesHtml += `
-      <div class="lane-block">
-        <div class="lane-header">
-          <span class="lane-name">${escapeHtml(lane)}</span>
-          <span class="lane-count">${items.length} item${items.length !== 1 ? "s" : ""}</span>
+      <section class="lane-card">
+        <div class="lane-card-top">
+          <div class="lane-title-wrap">
+            <div class="lane-kicker">LOCATION</div>
+            <div class="lane-name">${escapeHtml(lane)}</div>
+          </div>
+          <div class="lane-meta">
+            <span class="lane-count">${items.length} item${items.length !== 1 ? "s" : ""}</span>
+          </div>
         </div>
-        <table>
+
+        <table class="lane-table">
           <thead>
             <tr>
               <th>Item #</th>
@@ -5209,245 +5245,445 @@ function generateLaneReport(){
               <th>Notes</th>
             </tr>
           </thead>
-          <tbody>${rows}</tbody>
+          <tbody>
+            ${rows}
+          </tbody>
         </table>
-      </div>
+      </section>
     `;
   });
 
-  if(sortedLanes.length === 0){
-    lanesHtml = `<div style="text-align:center;padding:60px;color:#666;font-size:16px;">No items currently in any lane.</div>`;
+  if (!sortedLanes.length) {
+    lanesHtml = `
+      <div class="empty-state">
+        <div class="empty-title">No Lane Inventory Found</div>
+        <div class="empty-sub">There are currently no items assigned to any lane.</div>
+      </div>
+    `;
   }
 
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="UTF-8" />
   <title>Lane Inventory Report — ${dateStr}</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root{
+      --bg: #eef3fa;
+      --sheet: #ffffff;
+      --navy-1: #06101f;
+      --navy-2: #0b1c39;
+      --navy-3: #10305e;
+      --blue: #3a7afe;
+      --blue-soft: rgba(58,122,254,.16);
+      --line: #d8e2f0;
+      --line-soft: #e9eff7;
+      --text: #15253d;
+      --muted: #7084a3;
+      --row-a: #ffffff;
+      --row-b: #f7faff;
+      --shadow: 0 14px 36px rgba(12, 26, 52, .10);
+    }
 
-    body {
+    *{
+      box-sizing:border-box;
+      margin:0;
+      padding:0;
+    }
+
+    html, body{
+      background: var(--bg);
+      color: var(--text);
       font-family: 'Inter', Arial, sans-serif;
-      background: #fff;
-      color: #111;
       font-size: 12px;
-      padding: 0;
     }
 
-    /* ── Cover header ── */
-    .page-header {
-  background: linear-gradient(135deg, #0a0f1e 0%, #0d1a35 60%, #0f2248 100%);
-  color: #fff;
-  padding: 32px 40px 28px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 3px solid #2a7fff;
-}
-    .header-left {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex: 1;
-}
-    .report-sub {
-      font-size: 11px;
-      letter-spacing: .18em;
-      text-transform: uppercase;
-      color: rgba(180,205,255,.75);
-    }
-.report-title {
-  font-size: 22px;
-  font-weight: 900;
-  letter-spacing: .04em;
-  line-height: 1.05;
-  color: #fff;
-}
-
-.report-date {
-  font-size: 13px;
-  font-weight: 700;
-  color: #cfe0ff;
-}
-
-.report-time {
-  font-size: 11px;
-  color: rgba(180,205,255,.6);
-  margin-top: 3px;
-}
-
-.report-summary {
-  font-size: 11px;
-  color: rgba(180,205,255,.7);
-  letter-spacing: .05em;
-}
-   .header-right {
-  text-align: right;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  align-items: flex-end;
-}
-  .header-center {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-}
-.tagline {
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: .12em;
-  text-align: center;
-  margin-top: 6px;
-  opacity: .85;
-}
-
-    /* ── Watermark logo area ── */
-    .logo-watermark {
-      font-size: 28px;
-      font-weight: 900;
-      letter-spacing: .25em;
-      color: rgba(42,127,255,.18);
-      text-transform: uppercase;
+    body{
+      padding: 24px;
     }
 
-    /* ── Body ── */
-    .content { padding: 24px 40px 40px; }
-
-    /* ── Lane block ── */
-    .lane-block {
-      margin-bottom: 24px;
-      border: 1px solid #dde4f0;
-      border-radius: 8px;
+    .report-shell{
+      max-width: 1680px;
+      margin: 0 auto;
+      background: var(--sheet);
+      border-radius: 22px;
       overflow: hidden;
+      box-shadow: 0 24px 70px rgba(7, 19, 43, .14);
+      border: 1px solid rgba(255,255,255,.7);
+    }
+
+    .page-header{
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 20px;
+      padding: 30px 36px 28px;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(58,122,254,.18), transparent 38%),
+        linear-gradient(135deg, #050c18 0%, #0a1934 55%, #123160 100%);
+      color: #fff;
+      overflow: hidden;
+      border-bottom: 3px solid var(--blue);
+    }
+
+    .page-header::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+      background-size: 26px 26px;
+      opacity: .12;
+      pointer-events: none;
+    }
+
+    .page-header > *{
+      position: relative;
+      z-index: 1;
+    }
+
+    .header-left{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      align-items:flex-start;
+    }
+
+    .report-title{
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: -.03em;
+      line-height: 1;
+      color:#fff;
+    }
+
+    .report-sub{
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .24em;
+      text-transform: uppercase;
+      color: rgba(205,223,255,.75);
+    }
+
+    .report-summary{
+      margin-top: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(213,227,255,.84);
+    }
+
+    .header-center{
+      text-align:center;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .header-center img{
+      height: 64px;
+      display:block;
+      filter:
+        drop-shadow(0 0 14px rgba(58,122,254,.18))
+        drop-shadow(0 0 28px rgba(58,122,254,.10));
+    }
+
+    .tagline{
+      margin-top: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .20em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.82);
+    }
+
+    .header-right{
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      gap:4px;
+      text-align:right;
+    }
+
+    .report-date{
+      font-size: 15px;
+      font-weight: 800;
+      color:#fff;
+    }
+
+    .report-time{
+      font-size: 11px;
+      color: rgba(201,220,255,.72);
+    }
+
+    .content{
+      padding: 24px;
+      background:
+        radial-gradient(circle at top, rgba(58,122,254,.05), transparent 30%),
+        linear-gradient(180deg, #f4f8fd 0%, #edf3f9 100%);
+    }
+
+    .lane-card{
+      background: rgba(255,255,255,.96);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      overflow: hidden;
+      margin-bottom: 22px;
+      box-shadow: var(--shadow);
       break-inside: avoid;
       page-break-inside: avoid;
     }
-    .lane-header {
-      background: linear-gradient(90deg, #0d1a35, #122547);
-      color: #fff;
-      padding: 10px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .lane-name {
-      font-size: 14px;
-      font-weight: 900;
-      letter-spacing: .06em;
-      color: #cfe0ff;
-    }
-    .lane-count {
-      font-size: 11px;
-      background: rgba(42,127,255,.3);
-      border: 1px solid rgba(42,127,255,.5);
-      color: rgba(180,205,255,.9);
-      padding: 3px 10px;
-      border-radius: 999px;
-      font-weight: 700;
+
+    .lane-card-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:16px;
+      padding: 14px 16px;
+      background:
+        linear-gradient(90deg, #0b1730 0%, #102447 55%, #163564 100%);
+      border-bottom: 1px solid rgba(255,255,255,.08);
     }
 
-    /* ── Table ── */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 11.5px;
+    .lane-title-wrap{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
     }
-    thead tr {
-      background: #f0f4fb;
-    }
-    th {
-      padding: 8px 12px;
-      text-align: left;
-      font-weight: 700;
-      font-size: 10px;
-      letter-spacing: .1em;
+
+    .lane-kicker{
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .22em;
       text-transform: uppercase;
-      color: #445;
-      border-bottom: 1px solid #dde4f0;
+      color: rgba(186,210,255,.62);
     }
-    td {
-      padding: 9px 12px;
-      border-bottom: 1px solid #eef1f8;
-      vertical-align: middle;
-      color: #222;
-    }
-    .row-even { background: #fff; }
-    .row-odd  { background: #f8faff; }
-    tr:last-child td { border-bottom: none; }
 
-    /* ── Status pill ── */
-    .status-pill {
-      display: inline-block;
-      padding: 2px 8px;
+    .lane-name{
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: -.02em;
+      color:#fff;
+    }
+
+    .lane-meta{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .lane-count{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width: 74px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #d8e7ff;
+      background: rgba(58,122,254,.22);
+      border: 1px solid rgba(95,151,255,.42);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+    }
+
+    .lane-table{
+      width:100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .lane-table thead tr{
+      background: linear-gradient(180deg, #f7faff 0%, #eef4fb 100%);
+    }
+
+    .lane-table th{
+      padding: 12px 12px;
+      text-align:left;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: #647896;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .lane-table td{
+      padding: 12px 12px;
+      border-bottom: 1px solid var(--line-soft);
+      vertical-align: middle;
+      font-size: 12px;
+      color: var(--text);
+      word-wrap: break-word;
+    }
+
+    .lane-table tbody tr:last-child td{
+      border-bottom:none;
+    }
+
+    .row-even{ background: var(--row-a); }
+    .row-odd{ background: var(--row-b); }
+
+    .job-cell{
+      font-weight: 800;
+      color: #0f2446;
+    }
+
+    .qty-cell{
+      text-align:center;
+      font-weight: 800;
+      color: #183157;
+    }
+
+    .notes-cell{
+      color:#4d627f;
+    }
+
+    .status-pill{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding: 5px 10px;
       border-radius: 999px;
       font-size: 10px;
-      font-weight: 700;
-      background: #e8eef8;
-      color: #334;
-      border: 1px solid #ccd6ec;
+      font-weight: 800;
+      letter-spacing: .03em;
+      border: 1px solid transparent;
+      white-space: nowrap;
     }
 
-    /* ── Footer ── */
-    .page-footer {
-      margin-top: 32px;
-      padding-top: 12px;
-      border-top: 1px solid #dde4f0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      color: #999;
+    .status-printed{
+      background: rgba(58,122,254,.12);
+      color: #1b4ea8;
+      border-color: rgba(58,122,254,.22);
+    }
+
+    .status-completed{
+      background: rgba(28,176,104,.12);
+      color: #177247;
+      border-color: rgba(28,176,104,.20);
+    }
+
+    .status-queue{
+      background: rgba(117,96,255,.12);
+      color: #5442c8;
+      border-color: rgba(117,96,255,.22);
+    }
+
+    .status-hold{
+      background: rgba(234,131,33,.14);
+      color: #9a570f;
+      border-color: rgba(234,131,33,.22);
+    }
+
+    .status-default{
+      background: #eef3fa;
+      color: #526783;
+      border-color: #d8e2f0;
+    }
+
+    .empty-state{
+      padding: 80px 24px;
+      text-align:center;
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:18px;
+      box-shadow: var(--shadow);
+    }
+
+    .empty-title{
+      font-size: 24px;
+      font-weight: 900;
+      color:#0f2446;
+      margin-bottom: 8px;
+    }
+
+    .empty-sub{
+      font-size: 13px;
+      color: #6d82a0;
+    }
+
+    .page-footer{
+      margin-top: 12px;
+      padding: 18px 4px 4px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:18px;
       font-size: 10px;
-      letter-spacing: .06em;
+      font-weight: 700;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+      color: #7c90ad;
     }
 
-    /* ── Print ── */
-    @media print {
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .page-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .lane-header  { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .lane-block { page-break-inside: avoid; }
-      @page { margin: 0.5in; size: letter portrait; }
+    @media print{
+      html, body{
+        background:#fff;
+      }
+
+      body{
+        padding:0;
+      }
+
+      .report-shell{
+        max-width:none;
+        margin:0;
+        border:none;
+        border-radius:0;
+        box-shadow:none;
+      }
+
+      .lane-card{
+        box-shadow:none;
+      }
+
+      body, .page-header, .lane-card-top, .lane-table thead tr, .status-pill{
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      @page{
+        size: letter portrait;
+        margin: 0.45in;
+      }
     }
   </style>
 </head>
 <body>
+  <div class="report-shell">
+    <header class="page-header">
+      <div class="header-left">
+        <div class="report-title">Lane Inventory Report</div>
+        <div class="report-sub">Print Shop • Admin Export</div>
+        <div class="report-summary">
+          ${sortedLanes.length} lane${sortedLanes.length !== 1 ? "s" : ""} • ${totalItems} total item${totalItems !== 1 ? "s" : ""}
+        </div>
+      </div>
 
-  <div class="page-header">
-  <div class="header-left">
-    <div class="report-title">Lane Inventory Report</div>
-    <div class="report-sub">Print Shop • Admin Export</div>
-    <div class="report-summary" style="margin-top:10px;">
-      ${sortedLanes.length} lane${sortedLanes.length !== 1 ? "s" : ""} &nbsp;•&nbsp; ${totalItems} total item${totalItems !== 1 ? "s" : ""}
-    </div>
-  </div>
+      <div class="header-center">
+        <img src="${TRACE_LOGO}" alt="TRACE Logo" />
+        <div class="tagline">We Track. You Improve.</div>
+      </div>
 
-  <div class="header-center">
-  <img src="${TRACE_LOGO}"
-       style="height:64px; display:block; margin:0 auto;" />
-  <div class="tagline">We Track. You Improve.</div>
-</div>
+      <div class="header-right">
+        <div class="report-date">${dateStr}</div>
+        <div class="report-time">Generated at ${timeStr}</div>
+      </div>
+    </header>
 
-  <div class="header-right">
-    <div class="report-date">${dateStr}</div>
-    <div class="report-time">Generated at ${timeStr}</div>
-  </div>
-</div>
+    <main class="content">
+      ${lanesHtml}
 
-  <div class="content">
-    ${lanesHtml}
-
-    <div class="page-footer">
-      <span>TRACE Inventory System &nbsp;•&nbsp; traceinventory.org</span>
-      <span>© 2026 McCoy Hartsell &nbsp;•&nbsp; Confidential</span>
-    </div>
+      <footer class="page-footer">
+        <span>TRACE Inventory System • traceinventory.org</span>
+        <span>© 2026 McCoy Hartsell • Confidential</span>
+      </footer>
+    </main>
   </div>
 
   <script>
@@ -5457,7 +5693,11 @@ function generateLaneReport(){
 </html>`;
 
   const win = window.open("", "_blank");
-  if(!win){ toast("Pop-up blocked — allow pop-ups for this site", true); return; }
+  if (!win) {
+    toast("Pop-up blocked — allow pop-ups for this site", true);
+    return;
+  }
+
   win.document.write(html);
   win.document.close();
 }
