@@ -2467,7 +2467,7 @@ function downloadJobQr(){
   if(!container) return;
   const qrCanvas = container.querySelector("canvas");
   if(!qrCanvas){ alert("Generate a QR first."); return; }
-  const job = cleanJob(els.job?.value || "JOB");
+  const job = cleanJob(document.getElementById("qrJob")?.value || "");
 
   const logo = new Image();
   logo.crossOrigin = "anonymous";
