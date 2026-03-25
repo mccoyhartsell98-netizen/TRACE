@@ -1993,16 +1993,22 @@ button:hover::before {
   </div>
 </div>
 
-     <!-- HISTORY PAGE -->
+    <!-- HISTORY PAGE -->
 <div id="historyPage" class="appPage hidden">
   <div class="wrap">
     <div class="pageHeader">
       <button class="ghost" id="historyPageBack">← Back</button>
-      <h2 style="margin:0; font-size:18px;">Deleted History</h2>
+      <h2 style="margin:0; font-size:22px; letter-spacing:.08em; text-transform:uppercase;">Deleted History</h2>
       <button id="clearHistoryBtn2" class="danger">Clear (keep 7 days)</button>
     </div>
-    <input type="text" id="historySearch2" placeholder="Search deleted jobs...">
-    <div class="results" id="historyResults2" style="margin-top:10px;"></div>
+
+    <div class="historyShell">
+      <div class="historySearchWrap">
+        <input type="text" id="historySearch2" placeholder="Search deleted jobs...">
+      </div>
+
+      <div id="historyResults2" class="historyResults"></div>
+    </div>
   </div>
 </div>
 
@@ -3895,36 +3901,102 @@ document.getElementById("historySearch2").addEventListener("input", renderHistor
 function renderHistoryPage(){
   const q = normalize(document.getElementById("historySearch2")?.value || "");
   let list = deletedDbCache;
+
   if(q){
     list = list.filter(x =>
       normalize(x.job_number).includes(q) ||
       normalize(x.description).includes(q) ||
       normalize(x.deleted_by).includes(q) ||
-      normalize(x.delete_reason).includes(q)
+      normalize(x.delete_reason).includes(q) ||
+      normalize(x.lane).includes(q) ||
+      normalize(x.machine).includes(q)
     );
   }
+
   const container = document.getElementById("historyResults2");
+  if(!container) return;
+
   container.innerHTML = "";
+
   if(list.length === 0){
-    container.innerHTML = `<div style="color:var(--muted)">No deleted jobs yet.</div>`;
+    container.innerHTML = `<div class="historyEmpty">No deleted jobs found.</div>`;
     return;
   }
+
   list.slice(0, 120).forEach(item => {
     const lane = item.lane ? `Lane ${item.lane}` : "";
     const mach = item.machine ? `Machine ${item.machine}` : "";
-    const from = mach || lane || "—";
+    const from = mach || lane || "Unknown";
+
+    const reasonText =
+      item.delete_reason === "auto_expired"
+        ? "Auto-expired"
+        : "Manual delete";
+
     const div = document.createElement("div");
-    div.className = "resultItem";
+    div.className = "historyCard";
+
     div.innerHTML = `
-      <div class="big">Job #${escapeHtml(item.job_number || "")}</div>
-      <div class="meta">${escapeHtml(item.description || "—")}</div>
-      <div class="meta">
-        Deleted: ${escapeHtml(item.deleted_at || "")}
-        ${item.deleted_by ? ` • By: ${escapeHtml(item.deleted_by)}` : ""}
-        ${item.delete_reason === "auto_expired" ? ` • Auto-expired from machine` : ` • Manually deleted`}
-        • From: ${escapeHtml(from)}
+      <div class="historyCardTop">
+        <div style="display:flex; align-items:center; min-width:0;">
+          <div class="historyJob">Job #${escapeHtml(item.job_number || "")}</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="historyBadge">Deleted</span>
+          <span class="historyChevron">⌄</span>
+        </div>
+      </div>
+
+      <div class="historyDesc">${escapeHtml(item.description || "No description")}</div>
+
+      <div class="historyMeta">
+        <span><strong>Time:</strong> ${escapeHtml(item.deleted_at || "—")}</span>
+        <span><strong>From:</strong> ${escapeHtml(from)}</span>
+        <span><strong>Reason:</strong> ${escapeHtml(reasonText)}</span>
+        ${item.deleted_by ? `<span><strong>By:</strong> ${escapeHtml(item.deleted_by)}</span>` : ""}
+      </div>
+
+      <div class="historyExpand">
+        <div class="historyExpandInner">
+          <div class="historyDetailGrid">
+            <div class="historyDetail">
+              <div class="historyDetailLabel">Job Number</div>
+              <div class="historyDetailValue">${escapeHtml(item.job_number || "—")}</div>
+            </div>
+
+            <div class="historyDetail">
+              <div class="historyDetailLabel">Description</div>
+              <div class="historyDetailValue">${escapeHtml(item.description || "No description")}</div>
+            </div>
+
+            <div class="historyDetail">
+              <div class="historyDetailLabel">Deleted At</div>
+              <div class="historyDetailValue">${escapeHtml(item.deleted_at || "—")}</div>
+            </div>
+
+            <div class="historyDetail">
+              <div class="historyDetailLabel">Deleted By</div>
+              <div class="historyDetailValue">${escapeHtml(item.deleted_by || "Unknown")}</div>
+            </div>
+
+            <div class="historyDetail">
+              <div class="historyDetailLabel">Delete Reason</div>
+              <div class="historyDetailValue">${escapeHtml(reasonText)}</div>
+            </div>
+
+            <div class="historyDetail">
+              <div class="historyDetailLabel">Original Location</div>
+              <div class="historyDetailValue">${escapeHtml(from)}</div>
+            </div>
+          </div>
+        </div>
       </div>
     `;
+
+    div.addEventListener("click", () => {
+      div.classList.toggle("isOpen");
+    });
+
     container.appendChild(div);
   });
 }
