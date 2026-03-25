@@ -2472,6 +2472,7 @@ function downloadJobQr(){
   const logo = new Image();
   logo.crossOrigin = "anonymous";
   logo.src = "./Offcial-Trace-Logo.png";
+  
   logo.onload = () => {
     // Step 1: draw logo to a temp canvas to find actual content bounds
     const tmp = document.createElement("canvas");
@@ -2534,7 +2535,7 @@ function downloadJobQr(){
     ctx.textAlign = "center";
     ctx.fillText(`${job}`, totalWidth / 2, qrY + qrCanvas.height + gap + 26);
 
-     out.toBlob((blob) => {
+    out.toBlob((blob) => {
       if(!blob){ uiAlert("Download Error", "Could not generate image. Try again."); return; }
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -2545,8 +2546,7 @@ function downloadJobQr(){
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 2000);
     }, "image/png");
-
-  };  // ← closes logo.onload
+  };  // End logo.onload
 
   logo.onerror = () => {
     qrCanvas.toBlob((blob) => {
@@ -2560,9 +2560,8 @@ function downloadJobQr(){
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 2000);
     }, "image/png");
-  };  // ← closes logo.onerror
-
-});  // ← closes addEventListener("click", ...)
+  };  // End logo.onerror
+}  // End downloadJobQr
 
 async function queueCurrentJob(){
   const admin = (role === "admin" && adminUnlocked);
