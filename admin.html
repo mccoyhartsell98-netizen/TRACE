@@ -4645,15 +4645,20 @@ function renderFeedPage(){
         listWrap.innerHTML = `<div class="feedHistoryEmpty">Loading history...</div>`;
 
         try{
-          const moves = await apiGet(`/items/${item.id}/moves`);
+          const d = await apiGet(`/items/${item.id}/history`);
+    const moves = Array.isArray(d.history) ? d.history : [];
           if(!Array.isArray(moves) || moves.length === 0){
             listWrap.innerHTML = `<div class="feedHistoryEmpty">No move history found for this item.</div>`;
           }else{
             listWrap.innerHTML = moves.map(m => {
-              const fromLoc = escapeHtml(m.from_location || "Unknown");
-              const toLoc = escapeHtml(m.to_location || "Unknown");
-              const movedBy = escapeHtml(m.moved_by || "Unknown");
-              const movedAt = escapeHtml(timeAgo(m.created_at || m.moved_at || m.timestamp));
+              const fromLoc = escapeHtml(
+  m.from_lane ? `Lane ${m.from_lane}` : (m.from_machine || "Unknown")
+);
+const toLoc = escapeHtml(
+  m.to_lane ? `Lane ${m.to_lane}` : (m.to_machine || "Unknown")
+);
+const movedBy = escapeHtml(m.moved_by || "Unknown");
+const movedAt = escapeHtml(timeAgo(m.moved_at));
 
               return `
                 <div class="feedHistoryEntry">
