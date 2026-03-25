@@ -4520,12 +4520,16 @@ function renderQueuePage(){
     });
 
     const qrBtn = div.querySelector("[data-gen-qr]");
-    qrBtn.addEventListener("click", () => {
-      selectedId = item.id;
-      els.job.value = item.job || "";
-      els.mo.value = item.mo || "";
-      generateJobQr();
-    });
+qrBtn.addEventListener("click", () => {
+  // Navigate to QR page and pre-fill the job number
+  showPage("qrPage");
+  const qrJobInput = document.getElementById("qrJob");
+  if(qrJobInput){
+    qrJobInput.value = cleanJob(item.job || "");
+    // Auto-trigger the QR generation
+    document.getElementById("genQrBtn").click();
+  }
+});
 
     const removeBtn = div.querySelector("[data-remove-queue]");
     removeBtn.addEventListener("click", async () => {
@@ -6644,3 +6648,4 @@ function generateLaneReport(){
 </script>
 </body>
 </html>
+          
