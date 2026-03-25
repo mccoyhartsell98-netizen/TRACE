@@ -1209,32 +1209,211 @@ button:hover::before {
     }
 
 /* ===== ACTIVITY FEED PAGE ===== */
-.feedItem{
-  background:var(--panel2);
-  border:1px solid var(--stroke);
-  border-radius:12px;
-  padding:12px;
-  margin-bottom:8px;
-  cursor:pointer;
+.feedResults{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
 }
-.feedItem:hover{ border-color:rgba(58,122,254,.45); }
-.feedItem-job{
-  font-size:15px;
+
+.feedCard{
+  position:relative;
+  overflow:hidden;
+  border-radius:16px;
+  padding:14px 16px 13px 18px;
+  background:linear-gradient(135deg, rgba(23,28,44,.96), rgba(18,23,38,.94));
+  border:1px solid rgba(75,92,128,.34);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.03),
+    0 16px 40px rgba(0,0,0,.24);
+  cursor:pointer;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
+}
+
+.feedCard::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:10px;
+  bottom:10px;
+  width:4px;
+  border-radius:999px;
+  background:linear-gradient(180deg, #3a7afe 0%, rgba(58,122,254,.18) 100%);
+}
+
+.feedCard:hover{
+  transform: translateY(-2px);
+  border-color: rgba(92,132,255,.42);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.03),
+    0 18px 40px rgba(0,0,0,.28),
+    0 0 0 1px rgba(58,122,254,.10),
+    0 0 22px rgba(58,122,254,.10);
+}
+
+.feedCard.isOpen{
+  border-color: rgba(58,122,254,.34);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.03),
+    0 20px 44px rgba(0,0,0,.30),
+    0 0 0 1px rgba(58,122,254,.12);
+}
+
+.feedCardTop{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.feedJob{
+  font-size:18px;
   font-weight:900;
+  letter-spacing:-.02em;
   color:#fff;
 }
-.feedItem-loc{
-  font-size:13px;
-  color:rgba(180,205,255,.85);
-  margin-top:4px;
-}
-.feedItem-meta{
-  font-size:11px;
-  color:rgba(255,255,255,.40);
+
+.feedJobSub{
   margin-top:6px;
+  font-size:13px;
+  color:rgba(204,218,242,.82);
+}
+
+.feedStatusLine{
+  margin-top:10px;
+  font-size:13px;
+  color:rgba(180,205,255,.9);
+}
+
+.feedStatusLine .feedStatus{
+  color:var(--good);
+  font-weight:900;
+}
+
+.feedMeta{
+  margin-top:10px;
   display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.feedMeta span{
+  display:inline-flex;
   align-items:center;
-  justify-content:space-between;
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:700;
+  color:rgba(226,236,255,.9);
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.06);
+}
+
+.feedMeta strong{
+  color:#fff;
+  margin-right:5px;
+}
+
+.feedToggle{
+  margin-left:10px;
+  width:22px;
+  height:22px;
+  border-radius:6px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.10);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  transition:transform 180ms ease, background 180ms ease, border-color 180ms ease;
+}
+
+.feedToggle::after{
+  content:"";
+  display:block;
+  width:7px;
+  height:7px;
+  border-right:2px solid rgba(180,205,255,.8);
+  border-bottom:2px solid rgba(180,205,255,.8);
+  transform: rotate(45deg) translate(-1px, -2px);
+  transition:border-color 180ms ease;
+}
+
+.feedCard.isOpen .feedToggle{
+  transform: rotate(180deg);
+  background: rgba(58,122,254,.18);
+  border-color: rgba(58,122,254,.35);
+}
+
+.feedCard.isOpen .feedToggle::after{
+  border-color: rgba(58,122,254,.9);
+}
+
+.feedExpand{
+  display:grid;
+  grid-template-rows:0fr;
+  transition:grid-template-rows 180ms ease, opacity 180ms ease, margin-top 180ms ease;
+  opacity:0;
+  margin-top:0;
+}
+
+.feedCard.isOpen .feedExpand{
+  grid-template-rows:1fr;
+  opacity:1;
+  margin-top:12px;
+}
+
+.feedExpandInner{
+  overflow:hidden;
+  border-top:1px solid rgba(255,255,255,.07);
+  padding-top:12px;
+}
+
+.feedHistoryList{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.feedHistoryEntry{
+  border-radius:12px;
+  background:rgba(255,255,255,.035);
+  border:1px solid rgba(255,255,255,.06);
+  padding:10px 12px;
+}
+
+.feedHistoryTitle{
+  font-size:12px;
+  font-weight:900;
+  color:#eef4ff;
+}
+
+.feedHistorySub{
+  margin-top:5px;
+  font-size:12px;
+  color:rgba(190,205,232,.78);
+  line-height:1.45;
+}
+
+.feedHistoryEmpty{
+  padding:16px 14px;
+  border-radius:12px;
+  border:1px dashed rgba(88,108,150,.28);
+  background:rgba(15,20,32,.62);
+  text-align:center;
+  color:rgba(188,203,230,.7);
+  font-size:13px;
+  font-weight:700;
+}
+
+@media (max-width:700px){
+  .feedCardTop{
+    flex-direction:column;
+    align-items:flex-start;
+  }
 }
 
 /* ===== EMPTY STATES ===== */
@@ -2261,7 +2440,7 @@ button:hover::before {
       </div>
     </div>
     <input type="text" id="feedSearch" placeholder="Search by item #, MO, or user...">
-    <div id="feedResults" style="margin-top:12px;"></div>
+    <div id="feedResults" class="feedResults"></div>
   </div>
 </div>
 
@@ -4404,49 +4583,96 @@ function renderFeedPage(){
   }
 
   container.innerHTML = "";
+
   if(sorted.length === 0){
     container.innerHTML = `
       <div class="emptyState">
         <div class="emptyState-title">No Activity Yet</div>
         <div class="emptyState-sub">Move events will appear here as jobs are updated across lanes and machines.</div>
-      </div>`;
+      </div>
+    `;
     return;
   }
 
   sorted.slice(0, 80).forEach(item => {
-    const loc = item.machine ? 
-  (item.machine.toUpperCase() === "QUEUE" ? "Queue" : `Machine ${item.machine}`) 
-  : (item.lane || "Unknown");
+    const loc = item.machine
+      ? (item.machine.toUpperCase() === "QUEUE" ? "Queue" : `Machine ${item.machine}`)
+      : (item.lane || "Unknown");
+
     const by = item.updatedBy || "—";
     const when = timeAgo(item.updatedAt);
+
     const div = document.createElement("div");
-    div.className = "feedItem";
+    div.className = "feedCard";
     div.innerHTML = `
-      <div class="feedItem-job">
-        Item #${escapeHtml(item.job)}
-        ${item.mo ? `<span style="font-weight:400;color:var(--muted);font-size:12px;margin-left:8px;">MO: ${escapeHtml(item.mo)}</span>` : ""}
+      <div class="feedCardTop">
+        <div>
+          <div class="feedJob">
+            Item #${escapeHtml(item.job)}
+          </div>
+          <div class="feedJobSub">
+            ${item.mo ? `MO: ${escapeHtml(item.mo)}` : "No MO"}
+          </div>
+        </div>
+        <div class="feedToggle"></div>
       </div>
-      <div class="feedItem-loc">📍 ${escapeHtml(loc)} • <span style="color:var(--good)">${escapeHtml(item.status||"—")}</span></div>
-      <div class="feedItem-meta">
-        <span>👤 ${escapeHtml(by)}</span>
-        <span>${escapeHtml(when)}</span>
+
+      <div class="feedStatusLine">
+        📍 ${escapeHtml(loc)} • <span class="feedStatus">${escapeHtml(item.status || "—")}</span>
       </div>
-      <div style="margin-top:8px;">
-        <button class="ghost" style="font-size:12px;padding:5px 10px;" data-history="${item.id}">📋 View History</button>
+
+      <div class="feedMeta">
+        <span><strong>User:</strong> ${escapeHtml(by)}</span>
+        <span><strong>Updated:</strong> ${escapeHtml(when)}</span>
+      </div>
+
+      <div class="feedExpand">
+        <div class="feedExpandInner">
+          <div class="feedHistoryList">
+            <div class="feedHistoryEmpty">Loading history...</div>
+          </div>
+        </div>
       </div>
     `;
-     
-     div.querySelector("[data-history]").addEventListener("click", (e) => {
-      e.stopPropagation();
-      showJobHistory(item.id, item.job);
+
+    let loaded = false;
+
+    div.addEventListener("click", async () => {
+      div.classList.toggle("isOpen");
+
+      if(!loaded && div.classList.contains("isOpen")){
+        const listWrap = div.querySelector(".feedHistoryList");
+        listWrap.innerHTML = `<div class="feedHistoryEmpty">Loading history...</div>`;
+
+        try{
+          const moves = await apiGet(`/items/${item.id}/moves`);
+          if(!Array.isArray(moves) || moves.length === 0){
+            listWrap.innerHTML = `<div class="feedHistoryEmpty">No move history found for this item.</div>`;
+          }else{
+            listWrap.innerHTML = moves.map(m => {
+              const fromLoc = escapeHtml(m.from_location || "Unknown");
+              const toLoc = escapeHtml(m.to_location || "Unknown");
+              const movedBy = escapeHtml(m.moved_by || "Unknown");
+              const movedAt = escapeHtml(timeAgo(m.created_at || m.moved_at || m.timestamp));
+
+              return `
+                <div class="feedHistoryEntry">
+                  <div class="feedHistoryTitle">${fromLoc} → ${toLoc}</div>
+                  <div class="feedHistorySub">
+                    By ${movedBy} • ${movedAt}
+                  </div>
+                </div>
+              `;
+            }).join("");
+          }
+        }catch(e){
+          listWrap.innerHTML = `<div class="feedHistoryEmpty">Failed to load move history.</div>`;
+        }
+
+        loaded = true;
+      }
     });
 
-    div.addEventListener("click", () => {
-      hidePage("feedPage");
-      if(item.machine) selectMachine(item.machine);
-      else if(item.lane) selectLane(item.lane);
-      loadToForm(item.id);
-    });
     container.appendChild(div);
   });
 }
