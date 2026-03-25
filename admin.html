@@ -3408,21 +3408,6 @@ if(els.clearHistoryBtn){
 }
 
 // ===== QR + QUEUE EVENTS =====
-if (els.genJobQrBtn) {
-  els.genJobQrBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    generateJobQr();
-  });
-}
-
-if (els.downloadJobQrBtn) {
-  els.downloadJobQrBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    downloadJobQr();
-  });
-}
 if (els.queueJobBtn) els.queueJobBtn.addEventListener("click", queueCurrentJob);
 
 // Undo
