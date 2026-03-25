@@ -5159,6 +5159,7 @@ function generateLaneReport(){
   const now = new Date();
   const dateStr = now.toLocaleDateString(undefined, { weekday:"long", year:"numeric", month:"long", day:"numeric" });
   const timeStr = now.toLocaleTimeString(undefined, { hour:"2-digit", minute:"2-digit" });
+ const TRACE_LOGO = "./Offcial-Trace-Logo.png";
 
   // Group by lane, sorted regular lanes first then A lanes
   const laneMap = new Map();
@@ -5224,7 +5225,7 @@ function generateLaneReport(){
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <title>TRACE Lane Report — ${dateStr}</title>
+  <title>Lane Inventory Report — ${dateStr}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
 
@@ -5240,36 +5241,75 @@ function generateLaneReport(){
 
     /* ── Cover header ── */
     .page-header {
-      background: linear-gradient(135deg, #0a0f1e 0%, #0d1a35 60%, #0f2248 100%);
-      color: #fff;
-      padding: 32px 40px 28px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 3px solid #2a7fff;
-    }
-    .header-left { display: flex; flex-direction: column; gap: 6px; }
-    .report-title {
-      font-size: 22px;
-      font-weight: 900;
-      letter-spacing: .04em;
-      color: #fff;
-    }
+  background: linear-gradient(135deg, #0a0f1e 0%, #0d1a35 60%, #0f2248 100%);
+  color: #fff;
+  padding: 32px 40px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 3px solid #2a7fff;
+}
+    .header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
     .report-sub {
       font-size: 11px;
       letter-spacing: .18em;
       text-transform: uppercase;
       color: rgba(180,205,255,.75);
     }
-    .header-right { text-align: right; }
-    .report-date { font-size: 13px; font-weight: 700; color: #cfe0ff; }
-    .report-time { font-size: 11px; color: rgba(180,205,255,.6); margin-top: 3px; }
-    .report-summary {
-      font-size: 11px;
-      color: rgba(180,205,255,.7);
-      margin-top: 6px;
-      letter-spacing: .05em;
-    }
+.report-title {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: .04em;
+  line-height: 1.05;
+  color: #fff;
+}
+
+.report-date {
+  font-size: 13px;
+  font-weight: 700;
+  color: #cfe0ff;
+}
+
+.report-time {
+  font-size: 11px;
+  color: rgba(180,205,255,.6);
+  margin-top: 3px;
+}
+
+.report-summary {
+  font-size: 11px;
+  color: rgba(180,205,255,.7);
+  letter-spacing: .05em;
+}
+   .header-right {
+  text-align: right;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+}
+  .header-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+.tagline {
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-align: center;
+  margin-top: 6px;
+  opacity: .85;
+}
 
     /* ── Watermark logo area ── */
     .logo-watermark {
@@ -5383,19 +5423,25 @@ function generateLaneReport(){
 <body>
 
   <div class="page-header">
-    <div class="header-left">
-      <div class="report-title">TRACE — Lane Inventory Report</div>
-      <div class="report-sub">Print Shop • Admin Export</div>
-      <div class="report-summary" style="margin-top:10px;">
-        ${sortedLanes.length} lane${sortedLanes.length !== 1 ? "s" : ""} &nbsp;•&nbsp; ${totalItems} total item${totalItems !== 1 ? "s" : ""}
-      </div>
-    </div>
-    <div class="header-right">
-      <div class="logo-watermark">TRACE</div>
-      <div class="report-date">${dateStr}</div>
-      <div class="report-time">Generated at ${timeStr}</div>
+  <div class="header-left">
+    <div class="report-title">Lane Inventory Report</div>
+    <div class="report-sub">Print Shop • Admin Export</div>
+    <div class="report-summary" style="margin-top:10px;">
+      ${sortedLanes.length} lane${sortedLanes.length !== 1 ? "s" : ""} &nbsp;•&nbsp; ${totalItems} total item${totalItems !== 1 ? "s" : ""}
     </div>
   </div>
+
+  <div class="header-center">
+  <img src="${TRACE_LOGO}"
+       style="height:64px; display:block; margin:0 auto;" />
+  <div class="tagline">We Track. You Improve.</div>
+</div>
+
+  <div class="header-right">
+    <div class="report-date">${dateStr}</div>
+    <div class="report-time">Generated at ${timeStr}</div>
+  </div>
+</div>
 
   <div class="content">
     ${lanesHtml}
