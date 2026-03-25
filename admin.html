@@ -2545,9 +2545,10 @@ function downloadJobQr(){
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 2000);
     }, "image/png");
+
   };  // ← closes logo.onload
 
-  logo.onerror = () => {  
+  logo.onerror = () => {
     qrCanvas.toBlob((blob) => {
       if(!blob) return;
       const url = URL.createObjectURL(blob);
@@ -2559,9 +2560,9 @@ function downloadJobQr(){
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 2000);
     }, "image/png");
-  };  
+  };  // ← closes logo.onerror
 
-});  
+});  // ← closes addEventListener("click", ...)
 
 async function queueCurrentJob(){
   const admin = (role === "admin" && adminUnlocked);
