@@ -5377,31 +5377,34 @@ function generateLaneReport(){
   color: rgba(213,227,255,.82);
 }
 
-    .header-center{
+   .header-center{
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 2px; /* pulls everything tighter */
 }
 
-    .header-center img{
+.header-center img{
   height: 128px;
   max-width: 100%;
   display: block;
+  margin-bottom: -2px; /* pulls tagline closer */
+  transform: translateX(4px); /* optical centering fix */
   filter:
     drop-shadow(0 0 18px rgba(58,122,254,.24))
     drop-shadow(0 0 34px rgba(58,122,254,.14));
 }
 
-   .tagline{
-  margin-top: 4px;
+.tagline{
+  margin-top: 0px; /* remove extra gap */
   font-size: 10px;
   font-weight: 800;
   letter-spacing: .24em;
   text-transform: uppercase;
   color: rgba(255,255,255,.84);
+  transform: translateX(-5px); /* balances logo visually */
 }
 
     .header-right{
