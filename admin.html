@@ -2472,7 +2472,6 @@ function downloadJobQr(){
   const logo = new Image();
   logo.crossOrigin = "anonymous";
   logo.src = "./Offcial-Trace-Logo.png";
-  
   logo.onload = () => {
     // Step 1: draw logo to a temp canvas to find actual content bounds
     const tmp = document.createElement("canvas");
@@ -2535,34 +2534,18 @@ function downloadJobQr(){
     ctx.textAlign = "center";
     ctx.fillText(`${job}`, totalWidth / 2, qrY + qrCanvas.height + gap + 26);
 
-    out.toBlob((blob) => {
-      if(!blob){ uiAlert("Download Error", "Could not generate image. Try again."); return; }
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.download = `TRACE_JOB_${job}.png`;
-      a.href = url;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
-    }, "image/png");
-  };  // End logo.onload
-
+    const a = document.createElement("a");
+    a.download = `TRACE_JOB_${job}.png`;
+    a.href = out.toDataURL("image/png");
+    a.click();
+  };
   logo.onerror = () => {
-    qrCanvas.toBlob((blob) => {
-      if(!blob) return;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.download = `TRACE_JOB_${job}.png`;
-      a.href = url;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
-    }, "image/png");
-  };  // End logo.onerror
-}  // End downloadJobQr
-
+  const a = document.createElement("a");
+  a.download = `TRACE_JOB_${job}.png`;
+  a.href = qrCanvas.toDataURL("image/png");
+  a.click();
+};
+}
 async function queueCurrentJob(){
   const admin = (role === "admin" && adminUnlocked);
   if(!admin){
@@ -4268,15 +4251,11 @@ document.getElementById("downloadQrBtn").addEventListener("click", () => {
   const container = document.getElementById("qrPageCanvas");
   const qrCanvas = container.querySelector("canvas");
   if(!qrCanvas){ uiAlert("Error", "Generate a QR first."); return; }
-
-  // ✅ Capture job BEFORE entering any async/callback scope
-  const job = cleanJob(document.getElementById("qrJob").value || "");
-  if(!job){ uiAlert("Error", "No job number found."); return; }
+  const job = cleanJob(document.getElementById("qrJob").value || "JOB");
 
   const logo = new Image();
   logo.crossOrigin = "anonymous";
   logo.src = "./Offcial-Trace-Logo.png";
-
   logo.onload = () => {
     const tmp = document.createElement("canvas");
     tmp.width = logo.naturalWidth;
@@ -4291,52 +4270,26 @@ document.getElementById("downloadQrBtn").addEventListener("click", () => {
         if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y;
       }
     }
-    const cropX=minX-10, cropY=minY-10, cropW=(maxX-minX)+20, cropH=(maxY-minY)+20;
-    const padding=28, gap=14, logoDrawH=60;
-    const logoDrawW = Math.round(logoDrawH*(cropW/cropH));
-    const labelHeight=70;
-    const totalWidth = qrCanvas.width + padding*2;
-    const totalHeight = padding + logoDrawH + gap + qrCanvas.height + gap + labelHeight + padding;
+    const cropX=minX-10,cropY=minY-10,cropW=(maxX-minX)+20,cropH=(maxY-minY)+20;
+    const padding=28,gap=14,logoDrawH=60,logoDrawW=Math.round(logoDrawH*(cropW/cropH)),labelHeight=70;
+    const totalWidth=qrCanvas.width+padding*2;
+    const totalHeight=padding+logoDrawH+gap+qrCanvas.height+gap+labelHeight+padding;
+    const out=document.createElement("canvas");
+    out.width=totalWidth; out.height=totalHeight;
+    const ctx=out.getContext("2d");
+    ctx.clearRect(0,0,out.width,out.height);
+    ctx.drawImage(tmp,cropX,cropY,cropW,cropH,(totalWidth-logoDrawW)/2,padding,logoDrawW,logoDrawH);
+    ctx.drawImage(qrCanvas,padding,padding+logoDrawH+gap);
+    ctx.fillStyle="#111"; ctx.font="bold 48px Arial"; ctx.textAlign="center";
+    ctx.fillText(job,totalWidth/2,padding+logoDrawH+gap+qrCanvas.height+gap+26);
+    const a=document.createElement("a");
+    a.download=`TRACE_JOB_${job}.png`;
+    a.href=out.toDataURL("image/png");
+    a.click();
+  };
+});
 
-    const out = document.createElement("canvas");
-    out.width = totalWidth;
-    out.height = totalHeight;
-    const ctx = out.getContext("2d");
-    ctx.clearRect(0, 0, out.width, out.height);
-    ctx.drawImage(tmp, cropX, cropY, cropW, cropH, (totalWidth-logoDrawW)/2, padding, logoDrawW, logoDrawH);
-    ctx.drawImage(qrCanvas, padding, padding+logoDrawH+gap);
-    ctx.fillStyle = "#111";
-    ctx.font = "bold 48px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText(job, totalWidth/2, padding+logoDrawH+gap+qrCanvas.height+gap+26);
 
-out.toBlob((blob) => {
-      if(!blob){ uiAlert("Download Error", "Could not generate image. Try again."); return; }
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.download = `TRACE_JOB_${job}.png`;
-      a.href = url;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
-    }, "image/png");
-
-  };  // ← closes logo.onload
-
-  logo.onerror = () => {
-    qrCanvas.toBlob((blob) => {
-      if(!blob) return;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.download = `TRACE_JOB_${job}.png`;
-      a.href = url;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
-    }, "image/png");
-  };  // ← closes logo.onerror
 
 // ====== BOOT ======
 window.addEventListener("DOMContentLoaded", async () => {
@@ -5210,71 +5163,59 @@ function generateLaneReport(){
 
   // Group by lane, sorted regular lanes first then A lanes
   const laneMap = new Map();
-inventory
-  .filter(x => x.lane)
-  .forEach(item => {
-    if (!laneMap.has(item.lane)) laneMap.set(item.lane, []);
-    laneMap.get(item.lane).push(item);
+  inventory
+    .filter(x => x.lane)
+    .forEach(item => {
+      if(!laneMap.has(item.lane)) laneMap.set(item.lane, []);
+      laneMap.get(item.lane).push(item);
+    });
+
+  const sortedLanes = [...laneMap.keys()].sort((a, b) => {
+    const aStr = a.replace("Lane ",""), bStr = b.replace("Lane ","");
+    const aNum = parseInt(aStr,10), bNum = parseInt(bStr,10);
+    const aIsA = /[A-Za-z]/.test(aStr), bIsA = /[A-Za-z]/.test(bStr);
+    if(aIsA !== bIsA) return aIsA ? 1 : -1;
+    if(aNum !== bNum) return aNum - bNum;
+    return aStr.localeCompare(bStr, undefined, {numeric:true});
   });
-
-const sortedLanes = [...laneMap.keys()].sort((a, b) => {
-  const aStr = a.replace("Lane ", "");
-  const bStr = b.replace("Lane ", "");
-  const aNum = parseInt(aStr, 10);
-  const bNum = parseInt(bStr, 10);
-  const aIsA = /[A-Za-z]/.test(aStr);
-  const bIsA = /[A-Za-z]/.test(bStr);
-
-  if (aIsA !== bIsA) return aIsA ? 1 : -1;
-  if (aNum !== bNum) return aNum - bNum;
-  return aStr.localeCompare(bStr, undefined, { numeric: true });
-});
 
   const totalItems = inventory.filter(x => x.lane).length;
 
   // Build lane table HTML
   let lanesHtml = "";
   sortedLanes.forEach(lane => {
-  const items = laneMap.get(lane).sort((a,b) => (parseInt(a.job,10)||0) - (parseInt(b.job,10)||0));
-  const totalQty = items.reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
+    const items = laneMap.get(lane).sort((a,b) => (parseInt(a.job,10)||0) - (parseInt(b.job,10)||0));
+    const rows = items.map((item, idx) => `
+      <tr class="${idx % 2 === 0 ? 'row-even' : 'row-odd'}">
+        <td>${escapeHtml(item.job)}</td>
+        <td>${escapeHtml(item.mo || "—")}</td>
+        <td style="text-align:center;">${item.qty ?? 0}</td>
+        <td><span class="status-pill">${escapeHtml(item.status || "—")}</span></td>
+        <td>${escapeHtml(item.notes || "—")}</td>
+      </tr>
+    `).join("");
 
-  const rows = items.map((item, idx) => `
-    <tr class="${idx % 2 === 0 ? 'row-even' : 'row-odd'}">
-      <td>${escapeHtml(item.job)}</td>
-      <td>${escapeHtml(item.mo || "—")}</td>
-      <td style="text-align:center;">${item.qty ?? 0}</td>
-      <td>
-        <span class="status-pill ${String(item.status || "").toLowerCase().replace(/\s+/g, '-')}">
-          ${escapeHtml(item.status || "—")}
-        </span>
-      </td>
-      <td>${escapeHtml(item.notes || "—")}</td>
-    </tr>
-  `).join("");
-
-  lanesHtml += `
-    <div class="lane-block">
-      <div class="lane-header">
-        <span class="lane-name">${escapeHtml(lane)}</span>
-        <span class="lane-count">
-          ${items.length} item${items.length !== 1 ? "s" : ""} • ${totalQty} qty
-        </span>
+    lanesHtml += `
+      <div class="lane-block">
+        <div class="lane-header">
+          <span class="lane-name">${escapeHtml(lane)}</span>
+          <span class="lane-count">${items.length} item${items.length !== 1 ? "s" : ""}</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Item #</th>
+              <th>MO #</th>
+              <th>Qty</th>
+              <th>Status</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Item #</th>
-            <th>MO #</th>
-            <th>Qty</th>
-            <th>Status</th>
-            <th>Notes</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
-  `;
-});
+    `;
+  });
 
   if(sortedLanes.length === 0){
     lanesHtml = `<div style="text-align:center;padding:60px;color:#666;font-size:16px;">No items currently in any lane.</div>`;
@@ -5380,10 +5321,7 @@ const sortedLanes = [...laneMap.keys()].sort((a, b) => {
     }
 
     /* ── Body ── */
-    .content {
-  padding: 24px 40px 40px;
-  border-top: 1px solid #e2e8f5;
-}
+    .content { padding: 24px 40px 40px; }
 
     /* ── Lane block ── */
     .lane-block {
@@ -5403,11 +5341,11 @@ const sortedLanes = [...laneMap.keys()].sort((a, b) => {
       justify-content: space-between;
     }
     .lane-name {
-  font-size: 15px;
-  font-weight: 900;
-  letter-spacing: .06em;
-  color: #cfe0ff;
-}
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: .06em;
+      color: #cfe0ff;
+    }
     .lane-count {
       font-size: 11px;
       background: rgba(42,127,255,.3);
@@ -5449,34 +5387,15 @@ const sortedLanes = [...laneMap.keys()].sort((a, b) => {
 
     /* ── Status pill ── */
     .status-pill {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 700;
-  background: #e8eef8;
-  color: #334;
-  border: 1px solid #ccd6ec;
-}
-
-.status-pill.completed {
-  background: #e8f7ec;
-  color: #1f7a3a;
-  border-color: #b9e3c5;
-}
-
-.status-pill.printed {
-  background: #eaf1ff;
-  color: #2457c5;
-  border-color: #c8d8ff;
-}
-
-.status-pill.tauro-queue,
-.status-pill.queue {
-  background: #fff4e5;
-  color: #9a6500;
-  border-color: #f2d29b;
-}
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      background: #e8eef8;
+      color: #334;
+      border: 1px solid #ccd6ec;
+    }
 
     /* ── Footer ── */
     .page-footer {
