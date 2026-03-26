@@ -961,8 +961,7 @@ button:hover::before {
 
 .userActionsRow{display:flex;gap:8px;flex-wrap:wrap;}
 
-
-    @media (max-width: 980px){
+@media (max-width: 980px){
   body{overflow:auto;}
   .wrap{height:auto;}
   .grid{grid-template-columns:1fr;}
@@ -989,38 +988,13 @@ button:hover::before {
   }
   .pill{ padding:5px 9px; font-size:12px; }
   .laneGrid{ grid-template-columns: repeat(3,1fr); }
-  .brandRow{
-    flex-direction: column;
-    gap: 8px;
-  }
-  .traceLogoMain{
-    transform: translateX(0) scale(1.2);
-  }
-  .ctLogoInline{
-    height: 36px;
-    opacity: .75;
-    transform: translateY(0) scale(1);
-  }
 }
-      .logo{
-        grid-column:1;
-        justify-self:center;
-        width:520px;
-        max-width:92vw;
-      }
-      .status{
-        display:flex;
-        grid-column:1;
-        justify-self:center;
-        justify-content:center;
-        text-align:center;
-        gap:8px;
-        font-size:12px;
-        flex-wrap:wrap;
-      }
-      .pill{ padding:5px 9px; font-size:12px; }
-      .laneGrid{ grid-template-columns: repeat(3,1fr); }
-    }
+
+@media (max-width: 600px){
+  .brandRow{ flex-direction:column; gap:8px; }
+  .traceLogoMain{ transform:translateX(0) scale(1.2); }
+  .ctLogoInline{ height:36px; opacity:.75; transform:translateY(0) scale(1); }
+}
 
     .completedPanel{
       background: var(--panel);
