@@ -3089,15 +3089,17 @@ const els = {
   globalSearch: document.getElementById("globalSearch"),
   globalResults: document.getElementById("globalResults"),
   laneGrid: document.getElementById("laneGrid"),
-  laneTitle: document.getElementById("laneTitle"),
-  laneCount: document.getElementById("laneCount"),
-  laneSearch: document.getElementById("laneSearch"),
-  laneResults: document.getElementById("laneResults"),
-  machineGrid: document.getElementById("machineGrid"),
-  machineTitle: document.getElementById("machineTitle"),
-  machineCount: document.getElementById("machineCount"),
-  machineSearch: document.getElementById("machineSearch"),
-  machineResults: document.getElementById("machineResults"),
+  laneTitle: document.getElementById("locationTitle"),
+laneCount: document.getElementById("locationCount"),
+laneSearch: document.getElementById("locationSearch"),
+laneResults: document.getElementById("locationResults"),
+machineTitle: document.getElementById("locationTitle"),
+machineCount: document.getElementById("locationCount"),
+machineSearch: document.getElementById("locationSearch"),
+machineResults: document.getElementById("locationResults"),
+  machineCount: document.getElementById("locationCount"),
+  machineSearch: document.getElementById("locationSearch"),
+  machineResults: document.getElementById("locationResults"),
   moveOverlay: document.getElementById("moveOverlay"),
   moveTitle: document.getElementById("moveTitle"),
   moveCloseBtn: document.getElementById("moveCloseBtn"),
@@ -3739,8 +3741,8 @@ function selectLane(lane){
   selectedLocation = { type:"lane", value: lane };
   selectedId = null;
   buildLaneButtons();
-  els.laneTitle.textContent = lane;
-  els.laneSearch.value = "";
+  if(els.laneTitle) els.laneTitle.textContent = lane;
+  if(els.laneSearch) els.laneSearch.value = "";
   clearForm();
   renderLaneList();
   renderGlobalSearch();
@@ -3751,8 +3753,8 @@ function selectMachine(m){
   selectedLocation = { type:"machine", value: m };
   selectedId = null;
   buildMachineButtons();
-  els.machineTitle.textContent = `Machine: ${m}`;
-  els.machineSearch.value = "";
+  if(els.machineTitle) els.machineTitle.textContent = `Machine: ${m}`;
+  if(els.machineSearch) els.machineSearch.value = "";
   clearForm();
   renderMachineList();
   renderGlobalSearch();
@@ -4351,8 +4353,8 @@ window.initApp = async function initApp() {
     buildStatusPills();
     buildLaneButtons();
     buildMachineButtons();
-    els.laneTitle.textContent = selectedLane;
-    els.machineTitle.textContent = `Machine: ${selectedMachine}`;
+    if(els.laneTitle) els.laneTitle.textContent = selectedLane;
+    if(els.machineTitle) els.machineTitle.textContent = `Machine: ${selectedMachine}`
     selectedLocation = { type:"lane", value:selectedLane };
 
     els.globalResults.innerHTML = `<div style="color:var(--muted)">Loading...</div>`;
