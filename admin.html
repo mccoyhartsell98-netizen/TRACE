@@ -6050,15 +6050,28 @@ function renderStatusesPage(){
       <button class="danger" style="width:auto;padding:6px 12px;font-size:12px;" data-idx="${i}">Remove</button>
     `;
     div.querySelector("[data-idx]").addEventListener("click", async () => {
-      const ok = await uiConfirm("Remove Status", `Remove "${s}" from the list?`, "Remove", "Cancel");
-      if(!ok) return;
-      const updated = loadStatuses().filter((_, j) => j !== i);
-      saveStatuses(updated);
-      renderStatusesPage();
-      toast(`Removed "${s}"`);
-    });
-    container.appendChild(div);
-  });
+  const ok = await uiConfirm("Remove Status", `Remove "${s}" from the list?`, "Remove", "Cancel");
+  if(!ok) return;
+
+  const updated = loadStatuses().filter((_, j) => j !== i);
+  saveStatuses(updated);
+
+  renderStatusesPage();
+  buildStatusPills();
+
+  if ((els.status?.value || "").trim() === s) {
+    els.status.value = "";
+    const triggerText = document.getElementById("statusTriggerText");
+    if (triggerText) {
+      triggerText.textContent = "Status";
+      triggerText.style.color = "var(--muted)";
+    }
+  }
+
+  toast(`Removed "${s}"`);
+});
+container.appendChild(div);
+});
 }
 
 // ====== STATUS PILLS ======
@@ -6732,4 +6745,4 @@ function generateLaneReport(){
 
 </script>
 </body>
-</html>
+</html>     
