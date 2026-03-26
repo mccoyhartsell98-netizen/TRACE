@@ -369,7 +369,7 @@
 .logoWrap{
   grid-column:2;
   justify-self:center;
-  position:relative;
+  position:relative; 
   display:flex;
   overflow:visible;
 }
@@ -411,10 +411,45 @@
   filter:none;
 }
 
+.logoDivider{
+  width:1px;
+  height:50px;
+  background:linear-gradient(
+    to bottom,
+    transparent,
+    rgba(255,255,255,.25),
+    transparent
+  );
+  margin:0 8px;
+  flex-shrink:0;
+}
+
 .logoWrap img{
   position:relative;
   z-index:1;
 }
+
+.logoWrap::before{
+  content:"";
+  position:absolute;
+
+  width:320px;
+  height:140px;
+
+  background:radial-gradient(
+    ellipse at center,
+    rgba(58,122,254,.18),
+    transparent 70%
+  );
+
+  top:50%;
+  left:35%; /* pushes glow toward TRACE */
+  transform:translate(-50%,-50%);
+
+  pointer-events:none;
+  z-index:0;
+}
+
 
 @keyframes traceShine{
   0%{ left: -100%; }
