@@ -433,21 +433,23 @@
   content:"";
   position:absolute;
 
-  width:320px;
-  height:140px;
+  width:420px; /* wider */
+  height:200px;
 
   background:radial-gradient(
     ellipse at center,
-    rgba(58,122,254,.25),
-    transparent 70%
+    rgba(58,122,254,0.10), /* LOWER intensity */
+    rgba(58,122,254,0.04) 40%,
+    transparent 75%
   );
 
   top:50%;
-  left:50%; /* CENTER IT */
+  left:30%;
   transform:translate(-50%,-50%);
 
   pointer-events:none;
   z-index:0;
+  filter: blur(20px); /* THIS is the magic */
 }
 
 
