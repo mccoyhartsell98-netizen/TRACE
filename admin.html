@@ -412,21 +412,25 @@
 }
 
 .logoDivider{
-  width:1px;
-  height:50px;
+  width:2px;
+  height:64px;
   background:linear-gradient(
     to bottom,
-    transparent,
-    rgba(255,255,255,.25),
-    transparent
+    transparent 0%,
+    rgba(255,255,255,.82) 18%,
+    rgba(255,255,255,.98) 50%,
+    rgba(255,255,255,.82) 82%,
+    transparent 100%
   );
-  margin:0 8px;
+  transform:rotate(12deg);
+  transform-origin:center;
+  margin:0 10px;
   flex-shrink:0;
-}
-
-.logoWrap img{
-  position:relative;
-  z-index:1;
+  border-radius:999px;
+  box-shadow:
+    0 0 8px rgba(255,255,255,.16),
+    0 0 18px rgba(58,122,254,.08);
+  opacity:.9;
 }
 
 .logoWrap::before{
