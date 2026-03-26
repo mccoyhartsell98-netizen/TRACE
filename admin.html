@@ -2327,11 +2327,8 @@ input[type="number"] {
   <!-- TAB BAR -->
   <div class="tabBar">
     <button class="tabBtn active" data-tab="searchTab">Search</button>
-    <button class="tabBtn" data-tab="lanesTab">
-      Lanes <span class="tabBadge" id="lanesBadge">0</span>
-    </button>
-    <button class="tabBtn" data-tab="machinesTab">
-      Machines <span class="tabBadge" id="machinesBadge">0</span>
+    <button class="tabBtn" data-tab="locationsTab">
+      Locations <span class="tabBadge" id="locationsBadge">0</span>
     </button>
   </div>
 
@@ -2346,28 +2343,29 @@ input[type="number"] {
     </div>
   </div>
 
-  <!-- LANES TAB -->
-  <div class="tabPanel scroll" id="lanesTab">
-    <div class="laneGrid" id="laneGrid"></div>
-    <div class="laneHeader">
-      <div class="laneTitle" id="laneTitle">Lane 1</div>
-      <div class="laneCount" id="laneCount">0 items</div>
-    </div>
-    <input id="laneSearch" type="text" placeholder="Filter within this lane (optional)">
-    <div class="results" id="laneResults" style="margin-top:10px;"></div>
-  </div>
+  <!-- LOCATIONS TAB -->
+  <div class="tabPanel scroll" id="locationsTab">
 
-  <!-- MACHINES TAB -->
-  <div class="tabPanel scroll" id="machinesTab">
+    <div style="font-size:10px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:rgba(58,122,254,.8);margin:10px 0 6px;">Lanes</div>
+    <div class="laneGrid" id="laneGrid"></div>
+
+    <div style="font-size:10px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:rgba(58,122,254,.8);margin:10px 0 6px;">Machines</div>
     <div class="laneGrid" id="machineGrid"></div>
-    <div class="laneHeader">
-      <div class="laneTitle" id="machineTitle">Machine: S8</div>
-      <div class="laneCount" id="machineCount">0 jobs</div>
+
+    <div id="otherGroupWrap">
+      <div style="font-size:10px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:rgba(58,122,254,.8);margin:10px 0 6px;">Other</div>
+      <div class="laneGrid" id="otherGrid"></div>
     </div>
-    <input id="machineSearch" type="text" placeholder="Filter within this machine (optional)">
-    <div class="results" id="machineResults" style="margin-top:10px;"></div>
+
+    <div style="height:1px;background:var(--stroke);margin:12px 0;"></div>
+
+    <div class="laneHeader">
+      <div class="laneTitle" id="locationTitle">Select a Location</div>
+      <div class="laneCount" id="locationCount"></div>
+    </div>
+    <input id="locationSearch" type="text" placeholder="Filter within this location (optional)">
+    <div class="results" id="locationResults" style="margin-top:10px;"></div>
   </div>
-</div>
 
         <!-- RIGHT -->
         <div class="card">
@@ -3639,7 +3637,7 @@ laneNums.forEach(i => {
   const btn = document.createElement("div");
   btn.className = "laneBtn" + (lane===selectedLane ? " active" : "");
   btn.innerHTML = `${lane} ${count > 0 ? `<span class="laneBtnBadge">${count}</span>` : ""}`;
-  btn.addEventListener("click", () => selectLane(lane));
+  btn.addEventListener("click", () => selectLocation("lane", lane));
   els.laneGrid.appendChild(btn);
 });
 }
@@ -3654,9 +3652,85 @@ function buildMachineButtons(){
       const btn = document.createElement("div");
       btn.className = "laneBtn" + (loc.machineName === selectedMachine ? " active" : "");
       btn.innerHTML = `${loc.machineName} ${count > 0 ? `<span class="laneBtnBadge">${count}</span>` : ""}`;
-      btn.addEventListener("click", () => selectMachine(loc.machineName));
+      btn.addEventListener("click", () => selectLocation("machine", loc.machineName));
       els.machineGrid.appendChild(btn);
     });
+}
+
+function selectLocation(type, value){
+  selectedLocation = { type, value };
+  selectedId = null;
+  buildLaneButtons();
+  buildMachineButtons();
+  const title = document.getElementById("locationTitle");
+  const search = document.getElementById("locationSearch");
+  if(title) title.textContent = value;
+  if(search) search.value = "";
+  clearForm();
+  renderLocationResults();
+}
+
+function renderLocationResults(){
+  const q = normalize(document.getElementById("locationSearch")?.value || "");
+  const container = document.getElementById("locationResults");
+  const countEl = document.getElementById("locationCount");
+  if(!container) return;
+
+  let items = [];
+  if(selectedLocation.type === "lane"){
+    items = inventory.filter(x => x.lane === selectedLocation.value);
+  } else {
+    items = inventory.filter(x => x.machine === selectedLocation.value);
+  }
+
+  if(countEl) countEl.textContent = `${items.length} item${items.length !== 1 ? "s" : ""}`;
+  if(q) items = items.filter(x => normalize(x.job).includes(q) || normalize(x.status).includes(q));
+
+  container.innerHTML = "";
+
+  if(items.length === 0){
+    container.innerHTML = `
+      <div class="emptyState">
+        <div class="emptyState-title">Empty</div>
+        <div class="emptyState-sub">No jobs currently in ${selectedLocation.value}.</div>
+      </div>`;
+    return;
+  }
+
+  items.sort((a,b) => (parseInt(a.job,10)||0) - (parseInt(b.job,10)||0));
+  items.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "resultItem" + (item.id === selectedId ? " active" : "");
+    const by = item.updatedBy ? ` • By: ${escapeHtml(item.updatedBy)}` : "";
+    const at = item.updatedAt ? ` • Updated ${escapeHtml(formatTimestamp(item.updatedAt))}` : "";
+    const locLabel = item.machine ? `Machine: ${escapeHtml(item.machine)}` : escapeHtml(item.lane);
+    div.innerHTML = `
+      <div class="big">Item #${escapeHtml(item.job)}</div>
+      ${item.mo ? `<div class="meta" style="margin-top:4px;">MO: <b>${escapeHtml(item.mo)}</b></div>` : ""}
+      <div style="margin-top:6px;font-size:15px;font-weight:900;color:#8aff8a;">Location: <b>${locLabel}</b></div>
+      <div class="qty" style="margin-top:4px;color:#4fc3f7;">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${item.status ? escapeHtml(item.status) : "—"}</div>
+      <div class="meta" style="margin-top:4px;">Notes: ${item.notes ? escapeHtml(item.notes) : "—"}</div>
+      <div class="meta" style="margin-top:4px;">${by}${at}</div>
+      <div class="btnRow" style="margin-top:10px;">
+        <button class="primary" data-move="1">Move</button>
+        <button class="ghost" data-send-queue="1" style="border-color:rgba(255,209,102,.35);color:rgba(255,230,140,.9);">⏸ Hold</button>
+      </div>
+    `;
+    div.querySelector("[data-move]").addEventListener("click", (e) => { e.stopPropagation(); openMoveOverlay(item.id); });
+    div.querySelector("[data-send-queue]").addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const qLocId = getQueueLocationId();
+      if(!qLocId){ await uiAlert("Queue Not Ready", "QUEUE location missing in DB."); return; }
+      await apiPut(`/items/${item.id}`, { location_id: qLocId, mo: item.mo||"", qty: item.qty??0, status: item.status||"", notes: item.notes||"", updated_by: item.updatedBy||"" });
+      await loadLocations();
+      await loadInventory();
+      renderLocationResults();
+      showMoveNotif(item.job, `⏸ Sent back to Queue`);
+      toast(`⏸ ${item.job} sent to Queue`);
+    });
+    div.addEventListener("click", () => loadToForm(item.id));
+    container.appendChild(div);
+  });
 }
 
 // ====== SELECTORS ======
@@ -4196,8 +4270,9 @@ menuOverlay.addEventListener("click", closeSideMenu);
 
 // Search inputs
 els.globalSearch.addEventListener("input", renderGlobalSearch);
-els.laneSearch.addEventListener("input", renderLaneList);
-els.machineSearch.addEventListener("input", renderMachineList);
+els.laneSearch?.addEventListener("input", renderLaneList);
+els.machineSearch?.addEventListener("input", renderMachineList);
+document.getElementById("locationSearch")?.addEventListener("input", renderLocationResults);
 
 // Form buttons
 els.saveBtn.addEventListener("click", upsertItem);
@@ -4332,10 +4407,8 @@ function initTabs(){
 }
 
 function updateTabBadges(){
-  const lanesBadge = document.getElementById("lanesBadge");
-  const machinesBadge = document.getElementById("machinesBadge");
-  if(lanesBadge) lanesBadge.textContent = inventory.filter(x => x.lane).length;
-  if(machinesBadge) machinesBadge.textContent = inventory.filter(x => x.machine && x.machine.toUpperCase() !== "QUEUE").length;
+  const locationsBadge = document.getElementById("locationsBadge");
+  if(locationsBadge) locationsBadge.textContent = inventory.filter(x => x.lane || (x.machine && x.machine.toUpperCase() !== "QUEUE")).length;
   buildLaneButtons();
   buildMachineButtons();
 }
