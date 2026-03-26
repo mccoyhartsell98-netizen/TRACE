@@ -2286,15 +2286,6 @@ input[type="number"] {
         </div>
       </div>
 
-      <!-- COMPLETED TODAY PANEL -->
-      <div id="completedPanel" class="completedPanel hidden">
-        <div class="completedHeader">
-          <div class="completedTitle">✓ Completed Today</div>
-          <div class="completedCount" id="completedCount">0</div>
-        </div>
-        <div id="completedResults" class="results"></div>
-      </div>
-
       <!-- SIDE MENU OVERLAY + PANEL -->
       <div id="sideMenuOverlay" class="sideMenuOverlay hidden"></div>
       <aside id="sideMenu" class="sideMenu hidden">
@@ -2305,7 +2296,6 @@ input[type="number"] {
         <div class="sideMenuBody">
   <div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#2A7FFF;text-shadow:0 0 8px rgba(42,127,255,0.6);padding:4px 2px;border-bottom:1px solid rgba(42,127,255,0.35);margin-bottom:4px;">Operations</div>
   <button class="ghost" id="replayTutorialBtn">Tutorial</button>
-  <button class="ghost" id="openCompletedBtn">Completed Today</button>
   <button class="ghost" id="openHistoryBtn">History</button>
   <button class="ghost" id="openQueueBtn">Queue</button>
   <button class="ghost" id="openFeedBtn">Activity Feed</button>
@@ -4229,13 +4219,9 @@ els.moveCloseBtn.addEventListener("click", closeMoveOverlay);
 els.moveOverlay.addEventListener("click", (e) => { if(e.target === els.moveOverlay) closeMoveOverlay(); });
 
 // Side menu actions
-const openCompletedBtn = document.getElementById("openCompletedBtn");
 const openHistoryBtn = document.getElementById("openHistoryBtn");
 const completedPanel = document.getElementById("completedPanel");
 
-if (openCompletedBtn) {
-  openCompletedBtn.addEventListener("click", () => { closeSideMenu(); completedPanel.classList.toggle("hidden"); });
-}
 if (openHistoryBtn) {
   openHistoryBtn.addEventListener("click", async () => {
     closeSideMenu();
@@ -5577,81 +5563,81 @@ const STEPS = [
   {
     target: null,
     title: "Welcome to TRACE Admin",
-    body: "This is the admin panel for managing inventory across all lanes and machines. Let's walk through the key parts in under a minute.",
+    body: "This is the admin panel for managing inventory across all Locations. Let's walk through the key parts in under a minute.",
   },
   {
     target: "#globalSearch",
     title: "Search",
-    body: "Type any Item # or MO number here to find a job instantly across all lanes and machines.",
+    body: "Type any Item number or reference number here to instantly locate a job across all Locations.",
   },
   {
     target: ".tabBar",
-    title: "Lanes & Machines Tabs",
-    body: "Switch between Search, Lanes, and Machines here. The badges show how many jobs are currently in each area.",
-  },
-  {
-    target: "#appRoot .card:last-child",
-    title: "Trace Details Form",
-    body: "Click any job to load it here. Edit the qty, status, or notes and hit Update to save, or Move to send it to a new location.",
+    title: "Navigation Tabs",
+    body: "Switch between Search and Locations here. The badges show how many jobs are currently in each area.",
   },
   {
     target: "#saveBtn",
     title: "Update",
-    body: "Saves changes to the selected job — qty, status, notes, and who updated it.",
+    body: "Save changes to the selected job — quantity, status, notes, and last updated by.",
   },
   {
     target: "#moveBtn",
     title: "Move",
-    body: "Opens the move panel so you can send the selected job to any lane or machine.",
+    body: "Open the move panel to send the selected job to any Location.",
   },
   {
     target: "#queueJobBtn",
     title: "Send to Queue",
-    body: "Puts the job in the Queue — a holding area for jobs waiting to be assigned a lane.",
+    body: "Place the job into the Queue — a holding area for items waiting to be assigned a Location.",
   },
   {
     target: "#menuBtn",
     title: "The Menu",
-    body: "Everything else lives here. Open it to access Queue, Activity Feed, History, User Management, and more.",
+    body: "Access additional tools here including Queue, Activity Feed, History, User Management, and more.",
     onEnter: () => {
       sideMenu.classList.remove("hidden");
       menuOverlay.classList.remove("hidden");
     }
   },
   {
+    target: "#openHistoryBtn",
+    title: "History",
+    body: "View a full log of removed jobs for auditing or reference.",
+  },
+  {
     target: "#openQueueBtn",
     title: "Queue",
-    body: "Jobs waiting to be assigned a lane. Move them to a lane or generate a QR label from here.",
+    body: "Jobs waiting to be assigned to a Location. Move them or generate labels from here.",
   },
   {
     target: "#openFeedBtn",
     title: "Activity Feed",
-    body: "Live feed of every job movement across lanes and machines — who moved what and when.",
+    body: "Live feed of all job movements across Locations — see who moved what and when.",
   },
   {
     target: "#openPartialPicksBtn",
     title: "Partial Pick Log",
-    body: "A record of every time a driver took a partial quantity from a job. Shows what was taken, what's left, and who did it.",
-  },
-  {
-    target: "#openHistoryBtn",
-    title: "History",
-    body: "Full log of deleted jobs. Useful for auditing or recovering info about removed items.",
+    body: "Track every time a partial quantity is taken from a job.",
   },
   {
     target: "#openUsersBtn",
     title: "User Management",
-    body: "Create and manage forklift driver, operator, and supervisor accounts with PINs for the kiosk.",
+    body: "Create and manage user accounts and roles for system access.",
   },
   {
     target: "#openStatusesBtn",
     title: "Status Options",
-    body: "Add or remove the status labels that appear in the status dropdown when updating a job.",
+    body: "Manage the status labels available when updating jobs.",
+  },
+  {
+    target: "#exportReportBtn",
+    title: "Export Report",
+    body: "Generate a printable report of all current inventory across Locations.",
   },
   {
     target: null,
     title: "You're all set! 🎉",
-    body: "That covers everything. Dive in whenever you're ready — and if you need a refresher, hit Tutorial in the menu.\n\nTRACE — WE TRACK. YOU IMPROVE.",
+    body: "You're ready to go. Use TRACE to track, move, and manage your workflow in real time.\n\nTRACE — WE TRACK. YOU IMPROVE.",
   },
 ];
 
