@@ -358,7 +358,8 @@
   flex-direction:column;
   gap:8px;
 }
-    .top{
+    
+.top{
   display:grid;
   grid-template-columns: 1fr auto 1fr;
   align-items:center;
@@ -374,13 +375,31 @@
   overflow:visible;
 }
 
+.logoWrap::before{
+  content:"";
+  position:absolute;
+  width:420px;
+  height:200px;
+  background:radial-gradient(
+    ellipse at center,
+    rgba(58,122,254,0.07),
+    rgba(58,122,254,0.04) 40%,
+    transparent 75%
+  );
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  pointer-events:none;
+  z-index:0;
+  filter: blur(20px);
+}
+
 .logo{
   grid-column:2;
   justify-self:center;
   display:block;
-
-  position: relative;
-  overflow: hidden;
+  position:relative;
+  overflow:hidden;
 }
 
 .brandRow{
@@ -389,6 +408,7 @@
   justify-content:center;
   gap:30px;
   overflow:visible;
+  position:relative;
 }
 
 .traceLogoMain{
@@ -413,7 +433,6 @@
 .logoDivider{
   width:2px;
   height:70px;
-
   background:linear-gradient(
     to bottom,
     transparent 0%,
@@ -422,21 +441,17 @@
     rgba(200,210,230,.25) 80%,
     transparent 100%
   );
-
-  transform:rotate(11deg);
+  transform:rotate(8deg);
   transform-origin:center;
-
   margin:0 12px;
   flex-shrink:0;
-
   border-radius:999px;
-
   box-shadow:
     0 0 6px rgba(200,210,230,.08),
     0 0 12px rgba(58,122,254,.05);
-
   opacity:.85;
 }
+
 
 .logoWrap::before{
   content:"";
@@ -453,7 +468,7 @@
   );
 
   top:50%;
-  left:30%;
+  left:50%;
   transform:translate(-50%,-50%);
 
   pointer-events:none;
