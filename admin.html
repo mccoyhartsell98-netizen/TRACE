@@ -3647,7 +3647,7 @@ laneNums.forEach(i => {
 function buildMachineButtons(){
   els.machineGrid.innerHTML = "";
   locations
-    .filter(l => l.type === "machine" && l.machineName)
+    .filter(l => l.type === "machine" && l.machineName && l.machineName.toUpperCase() !== "QUEUE")
     .sort((a, b) => a.machineName.localeCompare(b.machineName))
     .forEach(loc => {
       const count = inventory.filter(x => x.machine === loc.machineName).length;
@@ -3994,13 +3994,16 @@ function openMoveOverlay(id){
   });
 
   els.moveMachineGrid.innerHTML = "";
-  MACHINES.forEach(m => {
-    const btn = document.createElement("div");
-    btn.className = "laneBtn";
-    btn.textContent = m;
-    btn.addEventListener("click", async () => { await moveToMachine(moveTargetId, m); closeMoveOverlay(); });
-    els.moveMachineGrid.appendChild(btn);
-  });
+  locations
+    .filter(l => l.type === "machine" && l.machineName && l.machineName.toUpperCase() !== "QUEUE")
+    .sort((a, b) => a.machineName.localeCompare(b.machineName))
+    .forEach(loc => {
+      const btn = document.createElement("div");
+      btn.className = "laneBtn";
+      btn.textContent = loc.machineName;
+      btn.addEventListener("click", async () => { await moveToMachine(moveTargetId, loc.machineName); closeMoveOverlay(); });
+      els.moveMachineGrid.appendChild(btn);
+    });
 
   els.moveOverlay.classList.add("show");
 }
