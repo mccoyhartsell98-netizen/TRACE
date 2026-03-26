@@ -2741,7 +2741,7 @@ input[type="number"] {
           <div class="full" id="addLaneWrap">
             <input id="addLaneNumber" type="text" placeholder="Lane (e.g. 1, 1A, 2B)">
           </div>
-          <div class="full hide" id="addMachineWrap">
+          <div class="full hidden" id="addMachineWrap">
             <input id="addMachineName" type="text" placeholder="Machine name (e.g. S10)">
           </div>
         </div>
@@ -4566,7 +4566,7 @@ function renderQueuePage(){
           status: item.status || "",
           notes: item.notes || "",
           updated_by: item.updatedBy || item.updated_by || "ADMIN",
-          location_id: match.id
+          location_id: match.location_id
         });
 
         await loadLocations();
@@ -4851,8 +4851,8 @@ document.getElementById("addLocationBtn").addEventListener("click", () => {
 
 document.getElementById("addLocationType").addEventListener("change", (e) => {
   const isLane = e.target.value === "lane";
-  document.getElementById("addLaneWrap").classList.toggle("hide", !isLane);
-  document.getElementById("addMachineWrap").classList.toggle("hide", isLane);
+  document.getElementById("addLaneWrap").classList.toggle("hidden", !isLane);
+document.getElementById("addMachineWrap").classList.toggle("hidden", isLane);
 });
 
 function closeAddLocation(){
@@ -4912,8 +4912,9 @@ buildMachineButtons();
 updateTabBadges();
 renderLaneList();
 renderMachineList();
+const locationLabel = type === "lane" ? `Lane ${payload.lane}` : payload.machine;
 closeAddLocation();
-toast(`✅ ${type === "lane" ? `Lane ${n}` : payload.machine} added`);
+toast(`✅ ${locationLabel} added`);
   }catch(e){
     msg.textContent = e.message || "Failed to add location.";
     msg.style.color = "var(--bad)";
@@ -6745,4 +6746,4 @@ function generateLaneReport(){
 
 </script>
 </body>
-</html>     
+</html>
