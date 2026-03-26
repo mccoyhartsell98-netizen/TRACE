@@ -367,11 +367,11 @@
 }
 
 .logoWrap{
-  grid-column: 2;
-  justify-self: center;
-  position: relative;
-  display: inline-block;
-  overflow: hidden;
+  grid-column:2;
+  justify-self:center;
+  position:relative;
+  display:flex;
+  overflow:visible;
 }
 
 .logo{
@@ -383,48 +383,32 @@
   overflow: hidden;
 }
 
-.traceLogoMain {
-  height: 75px;
-  width: auto;
-  display: block;
-  max-width: none;
-
-  transform: scale(1.45); /* BIG but still clean */
-  transform-origin: center;
+.brandRow{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:30px;
+  overflow:visible;
 }
 
-.ctLogoInline {
-  height: 75px;
-  width: auto;
-  display: block;
-  opacity: .88;
-  transform: translateY(0);
-  filter: none;
+.traceLogoMain{
+  height:75px;
+  width:auto;
+  display:block;
+  max-width:none;
+  transform:scale(1.75);
+  transform-origin:center;
+  filter:none;
+  margin-right:10px;
 }
 
-.brandRow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
-  overflow: visible;
-}
-
-.logoWrap::before{
-  content:"";
-  position:absolute;
-  width:260px;
-  height:120px;
-  background: radial-gradient(
-    ellipse at center,
-    rgba(58,122,254,0.18),
-    transparent 70%
-  );
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  z-index:0;
-  pointer-events:none;
+.ctLogoInline{
+  height:75px;
+  width:auto;
+  display:block;
+  opacity:.82;
+  transform:translateY(2px) scale(.92);
+  filter:none;
 }
 
 .logoWrap img{
@@ -2244,13 +2228,7 @@ input[type="number"] {
       <div></div>
       <div class="logoWrap brandRow">
   <img src="./Offcial-Trace-Logo.png" alt="TRACE" class="logo traceLogoMain">
-  <div style="
-    width: 1px;
-    height: 70px;
-    background: linear-gradient(180deg, transparent, rgba(255,255,255,.28), transparent);
-    border-radius: 999px;
-    flex-shrink: 0;
-  "></div>
+  <div class="logoDivider"></div>
   <img src="./CT Gradient Logo PNG.png" alt="CT" class="ctLogoInline">
 </div>
       <div class="status"></div>
