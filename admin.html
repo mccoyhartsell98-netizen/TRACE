@@ -384,34 +384,21 @@
 }
 
 .traceLogoMain {
-  height: 80px;
+  height: 110px;
   width: auto;
   display: block;
   max-width: none;
   filter:
-    drop-shadow(0 0 10px rgba(58,122,254,.55))
-    drop-shadow(0 0 28px rgba(58,122,254,.25));
+    drop-shadow(0 0 8px rgba(58,122,254,.45))
+    drop-shadow(0 0 22px rgba(58,122,254,.18));
   animation: traceLogoGlow 3s ease-in-out infinite;
 }
 
-@keyframes traceLogoGlow {
-  0%, 100% {
-    filter:
-      drop-shadow(0 0 8px rgba(58,122,254,.45))
-      drop-shadow(0 0 22px rgba(58,122,254,.18));
-  }
-  50% {
-    filter:
-      drop-shadow(0 0 16px rgba(58,122,254,.75))
-      drop-shadow(0 0 40px rgba(58,122,254,.32));
-  }
-}
-
 .ctLogoInline {
-  height: 52px;
+  height: 110px;
   width: auto;
   display: block;
-  opacity: .75;
+  opacity: .88;
   transform: translateY(0);
   filter: none;
 }
@@ -2255,10 +2242,16 @@ input[type="number"] {
     <div class="top">
       <div></div>
       <div class="logoWrap brandRow">
-        <img src="./Offcial-Trace-Logo.png" alt="TRACE" class="logo traceLogoMain">
-        <div style="width:1px; height:44px; background:rgba(255,255,255,.12); border-radius:999px; flex-shrink:0;"></div>
-        <img src="./CT Gradient Logo PNG.png" alt="CT" class="ctLogoInline">
-      </div>
+  <img src="./Offcial-Trace-Logo.png" alt="TRACE" class="logo traceLogoMain">
+  <div style="
+    width: 1px;
+    height: 70px;
+    background: linear-gradient(180deg, transparent, rgba(255,255,255,.28), transparent);
+    border-radius: 999px;
+    flex-shrink: 0;
+  "></div>
+  <img src="./CT Gradient Logo PNG.png" alt="CT" class="ctLogoInline">
+</div>
       <div class="status"></div>
     </div>
 
