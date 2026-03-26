@@ -406,7 +406,7 @@
   display:flex;
   align-items:center;
   justify-content:center;
-  gap:30px;
+  gap:22px;
   overflow:visible;
   position:relative;
 }
@@ -433,6 +433,8 @@
 .logoDivider{
   width:2px;
   height:70px;
+  flex:0 0 2px;
+
   background:linear-gradient(
     to bottom,
     transparent 0%,
@@ -441,15 +443,14 @@
     rgba(200,210,230,.25) 80%,
     transparent 100%
   );
-  transform:rotate(8deg);
-  transform-origin:center;
-  margin:0 12px;
-  flex-shrink:0;
+
   border-radius:999px;
   box-shadow:
     0 0 6px rgba(200,210,230,.08),
     0 0 12px rgba(58,122,254,.05);
+
   opacity:.85;
+  transform:rotate(8deg);
 }
 
 
