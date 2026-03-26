@@ -1621,7 +1621,7 @@ button:hover::before {
 
 .historyTitle{
   margin:0;
-  font-size:24px;
+  font-size:18px;
   font-weight:900;
   letter-spacing:-.03em;
   color:#fff;
@@ -2453,7 +2453,7 @@ input[type="number"] {
   <div class="wrap">
     <div class="pageHeader">
       <button class="ghost" id="historyPageBack">← Back</button>
-      <h2 style="margin:0; font-size:22px; letter-spacing:.08em; text-transform:uppercase;">Deleted History</h2>
+      <h2 style="margin:0; font-size:18px; letter-spacing:.08em; text-transform:uppercase;">Deleted History</h2>
       <button id="clearHistoryBtn2" class="danger">Clear (keep 7 days)</button>
     </div>
 
@@ -2472,7 +2472,7 @@ input[type="number"] {
   <div class="wrap">
     <div class="pageHeader">
       <button class="ghost" id="queuePageBack">← Back</button>
-      <h2 style="margin:0; font-size:22px; letter-spacing:.08em; text-transform:uppercase;">Queue</h2>
+      <h2 style="margin:0; font-size:18px; letter-spacing:.08em; text-transform:uppercase;">Queue</h2>
       <div class="queueCountBadge" id="queueCount2">0</div>
     </div>
 
@@ -2729,10 +2729,11 @@ input[type="number"] {
         </div>
         <div class="formGrid">
           <div class="full">
-            <select id="addLocationType" style="width:100%;padding:14px;font-size:16px;border-radius:10px;border:1px solid var(--stroke);background:var(--panel2);color:var(--text);outline:none;">
-              <option value="lane">Lane</option>
-              <option value="machine">Machine</option>
-            </select>
+            <div style="display:flex;gap:8px;">
+  <button type="button" id="typeToggleLane" onclick="setLocationType('lane')" class="primary" style="flex:1;padding:12px;">Lane</button>
+  <button type="button" id="typeToggleMachine" onclick="setLocationType('machine')" class="ghost" style="flex:1;padding:12px;">Machine</button>
+</div>
+<input type="hidden" id="addLocationType" value="lane">
           </div>
           <div class="full" id="addLaneWrap">
             <input id="addLaneNumber" type="text" placeholder="Lane (e.g. 1, 1A, 2B)">
@@ -4860,6 +4861,15 @@ document.getElementById("addMachineWrap").classList.toggle("hidden", isLane);
 function closeAddLocation(){
   document.getElementById("addLocationOverlay").classList.remove("show");
 }
+
+function setLocationType(type){
+  document.getElementById("addLocationType").value = type;
+  document.getElementById("typeToggleLane").className = type === "lane" ? "primary" : "ghost";
+  document.getElementById("typeToggleMachine").className = type === "machine" ? "primary" : "ghost";
+  document.getElementById("addLaneWrap").classList.toggle("hidden", type !== "lane");
+  document.getElementById("addMachineWrap").classList.toggle("hidden", type === "lane");
+}
+
 document.getElementById("addLocationCloseBtn").addEventListener("click", closeAddLocation);
 document.getElementById("addLocationCancelBtn").addEventListener("click", closeAddLocation);
 document.getElementById("addLocationOverlay").addEventListener("click", (e) => {
