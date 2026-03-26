@@ -388,10 +388,15 @@
   width: auto;
   display: block;
   max-width: none;
+
+  transform: scale(1.15); /* THIS is the fix */
+  transform-origin: center;
+
   filter:
-    drop-shadow(0 0 8px rgba(58,122,254,.45))
-    drop-shadow(0 0 22px rgba(58,122,254,.18));
-  animation: traceLogoGlow 3s ease-in-out infinite;
+    drop-shadow(0 0 12px rgba(58,122,254,.6))
+    drop-shadow(0 0 30px rgba(58,122,254,.25));
+
+  animation: traceLogoGlow 4s ease-in-out infinite;
 }
 
 .ctLogoInline {
