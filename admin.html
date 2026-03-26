@@ -3646,24 +3646,18 @@ laneNums.forEach(i => {
 
 function buildMachineButtons(){
   els.machineGrid.innerHTML = "";
-  const dbMachines = locations
-    .filter(l => l.type === "machine" && l.machineName)
-    .map(l => l.machineName)
-    .sort((a, b) => a.localeCompare(b));
-
   locations
-  .filter(l => l.type === "machine" && l.machineName)
-  .sort((a, b) => a.machineName.localeCompare(b.machineName))
-  .forEach(loc => {
-    const btn = document.createElement("div");
-    btn.className = "laneBtn";
-    btn.textContent = loc.machineName;
-    btn.addEventListener("click", async () => {
-      await moveToMachine(moveTargetId, loc.machineName);
-      closeMoveOverlay();
+    .filter(l => l.type === "machine" && l.machineName)
+    .sort((a, b) => a.machineName.localeCompare(b.machineName))
+    .forEach(loc => {
+      const count = inventory.filter(x => x.machine === loc.machineName).length;
+      const btn = document.createElement("div");
+      btn.className = "laneBtn" + (loc.machineName === selectedMachine ? " active" : "");
+      btn.innerHTML = `${loc.machineName} ${count > 0 ? `<span class="laneBtnBadge">${count}</span>` : ""}`;
+      btn.addEventListener("click", () => selectMachine(loc.machineName));
+      els.machineGrid.appendChild(btn);
     });
-    els.moveMachineGrid.appendChild(btn);
-  });
+}
 
 // ====== SELECTORS ======
 function selectLane(lane){
