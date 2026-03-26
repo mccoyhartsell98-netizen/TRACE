@@ -389,14 +389,8 @@
   display: block;
   max-width: none;
 
-  transform: scale(1.35); /* MORE. YES. MORE. */
+  transform: scale(1.45); /* BIG but still clean */
   transform-origin: center;
-
-  filter:
-    drop-shadow(0 0 18px rgba(58,122,254,.75))
-    drop-shadow(0 0 45px rgba(58,122,254,.35));
-
-  animation: traceLogoGlow 3s ease-in-out infinite;
 }
 
 .ctLogoInline {
@@ -416,25 +410,27 @@
   overflow: visible;
 }
 
-.logo::after{
-  content: "";
-  position: absolute;
-  inset: 0;
-
-  background: linear-gradient(
-    120deg,
-    transparent,
-    rgba(255,255,255,0.18),
-    transparent
+.logoWrap::before{
+  content:"";
+  position:absolute;
+  width:260px;
+  height:120px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(58,122,254,0.18),
+    transparent 70%
   );
-
-  transform: translateX(-100%) skewX(-20deg);
-  animation: traceShine 5.5s ease-in-out infinite;
-
-  pointer-events: none;
-  mix-blend-mode: screen;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  z-index:0;
+  pointer-events:none;
 }
 
+.logoWrap img{
+  position:relative;
+  z-index:1;
+}
 
 @keyframes traceShine{
   0%{ left: -100%; }
