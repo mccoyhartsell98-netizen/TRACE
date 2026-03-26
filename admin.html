@@ -4878,11 +4878,11 @@ document.getElementById("addLocationSaveBtn").addEventListener("click", async ()
   let payload = {};
   if(type === "lane"){
     const n = document.getElementById("addLaneNumber").value.trim().toUpperCase();
-if(!n || n.length > 6){
-  msg.textContent = "Enter a valid lane (e.g. 1, 1A, 2B).";
-      msg.style.color = "var(--bad)";
-      return;
-    }
+if(!n){
+  msg.textContent = "Enter a lane name.";
+  msg.style.color = "var(--bad)";
+  return;
+}
     const exists = locations.some(l => l.type === "lane" && String(l.laneNum).trim().toLowerCase() === n.trim().toLowerCase());
 if(exists){
   msg.textContent = `Lane ${n} already exists.`;
