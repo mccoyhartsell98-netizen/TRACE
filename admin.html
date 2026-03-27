@@ -2276,9 +2276,13 @@ input[type="number"] {
     </div>
 
       <div class="rolebar">
-        <div class="roleLeft">
-          <button id="undoBtn" class="ghost" disabled>Undo</button>
-        </div>
+  <div class="roleLeft">
+    <button id="undoBtn" class="ghost" disabled>Undo</button>
+    <div style="display:flex;flex-direction:column;gap:2px;margin-left:10px;border-left:1px solid rgba(58,122,254,.25);padding-left:14px;">
+      <div style="font-size:15px;font-weight:900;color:#fff;letter-spacing:.02em;line-height:1;">Print Department</div>
+      <div style="font-size:10px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:#2A7FFF;">Administration</div>
+    </div>
+  </div>
         <div style="display:flex;gap:10px;align-items:center;">
           <button class="ghost" id="addLocationBtn" title="Add Lane or Machine">Add Location</button>
           <button class="ghost" id="menuBtn" title="Menu">☰</button>
@@ -2297,7 +2301,7 @@ input[type="number"] {
   <div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#2A7FFF;text-shadow:0 0 8px rgba(42,127,255,0.6);padding:4px 2px;border-bottom:1px solid rgba(42,127,255,0.35);margin-bottom:4px;">Operations</div>
   <button class="ghost" id="replayTutorialBtn">Tutorial</button>
   <button class="ghost" id="openHistoryBtn">History</button>
-  <button class="ghost" id="openQueueBtn">Queue</button>
+  <button class="ghost" id="openQueueBtn">Print Dept. Queue</button>
   <button class="ghost" id="openFeedBtn">Activity Feed</button>
   <button class="ghost" id="openPartialPicksBtn">Partial Pick Log</button>
   <div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#6C86A8;padding:4px 2px;margin-top:8px;border-bottom:1px solid rgba(42,127,255,0.15);margin-bottom:4px;">Administration</div>
@@ -2462,7 +2466,7 @@ input[type="number"] {
   <div class="wrap">
     <div class="pageHeader">
       <button class="ghost" id="queuePageBack">← Back</button>
-      <h2 style="margin:0; font-size:18px; letter-spacing:.08em; text-transform:uppercase;">Queue</h2>
+      <h2 style="margin:0; font-size:18px; letter-spacing:.08em; text-transform:uppercase;">Print Dept. Queue</h2>
       <div class="queueCountBadge" id="queueCount2">0</div>
     </div>
 
@@ -4474,7 +4478,25 @@ document.getElementById("queueSearch2").addEventListener("input", renderQueuePag
 
 function renderQueuePage(){
   const q = normalize(document.getElementById("queueSearch2")?.value || "");
-  const listAll = inventory.filter(x => String(x.machine || "").toUpperCase() === QUEUE_MACHINE_NAME);
+  const listAll = inventory
+    .filter(x => String(x.machine || "").toUpperCase() === QUEUE_MACHINE_NAME)
+    .sort((a, b) => {
+      const aTime = new Date(a.createdAt || 0).getTime();
+      const bTime = new Date(b.createdAt || 0).getTime();
+      return aTime - bTime;
+    });
+
+  // Respect manual drag-and-drop order if user has reordered
+  if (window._queueOrder && window._queueOrder.length) {
+    const idSet = new Set(listAll.map(x => String(x.id)));
+    const ordered = window._queueOrder
+      .filter(id => idSet.has(id))
+      .map(id => listAll.find(x => String(x.id) === id))
+      .filter(Boolean);
+    const unordered = listAll.filter(x => !window._queueOrder.includes(String(x.id)));
+    listAll.length = 0;
+    listAll.push(...ordered, ...unordered);
+  }
 
   let list = listAll;
   if(q){
@@ -4498,17 +4520,49 @@ function renderQueuePage(){
         <div class="queueEmptySub">Jobs added to the queue will appear here ready to be moved to a lane.</div>
       </div>
     `;
+    window._queueOrder = [];
     return;
   }
 
-  list.forEach(item => {
+  if(!q) window._queueOrder = listAll.map(x => String(x.id));
+
+  let dragSrcEl = null;
+
+  list.forEach((item, idx) => {
     const div = document.createElement("div");
     div.className = "queueCard";
+    div.draggable = !q;
+    div.dataset.id = String(item.id);
+
+    const posBadge = !q
+      ? `<span style="
+            display:inline-flex;align-items:center;justify-content:center;
+            min-width:26px;height:26px;border-radius:8px;
+            background:rgba(58,122,254,.14);border:1px solid rgba(58,122,254,.3);
+            color:rgba(180,205,255,.9);font-size:12px;font-weight:900;flex-shrink:0;
+          ">${idx + 1}</span>`
+      : "";
+
+    const dragHandle = !q
+      ? `<div data-drag-handle style="
+            display:flex;flex-direction:column;gap:3px;padding:4px 6px;
+            cursor:grab;opacity:.45;flex-shrink:0;align-self:center;
+          ">
+            <span style="display:block;width:18px;height:2px;border-radius:1px;background:rgba(255,255,255,.7);"></span>
+            <span style="display:block;width:18px;height:2px;border-radius:1px;background:rgba(255,255,255,.7);"></span>
+            <span style="display:block;width:18px;height:2px;border-radius:1px;background:rgba(255,255,255,.7);"></span>
+          </div>`
+      : "";
+
     div.innerHTML = `
       <div class="queueCardTop">
-        <div>
-          <div class="queueJob">Item #${escapeHtml(item.job)}</div>
-          <div class="queueMo">MO: ${escapeHtml(item.mo || "—")}</div>
+        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+          ${dragHandle}
+          ${posBadge}
+          <div style="min-width:0;">
+            <div class="queueJob">Item #${escapeHtml(item.job)}</div>
+            <div class="queueMo">MO: ${escapeHtml(item.mo || "—")}</div>
+          </div>
         </div>
       </div>
 
@@ -4524,8 +4578,62 @@ function renderQueuePage(){
       </div>
     `;
 
-    const moveBtn = div.querySelector("[data-move-lane]");
-    moveBtn.addEventListener("click", async () => {
+    // ── Drag-and-drop handlers ──
+    if(!q){
+      div.addEventListener("dragstart", (e) => {
+        dragSrcEl = div;
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", div.dataset.id);
+        setTimeout(() => div.style.opacity = "0.4", 0);
+      });
+
+      div.addEventListener("dragend", () => {
+        div.style.opacity = "1";
+        container.querySelectorAll(".queueCard").forEach(c => {
+          c.style.borderColor = "";
+          c.style.boxShadow = "";
+        });
+      });
+
+      div.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        if(div !== dragSrcEl){
+          div.style.borderColor = "rgba(58,122,254,.75)";
+          div.style.boxShadow = "0 0 0 3px rgba(58,122,254,.18)";
+        }
+      });
+
+      div.addEventListener("dragleave", () => {
+        div.style.borderColor = "";
+        div.style.boxShadow = "";
+      });
+
+      div.addEventListener("drop", (e) => {
+        e.preventDefault();
+        div.style.borderColor = "";
+        div.style.boxShadow = "";
+        if(!dragSrcEl || dragSrcEl === div) return;
+
+        // Reorder the _queueOrder array
+        const srcId = dragSrcEl.dataset.id;
+        const dstId = div.dataset.id;
+        const order = window._queueOrder;
+        const srcIdx = order.indexOf(srcId);
+        const dstIdx = order.indexOf(dstId);
+        if(srcIdx < 0 || dstIdx < 0) return;
+
+        order.splice(srcIdx, 1);
+        order.splice(dstIdx, 0, srcId);
+
+        // Re-render with new order (no API call needed)
+        renderQueuePage();
+        toast(`Reordered: Item #${dragSrcEl.querySelector(".queueJob")?.textContent?.replace("Item #","") || ""}`);
+      });
+    }
+
+    // ── Button handlers ──
+    div.querySelector("[data-move-lane]").addEventListener("click", async () => {
       const availableLanes = locations
         .filter(l => l.type === "lane" && l.laneNum)
         .sort((a,b) => String(a.laneNum).localeCompare(String(b.laneNum), undefined, { numeric:true }))
@@ -4536,16 +4644,11 @@ function renderQueuePage(){
         `Move Item #${item.job} to which lane?\n\nAvailable: ${availableLanes.join(", ")}`,
         { placeholder: "e.g. 7 or 1A", hint: "Must match an existing lane", mask: false }
       );
-
       if(lane === null) return;
 
       const n = String(lane).trim().toUpperCase();
       const match = locations.find(l => l.type === "lane" && String(l.laneNum).toUpperCase() === n);
-
-      if(!match){
-        await uiAlert("Invalid Lane", `Lane "${n}" doesn't exist.`);
-        return;
-      }
+      if(!match){ await uiAlert("Invalid Lane", `Lane "${n}" doesn't exist.`); return; }
 
       try{
         await apiPut(`/items/${item.id}`, {
@@ -4554,10 +4657,11 @@ function renderQueuePage(){
           qty: Number.isFinite(item.qty) ? item.qty : 0,
           status: item.status || "",
           notes: item.notes || "",
-          updated_by: item.updatedBy || item.updated_by || "ADMIN",
+          updated_by: item.updatedBy || "ADMIN",
           location_id: match.location_id
         });
-
+        // Remove from order cache
+        if(window._queueOrder) window._queueOrder = window._queueOrder.filter(id => id !== String(item.id));
         await loadLocations();
         await loadInventory();
         renderQueuePage();
@@ -4570,30 +4674,25 @@ function renderQueuePage(){
       }
     });
 
-    const qrBtn = div.querySelector("[data-gen-qr]");
-qrBtn.addEventListener("click", () => {
-  // Navigate to QR page and pre-fill the job number
-  showPage("qrPage");
-  const qrJobInput = document.getElementById("qrJob");
-  if(qrJobInput){
-    qrJobInput.value = cleanJob(item.job || "");
-    // Auto-trigger the QR generation
-    document.getElementById("genQrBtn").click();
-  }
-});
+    div.querySelector("[data-gen-qr]").addEventListener("click", () => {
+      showPage("qrPage");
+      const qrJobInput = document.getElementById("qrJob");
+      if(qrJobInput){
+        qrJobInput.value = cleanJob(item.job || "");
+        document.getElementById("genQrBtn").click();
+      }
+    });
 
-    const removeBtn = div.querySelector("[data-remove-queue]");
-    removeBtn.addEventListener("click", async () => {
+    div.querySelector("[data-remove-queue]").addEventListener("click", async () => {
       const ok = await uiConfirm(
         "Remove From Queue",
         `Remove Item #${item.job} from the queue?`,
-        "Remove",
-        "Cancel"
+        "Remove", "Cancel"
       );
       if(!ok) return;
-
       try{
         await apiDelete(`/items/${item.id}`);
+        if(window._queueOrder) window._queueOrder = window._queueOrder.filter(id => id !== String(item.id));
         await loadLocations();
         await loadInventory();
         renderQueuePage();
