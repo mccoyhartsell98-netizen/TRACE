@@ -4697,6 +4697,7 @@ function renderQueuePage(){
         saveQueueOrder(order);
         renderQueuePage();
         toast(`Reordered: Item #${dragSrcEl.querySelector(".queueJob")?.textContent?.replace("Item #","") || ""}`);
+     });
 }
 
     // ── Button handlers ──
