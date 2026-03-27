@@ -1470,6 +1470,19 @@ button:hover::before {
   font-weight:700;
 }
 
+@keyframes onPressSweep {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+.onpress-pill {
+  background: linear-gradient(90deg, rgba(138,255,138,.12) 0%, rgba(138,255,138,.35) 45%, rgba(138,255,138,.12) 100%) !important;
+  background-size: 200% auto !important;
+  border: 1px solid rgba(138,255,138,.55) !important;
+  color: rgba(138,255,138,.95) !important;
+  animation: onPressSweep 2s linear infinite;
+}
+.onpress-pill strong { color: rgba(138,255,138,.65) !important; }
+
 @media (max-width:700px){
   .feedCardTop{
     flex-direction:column;
@@ -3196,6 +3209,13 @@ function formatLocation(item){
 }
 // ===== QR GENERATOR + QUEUE (ADMIN) =====
 const QUEUE_MACHINE_NAME = "QUEUE"; // you will add this location in DB (see note below)
+const QUEUE_ORDER_KEY = "trace_queue_order_v1";
+function saveQueueOrder(order) {
+  try { localStorage.setItem(QUEUE_ORDER_KEY, JSON.stringify(order)); } catch(e) {}
+}
+function loadQueueOrder() {
+  try { const r = localStorage.getItem(QUEUE_ORDER_KEY); return r ? JSON.parse(r) : []; } catch(e) { return []; }
+}
 
 function getQueueLocationId(){
   return locIdByMachine.get(QUEUE_MACHINE_NAME) ?? null;
@@ -4530,7 +4550,11 @@ function renderQueuePage(){
       return aTime - bTime;
     });
 
-  // Respect manual drag-and-drop order if user has reordered
+   // Restore order from localStorage, then apply in-memory override
+  const savedOrder = loadQueueOrder();
+  if (savedOrder.length && (!window._queueOrder || !window._queueOrder.length)) {
+    window._queueOrder = savedOrder;
+  }
   if (window._queueOrder && window._queueOrder.length) {
     const idSet = new Set(listAll.map(x => String(x.id)));
     const ordered = window._queueOrder
@@ -4612,7 +4636,7 @@ function renderQueuePage(){
 
       <div class="queueMeta">
         <span class="queueMetaPill"><strong>Qty:</strong> ${Number.isFinite(item.qty) ? item.qty : 0}</span>
-        <span class="queueMetaPill queueStatusPill"><strong>Status:</strong> ${escapeHtml(item.status || "—")}</span>
+       <span class="queueMetaPill ${(item.status||'').toLowerCase().trim()==='on press'?'onpress-pill':'queueStatusPill'}"><strong>Status:</strong> ${escapeHtml(item.status || "—")}</span>
       </div>
 
       <div class="queueActionRow">
@@ -4667,14 +4691,12 @@ function renderQueuePage(){
         const dstIdx = order.indexOf(dstId);
         if(srcIdx < 0 || dstIdx < 0) return;
 
-        order.splice(srcIdx, 1);
+         order.splice(srcIdx, 1);
         order.splice(dstIdx, 0, srcId);
 
-        // Re-render with new order (no API call needed)
+        saveQueueOrder(order);
         renderQueuePage();
         toast(`Reordered: Item #${dragSrcEl.querySelector(".queueJob")?.textContent?.replace("Item #","") || ""}`);
-      });
-    }
 
     // ── Button handlers ──
     div.querySelector("[data-move-lane]").addEventListener("click", async () => {
@@ -4705,7 +4727,8 @@ function renderQueuePage(){
           location_id: match.location_id
         });
         // Remove from order cache
-        if(window._queueOrder) window._queueOrder = window._queueOrder.filter(id => id !== String(item.id));
+         if(window._queueOrder) window._queueOrder = window._queueOrder.filter(id => id !== String(item.id));
+        saveQueueOrder(window._queueOrder || []);
         await loadLocations();
         await loadInventory();
         renderQueuePage();
@@ -4737,6 +4760,7 @@ function renderQueuePage(){
       try{
         await apiDelete(`/items/${item.id}`);
         if(window._queueOrder) window._queueOrder = window._queueOrder.filter(id => id !== String(item.id));
+        saveQueueOrder(window._queueOrder || []);
         await loadLocations();
         await loadInventory();
         renderQueuePage();
