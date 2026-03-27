@@ -4506,7 +4506,7 @@ function renderHistoryPage(){
 
             <div class="historyDetail">
               <div class="historyDetailLabel">Deleted At</div>
-              <div class="historyDetailValue">${escapeHtml(item.deleted_at || "—")}</div>
+              <div class="historyDetailValue">${escapeHtml(formatTime(item.deleted_at))}</div>
             </div>
 
             <div class="historyDetail">
