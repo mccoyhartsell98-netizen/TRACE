@@ -3341,7 +3341,6 @@ function downloadJobQr(){
   a.click();
 };
 }
-
 async function queueCurrentJob(){
   const admin = (role === "admin" && adminUnlocked);
   if(!admin){
@@ -3355,71 +3354,53 @@ async function queueCurrentJob(){
     return;
   }
 
-  const qLocId = getQueueLocationId();
-  if(!qLocId){
-    await uiAlert(
-      "Queue Not Ready",
-      `QUEUE location is missing in DB.\n\nFix: add a location with machine/name = "${QUEUE_MACHINE_NAME}".`
+// DUPLICATE CHECK
+if(!selectedId){
+  const existing = inventory.find(x => x.job === job);
+  if(existing){
+    const loc = existing.machine ? `Machine: ${existing.machine}` : (existing.lane || "Unknown");
+    const ok = await uiConfirm(
+      "Heads Up",
+      `Item #${job} already exists in ${loc} with Qty: ${existing.qty}.\n\nContinuing will add a new queue entry with the qty you entered.`,
+      "Continue",
+      "Cancel"
     );
-    return;
-  }
-
-  try{
-    // EXISTING selected item -> MOVE it to queue
-    if(selectedId){
-      await apiPut(`/items/${selectedId}/move`, {
-        location_id: qLocId,
-        updated_by: (els.updatedBy?.value || "").trim().slice(0, 10)
-      });
-
-      await loadLocations();
-      await loadInventory();
-      renderQueuePage();
-      renderLaneList();
-      renderMachineList();
-      renderGlobalSearch();
-      clearForm();
-      showMoveNotif(job, `⏸ Sent back to Queue`);
-      toast(`⏸ ${job} sent to Queue`);
-      return;
-    }
-
-    // NO selected item -> CREATE a new queue entry
-    const existing = inventory.find(x => x.job === job);
-    if(existing){
-      const loc = existing.machine ? `Machine: ${existing.machine}` : (existing.lane || "Unknown");
-      const ok = await uiConfirm(
-        "Heads Up",
-        `Item #${job} already exists in ${loc} with Qty: ${existing.qty}.\n\nContinuing will add a new queue entry with the qty you entered.`,
-        "Continue",
-        "Cancel"
-      );
-      if(!ok) return;
-    }
-
-    const newPayload = {
-      job_number: job,
-      location_id: qLocId,
-      mo: cleanJob(els.mo?.value || ""),
-      qty: Math.max(0, parseInt(els.qty?.value || "0", 10)),
-      status: (els.status?.value || "").trim().slice(0, 40),
-      notes: (els.notes?.value || "").trim().slice(0, 120),
-      updated_by: (els.updatedBy?.value || "").trim().slice(0, 10),
-    };
-
-    await apiPost(`/items`, newPayload);
-
-    await loadLocations();
-    await loadInventory();
-    renderQueuePage();
-    clearForm();
-    showMoveNotif(job, `✅ Successfully added to Queue`);
-    toast(`✅ ${job} added to Queue`);
-  }catch(e){
-    await uiAlert("Queue Failed", e.message || "Could not send item to queue.");
+    if(!ok) return;
   }
 }
+const qLocId = getQueueLocationId();
+if(!qLocId){
+  await uiAlert(
+    "Queue Not Ready",
+    `QUEUE location is missing in DB.\n\nFix: add a location with machine/name = "${QUEUE_MACHINE_NAME}".`
+  );
+  return;
+}
 
+
+  // Always create a new entry — whether job exists or not
+  const newPayload = {
+    job_number: job,
+    location_id: qLocId,
+    mo: cleanJob(els.mo?.value || ""),
+    qty: Math.max(0, parseInt(els.qty?.value || "0", 10)),
+    status: (els.status?.value || "").trim().slice(0, 40),
+    notes: (els.notes?.value || "").trim().slice(0, 120),
+    updated_by: (els.updatedBy?.value || "").trim().slice(0, 10),
+  };
+  try{
+    await apiPost(`/items`, newPayload);
+  }catch(e){
+    await uiAlert("Queue Failed", e.message || "Could not add job to queue.");
+    return;
+  }
+  await loadLocations();
+  await loadInventory();
+  renderQueuePage();
+  clearForm();
+  showMoveNotif(job, `✅ Successfully added to Queue`);
+  toast(`✅ ${job} added to Queue`);
+}
 // ====== SCAN POPUP ======
 let scannedItemId = null;
 
