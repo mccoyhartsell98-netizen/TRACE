@@ -2205,6 +2205,50 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
+@media (max-width: 900px) {
+
+  .rolebar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .roleLeft {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .roleLeft > div[style] {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid rgba(58,122,254,.25);
+    padding-top: 8px;
+    margin-left: 0;
+    width: 100%;
+  }
+
+  #deptLabel {
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    border-left: none !important;
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    border-top: 1px solid rgba(58,122,254,.25);
+    padding-top: 6px;
+    width: 100%;
+  }
+
+  #deptLabel > div:first-child {
+    font-size: 14px !important;
+  }
+
+  #deptLabel > div:last-child {
+    font-size: 9px !important;
+  }
+
+}
+
   </style>
 </head>
 
@@ -2278,10 +2322,10 @@ input[type="number"] {
       <div class="rolebar">
   <div class="roleLeft">
     <button id="undoBtn" class="ghost" disabled>Undo</button>
-    <div style="display:flex;flex-direction:column;gap:2px;margin-left:10px;border-left:1px solid rgba(58,122,254,.25);padding-left:14px;">
-      <div style="font-size:15px;font-weight:900;color:#fff;letter-spacing:.02em;line-height:1;">Print Department</div>
-      <div style="font-size:10px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:#2A7FFF;">Administration</div>
-    </div>
+    <div style="display:flex;flex-direction:column;gap:2px;margin-left:10px;border-left:1px solid rgba(58,122,254,.25);padding-left:14px;" id="deptLabel">
+  <div style="font-size:15px;font-weight:900;color:#fff;letter-spacing:.02em;line-height:1;">Print Department</div>
+  <div style="font-size:10px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:#2A7FFF;">Administration</div>
+</div>
   </div>
         <div style="display:flex;gap:10px;align-items:center;">
           <button class="ghost" id="addLocationBtn" title="Add Lane or Machine">Add Location</button>
