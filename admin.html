@@ -2341,6 +2341,7 @@ input[type="number"] {
 </div>
   </div>
         <div style="display:flex;gap:10px;align-items:center;">
+          <button class="ghost" id="queueShortcutBtn" title="Print Dept. Queue" style="border-color:rgba(58,122,254,.35);color:rgba(180,205,255,.9);">📋 Queue</button>
           <button class="ghost" id="addLocationBtn" title="Add Lane or Machine">Add Location</button>
           <button class="ghost" id="menuBtn" title="Menu">☰</button>
           <button class="ghost" id="logoutBtn">Logout</button>
@@ -4308,6 +4309,11 @@ if(openQueueBtn){
   });
 }
 
+document.getElementById("queueShortcutBtn").addEventListener("click", () => {
+  showPage("queuePage");
+  renderQueuePage();
+});
+
 // Input cleanup
 els.job.addEventListener("input", () => { els.job.value = cleanJob(els.job.value); });
 els.mo.addEventListener("input", () => { els.mo.value = cleanJob(els.mo.value); });
@@ -4639,6 +4645,11 @@ function renderQueuePage(){
        <span class="queueMetaPill ${(item.status||'').toLowerCase().trim()==='on press'?'onpress-pill':'queueStatusPill'}"><strong>Status:</strong> ${escapeHtml(item.status || "—")}</span>
       </div>
 
+     <div style="margin-top:12px;">
+        <div style="font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:rgba(140,170,255,.62);margin-bottom:6px;">STATUS</div>
+        <div class="queueStatusBar" data-item-id="${item.id}" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+      </div>
+
       <div class="queueActionRow">
         <button class="primary" data-move-lane="1">Move to Lane…</button>
         <button class="ghost" data-gen-qr="1">Generate QR</button>
@@ -4775,9 +4786,48 @@ function renderQueuePage(){
       }
     });
 
+// Build status bar pills
+    const statusBar = div.querySelector(".queueStatusBar");
+    if(statusBar){
+      const statuses = loadStatuses();
+      statuses.forEach(s => {
+        const pill = document.createElement("div");
+        pill.textContent = s;
+        const isActive = (item.status || "").trim().toLowerCase() === s.trim().toLowerCase();
+        pill.style.cssText = `
+          padding:6px 12px;border-radius:999px;font-size:11px;font-weight:800;
+          cursor:pointer;transition:all 150ms ease;user-select:none;
+          ${isActive 
+            ? "background:rgba(58,122,254,.28);border:1px solid rgba(58,122,254,.65);color:#fff;box-shadow:0 0 12px rgba(58,122,254,.25);" 
+            : "background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:rgba(226,236,255,.75);"}
+        `;
+        pill.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          try{
+            await apiPut(`/items/${item.id}`, {
+              job_number: item.job,
+              mo: item.mo || "",
+              qty: Number.isFinite(item.qty) ? item.qty : 0,
+              status: s,
+              notes: item.notes || "",
+              updated_by: item.updatedBy || ""
+            });
+            await loadInventory();
+            renderQueuePage();
+            toast(`Status → ${s}`);
+          }catch(err){
+            await uiAlert("Status Update Failed", err.message || "Could not update status.");
+          }
+        });
+        statusBar.appendChild(pill);
+      });
+    }
+
     container.appendChild(div);
   });
 }
+
+
 
 // ====== ACTIVITY FEED PAGE ======
 function timeAgo(ts){
