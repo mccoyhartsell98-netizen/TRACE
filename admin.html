@@ -4801,32 +4801,27 @@ function renderQueuePage(){
             ? "background:rgba(58,122,254,.28);border:1px solid rgba(58,122,254,.65);color:#fff;box-shadow:0 0 12px rgba(58,122,254,.25);" 
             : "background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:rgba(226,236,255,.75);"}
         `;
-      pill.addEventListener("click", function(e) {
-  e.stopPropagation();
-  e.preventDefault();
-  
-  statusBar.querySelectorAll("div").forEach(function(p) {
-    p.style.background = "rgba(255,255,255,.04)";
-    p.style.border = "1px solid rgba(255,255,255,.08)";
-    p.style.color = "rgba(226,236,255,.75)";
-    p.style.boxShadow = "none";
-  });
-  pill.style.background = "rgba(58,122,254,.28)";
-  pill.style.border = "1px solid rgba(58,122,254,.65)";
-  pill.style.color = "#fff";
-  pill.style.boxShadow = "0 0 12px rgba(58,122,254,.25)";
-
-  item.status = s;
-
-  apiPut("/items/" + item.id, {
-    job_number: item.job,
-    mo: item.mo || "",
-    qty: Number.isFinite(item.qty) ? item.qty : 0,
-    status: s,
-    notes: item.notes || "",
-    updated_by: item.updatedBy || ""
-  }).catch(function(){});
-});
+        pill.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          try{
+            await apiPut(`/items/${item.id}`, {
+              job_number: item.job,
+              mo: item.mo || "",
+              qty: Number.isFinite(item.qty) ? item.qty : 0,
+              status: s,
+              notes: item.notes || "",
+              updated_by: item.updatedBy || ""
+            });
+            await loadInventory();
+            renderQueuePage();
+            toast(`Status → ${s}`);
+          }catch(err){
+            await uiAlert("Status Update Failed", err.message || "Could not update status.");
+          }
+        });
+        statusBar.appendChild(pill);
+      });
+    }
 
     container.appendChild(div);
   });
