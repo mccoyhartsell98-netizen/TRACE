@@ -4801,13 +4801,22 @@ function renderQueuePage(){
             ? "background:rgba(58,122,254,.28);border:1px solid rgba(58,122,254,.65);color:#fff;box-shadow:0 0 12px rgba(58,122,254,.25);" 
             : "background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:rgba(226,236,255,.75);"}
         `;
-        pill.addEventListener("click", async (e) => {
+      pill.addEventListener("click", async (e) => {
   e.stopPropagation();
   
-  // Optimistic: update local state immediately
-  const oldStatus = item.status;
-  item.status = s;
-  renderQueuePage();
+  // Update UI instantly — just restyle the pills on this card
+  const allPills = statusBar.querySelectorAll("div");
+  allPills.forEach(p => {
+    p.style.background = "rgba(255,255,255,.04)";
+    p.style.border = "1px solid rgba(255,255,255,.08)";
+    p.style.color = "rgba(226,236,255,.75)";
+    p.style.boxShadow = "none";
+  });
+  pill.style.background = "rgba(58,122,254,.28)";
+  pill.style.border = "1px solid rgba(58,122,254,.65)";
+  pill.style.color = "#fff";
+  pill.style.boxShadow = "0 0 12px rgba(58,122,254,.25)";
+  
   toast(`Status → ${s}`);
 
   // Sync to server in background
@@ -4820,10 +4829,8 @@ function renderQueuePage(){
       notes: item.notes || "",
       updated_by: item.updatedBy || ""
     });
+    item.status = s;
   }catch(err){
-    // Rollback on failure
-    item.status = oldStatus;
-    renderQueuePage();
     await uiAlert("Status Update Failed", err.message || "Could not update status.");
   }
 });
