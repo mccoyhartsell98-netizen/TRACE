@@ -3546,7 +3546,15 @@ function applyScanParams(){
 function updateFormUI(){
   els.deleteBtn.disabled = !selectedId;
   els.job.disabled = !!selectedId;
-  document.getElementById("moveBtn").disabled = !selectedId; // add this
+  document.getElementById("moveBtn").disabled = !selectedId;
+  
+  if(selectedId){
+    const item = inventory.find(x => x.id === selectedId);
+    const isInQueue = item && item.machine && item.machine.toUpperCase() === "QUEUE";
+    els.queueJobBtn.disabled = !isInQueue;
+  } else {
+    els.queueJobBtn.disabled = false;
+  }
 }
 
 // ====== HISTORY (DB-backed) ======
