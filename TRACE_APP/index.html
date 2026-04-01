@@ -1,1347 +1,688 @@
-<!--
-  TRACE INVENTORY
-  © 2026 Mccoy Hartsell — All rights reserved.
--->
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>TRACE</title>
 
-  <!-- PWA / App support -->
-  <link rel="manifest" href="./manifest.json">
-  <meta name="theme-color" content="#0f1115">
+ <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-Z8Z41J6Z0H"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-Z8Z41J6Z0H');
+  </script>
 
-  <!-- iOS install support -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="TRACE">
-  <link rel="apple-touch-icon" href="./icon-192.png">
-
+  <title>TRACE — Kiosk</title>
   <style>
     :root{
-      --bg:#0f1115;
-      --panel:rgba(22,26,34,.92);
-      --panel2:rgba(27,32,48,.92);
-      --text:#ffffff;
-      --muted:#b7c0d1;
-      --good:#8aff8a;
-      --bad:#ff6b6b;
-      --warn:#ffd166;
-      --stroke:#2b3143;
-      --focus:#3a7afe;
+      --bg:#0b0f16;--panel2:#0f1522;--text:#eaf2ff;
+      --muted:rgba(234,242,255,.7);--border:rgba(255,255,255,.12);
+      --btn:#0f1b2e;--btn2:#122547;
     }
+    html,body{height:100%;margin:0;font-family:system-ui,Segoe UI,Arial;
+      background:radial-gradient(1100px 700px at 25% 10%,rgba(42,127,255,.16),transparent 60%),var(--bg);
+      color:var(--text);overflow-x:hidden;}
+    .wrap{min-height:100%;display:flex;align-items:center;justify-content:center;padding:18px;}
+    .card{width:min(520px,95vw);background:linear-gradient(180deg,rgba(16,26,42,.96),rgba(10,14,22,.96));
+      border:1px solid var(--border);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.45);overflow:hidden;}
+    .top{padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+    .pill{font-size:12px;border:1px solid var(--border);padding:6px 10px;border-radius:999px;color:var(--muted)}
+    .body{padding:14px 16px 16px;}
+    .btn{width:100%;background:var(--btn);color:var(--text);border:1px solid var(--border);
+      border-radius:14px;padding:14px;font-weight:900;cursor:pointer;transition:.12s background;font-size:14px;}
+    .btn:hover{background:var(--btn2)} .btn:active{transform:scale(.985)}
+    .btn.sec{background:transparent}
+    .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+    .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+    .pinDots{font-size:22px;letter-spacing:6px;margin:10px 0 6px}
+    .section{margin-top:12px;border:1px solid var(--border);border-radius:14px;padding:12px;background:rgba(15,21,34,.55)}
+    .tiny{font-size:15px;color:var(--muted);word-break:break-all;margin-top:8px}
+    .hide{display:none!important}
+    input{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--border);
+      border-radius:12px;padding:12px;font-weight:700;outline:none;box-sizing:border-box;font-size:16px;}
 
-    *{box-sizing:border-box}
-    html, body{ height:100%; margin:0; }
-
-    body{
-      overflow:hidden;
-      font-family:Arial,Helvetica,sans-serif;
-      color:var(--text);
-      background:
-        linear-gradient(rgba(15,17,21,0.55), rgba(15,17,21,0.55)),
-        url("759c4386-0d9e-4dd1-9589-07ef1c92643b.png");
-      background-size:cover;
-      background-position:center;
-      background-repeat:no-repeat;
-      background-attachment:fixed;
-    }
-
-    .wrap{
-      max-width:1100px;
-      height:100vh;
-      margin:0 auto;
-      padding:18px 18px 16px;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-    }
-
-    .top{
-      display:grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items:center;
-      gap:10px;
-      flex:0 0 auto;
-    }
-
-    .logo{
-      grid-column:2;
-      justify-self:center;
-      width:680px;
-      max-width:96vw;
-      height:auto;
-      display:block;
-      filter:
-        drop-shadow(0 0 12px rgba(58,122,254,0.35))
-        drop-shadow(0 0 28px rgba(58,122,254,0.15));
-    }
-
-    .status{
-      grid-column:3;
-      justify-self:end;
-      display:flex;
-      gap:10px;
-      align-items:center;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-      text-align:right;
-      color:var(--muted);
-      font-size:14px;
-      line-height:1.2;
-    }
-
-    .pill{
-      padding:6px 10px;
-      border:1px solid var(--stroke);
-      border-radius:999px;
-      background:rgba(255,255,255,.03);
-      color:var(--muted);
-      white-space:nowrap;
-    }
-
-    .rolebar{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      justify-content:space-between;
-      flex:0 0 auto;
-    }
-
-    .roleLeft{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      flex-wrap:wrap;
-    }
-
-    select, input[type="text"], input[type="number"]{
-      width:100%;
-      padding:14px 14px;
-      font-size:18px;
-      border-radius:10px;
-      border:1px solid var(--stroke);
-      background:var(--panel2);
-      color:var(--text);
-      outline:none;
-    }
-
-    select{
-      font-size:16px;
-      padding:10px 12px;
-      width:auto;
-      min-width:170px;
-    }
-
-    input[type="text"]:focus, input[type="number"]:focus, select:focus{
-      border-color: var(--focus);
-      box-shadow: 0 0 0 3px rgba(58,122,254,.18);
-    }
-
-    button{
-      border:none;
-      border-radius:10px;
-      padding:10px 12px;
-      font-size:14px;
-      font-weight:900;
-      color:var(--text);
-      background:rgba(255,255,255,.08);
-      cursor:pointer;
-      border:1px solid var(--stroke);
-      white-space:nowrap;
-    }
-    button:hover{background:rgba(255,255,255,.11)}
-    .primary{background:rgba(58,122,254,.24); border-color:rgba(58,122,254,.55)}
-    .primary:hover{background:rgba(58,122,254,.32)}
-    .danger{background:rgba(255,107,107,.16); border-color:rgba(255,107,107,.45)}
-    .danger:hover{background:rgba(255,107,107,.22)}
-    .ghost{background:transparent}
-    .ghost:hover{background:rgba(255,255,255,.06)}
-
-    .grid{
-      flex:1 1 auto;
-      min-height:0;
-      display:grid;
-      grid-template-columns: 1.2fr .8fr;
-      gap:14px;
-    }
-
-    .card{
-      background:var(--panel);
-      border:1px solid var(--stroke);
-      border-radius:12px;
-      padding:14px;
-      min-height:0;
-      display:flex;
-      flex-direction:column;
-    }
-
-    .card h2{
-      margin:0 0 10px 0;
-      font-size:15px;
-      letter-spacing:.5px;
-      color:var(--muted);
-      font-weight:900;
-      text-transform:uppercase;
-    }
-
-    .scroll{
-      overflow:auto;
-      padding-right:4px;
-      min-height:0;
-      flex:1 1 auto;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(255,255,255,.18) transparent;
-    }
-    .scroll::-webkit-scrollbar{ width:8px; }
-    .scroll::-webkit-scrollbar-track{ background:transparent; }
-    .scroll::-webkit-scrollbar-thumb{
-      background: rgba(255,255,255,.14);
-      border-radius: 999px;
-      border: 2px solid transparent;
-      background-clip: content-box;
-    }
-    .scroll::-webkit-scrollbar-thumb:hover{
-      background: rgba(255,255,255,.22);
-      background-clip: content-box;
-    }
-
-    .laneGrid{
-      display:grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap:10px;
-      margin-top:10px;
-      margin-bottom:10px;
-      flex:0 0 auto;
-    }
-
-    .laneBtn{
-      background:var(--panel2);
-      border:1px solid var(--stroke);
-      border-radius:12px;
-      padding:12px 10px;
-      text-align:center;
-      font-weight:900;
-      letter-spacing:.4px;
-      cursor:pointer;
-      user-select:none;
-    }
-    .laneBtn:hover{border-color:rgba(58,122,254,.45)}
-    .laneBtn.active{
-      border-color:rgba(58,122,254,.75);
-      box-shadow: 0 0 0 3px rgba(58,122,254,.18);
-    }
-
-    .laneHeader{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      margin:10px 0 8px 0;
-      flex:0 0 auto;
-    }
-
-    .laneTitle{font-size:20px;font-weight:900;}
-    .laneCount{color:var(--muted);font-size:13px;font-weight:800;}
-
-    .results{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
-
-    .resultItem{
-      background:var(--panel2);
-      border:1px solid var(--stroke);
-      border-radius:12px;
-      padding:12px 12px;
-      cursor:pointer;
-    }
-    .resultItem:hover{border-color:rgba(58,122,254,.45)}
-    .resultItem.active{
-      border-color:rgba(58,122,254,.75);
-      box-shadow: 0 0 0 3px rgba(58,122,254,.18);
-    }
-
-    .big{font-size:18px;font-weight:900;}
-    .meta{color:var(--muted);margin-top:6px;font-size:13px;line-height:1.35;}
-    .qty{color:var(--good);font-weight:900;margin-top:6px;font-size:14px;}
-    .tiny{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.35;}
-    .btnRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
-
-    .hint{
-      margin-top:12px;
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.35;
-      flex:0 0 auto;
-    }
-
-    .kbd{
-      display:inline-block;
-      padding:2px 6px;
-      border:1px solid var(--stroke);
-      border-bottom-width:2px;
-      border-radius:6px;
-      background:rgba(255,255,255,.03);
-      font-weight:900;
-      font-size:12px;
-      color:var(--muted);
-      margin:0 2px;
-    }
-
-    .formGrid{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:10px;
-    }
-    .formGrid .full{grid-column:1 / -1;}
-
+    /* Single overlay class used everywhere */
     .overlay{
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,.62);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      z-index:99;
-      padding:18px;
+      position:fixed;inset:0;background:rgba(0,0,0,.72);
+      display:flex;align-items:center;justify-content:center;
+      z-index:999;padding:18px;
     }
-    .overlay.show{display:flex;}
-    .modal{
-      width:min(900px, 96vw);
-      max-height:min(80vh, 720px);
-      overflow:auto;
-      background:var(--panel);
-      border:1px solid var(--stroke);
-      border-radius:14px;
-      padding:14px;
-      box-shadow: 0 10px 40px rgba(0,0,0,.5);
-      scrollbar-width: thin;
-      scrollbar-color: rgba(255,255,255,.18) transparent;
+    .obox{
+      background:linear-gradient(180deg,rgba(18,28,46,.99),rgba(10,14,22,.99));
+      border:1px solid var(--border);border-radius:18px;
+      width:min(460px,95vw);padding:22px;
     }
-    .modalTop{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      margin-bottom:10px;
-    }
-    .modalTitle{
-      font-weight:900;
-      font-size:16px;
-      letter-spacing:.4px;
-      color:var(--muted);
-      text-transform:uppercase;
-    }
+    .otitle{font-weight:900;font-size:16px;margin-bottom:8px;}
+    .osub{font-size:13px;color:var(--muted);margin-bottom:18px;}
 
-    @media (max-width: 980px){
-      body{overflow:auto;}
-      .wrap{height:auto;}
-      .grid{grid-template-columns:1fr}
-      .status{display:none}
-      .laneGrid{grid-template-columns: repeat(3,1fr);}
-      .logo{width:520px; max-width:92vw;}
-    }
+    .lane-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+    .mach-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+    .sbtn{background:var(--btn);color:var(--text);border:1px solid var(--border);
+      border-radius:12px;padding:12px 6px;font-weight:700;font-size:13px;cursor:pointer;text-align:center;}
+    .sbtn:hover{background:var(--btn2)}
+
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+      padding:12px 28px;border-radius:999px;font-weight:900;font-size:14px;
+      z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+    .toast.show{opacity:1;}
+    .back{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:0;margin-bottom:14px;display:block;}
+    .back:hover{color:var(--text)}
   </style>
 </head>
-
 <body>
-  <div class="wrap">
-    <div class="top">
-      <div></div>
-      <!-- DO NOT CHANGE: per your request, this is intentionally png.png -->
-      <img src="./trace-logo.png.png" alt="TRACE" class="logo">
-      <div class="status">
-        <div class="pill" id="rolePill">ROLE: FORKLIFT</div>
-        <div class="pill" id="itemsPill">ITEMS: 0</div>
-        <div class="pill">F = FULLSCREEN</div>
+
+<div class="wrap">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:4px;width:min(520px,95vw)">
+    <img src="./trace-logo.png.png" style="height:350px;width:auto;" alt="TRACE"/>
+    <div class="card" style="width:100%">
+      <div class="top">
+        <div style="font-size:12px;color:var(--muted)">Kiosk Access</div>
+        <div class="pill" id="pillStatus">LOCKED</div>
       </div>
-    </div>
+      <div class="body">
 
-    <div class="rolebar">
-      <div class="roleLeft">
-        <select id="roleSelect">
-          <option value="forklift">Forklift</option>
-          <option value="machine">Machine</option>
-          <option value="admin">Admin (locked)</option>
-        </select>
-        <button id="adminUnlockBtn" class="primary">Unlock Admin</button>
-        <button id="adminLockBtn" class="ghost" style="display:none;">Lock Admin</button>
-      </div>
-
-      <div style="display:flex;gap:10px;align-items:center;">
-        <button class="ghost" id="historyBtn">History</button>
-      </div>
-    </div>
-
-    <div class="grid">
-      <!-- LEFT -->
-      <div class="card">
-        <h2>Search</h2>
-        <div class="scroll">
-          <input id="globalSearch" type="text" placeholder="Search Job # (example: 400848)">
-          <div class="results" id="globalResults" style="margin-top:10px;"></div>
-
-          <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
-          <h2 style="margin-top:0;">Lanes</h2>
-          <div class="laneGrid" id="laneGrid"></div>
-
-          <div class="laneHeader">
-            <div class="laneTitle" id="laneTitle">Lane 1</div>
-            <div class="laneCount" id="laneCount">0 items</div>
+        <!-- PIN -->
+        <div id="viewPin">
+          <div style="font-weight:900">Enter PIN</div>
+          <div class="pinDots" id="pinDots">____</div>
+          <div class="g3" id="pinPad">
+            <button class="btn" data-d="1">1</button><button class="btn" data-d="2">2</button><button class="btn" data-d="3">3</button>
+            <button class="btn" data-d="4">4</button><button class="btn" data-d="5">5</button><button class="btn" data-d="6">6</button>
+            <button class="btn" data-d="7">7</button><button class="btn" data-d="8">8</button><button class="btn" data-d="9">9</button>
+            <button class="btn sec" id="pinBack">&#x232B;</button>
+            <button class="btn" data-d="0">0</button>
+            <button class="btn sec" id="pinClear">C</button>
           </div>
-
-          <input id="laneSearch" type="text" placeholder="Filter within this lane (optional)">
-          <div class="results" id="laneResults" style="margin-top:10px;"></div>
-
-          <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
-          <h2 style="margin-top:0;">Machines</h2>
-          <div class="laneGrid" id="machineGrid"></div>
-
-          <div class="laneHeader">
-            <div class="laneTitle" id="machineTitle">Machine: S8</div>
-            <div class="laneCount" id="machineCount">0 jobs</div>
+          <div class="g2">
+            <button class="btn" id="pinSubmit">UNLOCK</button>
+            <button class="btn sec" id="pinAdmin">Admin Login</button>
           </div>
+          <div id="pinMsg" style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0;min-height:20px;"></div>
+        </div>
 
-          <input id="machineSearch" type="text" placeholder="Filter within this machine (optional)">
-          <div class="results" id="machineResults" style="margin-top:10px;"></div>
-
-          <div class="hint">
-            Flow: <b>Search Job #</b> → <b>Move</b> → choose <b>Lane</b> or <b>Machine</b>.
-            <br/>
-            Keys: <span class="kbd">1–9</span> quick lanes • <span class="kbd">F</span> fullscreen • <span class="kbd">ESC</span> close move box
+        <!-- HUB -->
+        <div id="viewHub" class="hide">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-weight:900;font-size:15px" id="hubGreet">—</div>
+            <button class="btn sec" style="width:auto;padding:8px 14px" id="hubLogout">Logout</button>
+          </div>
+          <div class="g2" style="margin-top:12px">
+            <button class="btn" id="hubMove">MOVE</button>
+            <button class="btn" id="hubStatus">STATUS</button>
+            <button class="btn" id="hubSearch">SEARCH</button>
+            <button class="btn sec" id="hubAdmin">ADMIN</button>
+          </div>
+          <div class="section">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-weight:900">Scanned Job</div>
+              <div class="pill" id="jobStatus">—</div>
+            </div>
+            <div class="tiny" id="jobLine">No job loaded</div>
           </div>
         </div>
-      </div>
 
-      <!-- RIGHT -->
-      <div class="card">
-        <h2>Job Update</h2>
-        <div class="scroll">
-          <div class="formGrid">
-            <div class="full">
-              <input id="job" type="text" inputmode="numeric" placeholder="Job # (numbers only, required)">
-            </div>
-            <div>
-              <input id="qty" type="number" min="0" step="1" placeholder="Qty">
-            </div>
-            <div>
-              <input id="status" type="text" placeholder="Status (example: RUNNING)">
-            </div>
-            <div class="full">
-              <input id="notes" type="text" placeholder="Notes (optional)">
-            </div>
-            <div class="full">
-              <input id="updatedBy" type="text" placeholder="Updated by (initials)">
-            </div>
-
-            <div class="full btnRow">
-              <button class="primary" id="saveBtn">Save / Update</button>
-              <button id="newBtn">New</button>
-              <button class="danger" id="deleteBtn" disabled>Delete</button>
-            </div>
-          </div>
-
-          <div class="tiny" id="rulesBox">
-            <b>Rules:</b>
-            <ul>
-              <li><b>Job #</b> is the unique key. Once created it is locked.</li>
-              <li><b>Forklift</b>: can search + move jobs (no edit, no delete).</li>
-              <li><b>Machine</b>: can update qty/status/notes (cannot create new jobs, no delete, no move).</li>
-              <li><b>Admin</b>: can create jobs + delete (goes to History) + restore.</li>
-            </ul>
-          </div>
-
-          <div id="historyPanel" style="display:none; margin-top:12px;">
-            <h2>Deleted History</h2>
-            <input id="historySearch" type="text" placeholder="Search deleted jobs...">
-            <div class="results" id="historyResults" style="margin-top:10px;"></div>
-          </div>
-
-          <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
-          <h2>Backup</h2>
-          <div class="btnRow">
-            <button id="exportBtn">Export JSON</button>
-            <button id="importBtn">Import JSON</button>
-            <button class="ghost" id="seedBtn">Load demo</button>
-          </div>
-          <input id="fileInput" type="file" accept="application/json" style="display:none;" />
-        </div>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- MOVE OVERLAY -->
-  <div class="overlay" id="moveOverlay">
-    <div class="modal">
-      <div class="modalTop">
-        <div class="modalTitle" id="moveTitle">Move Job</div>
-        <button class="ghost" id="moveCloseBtn">Close</button>
+<!--   OVERLAY 1 — Full or Partial?   -->
+<div class="overlay hide" id="ovPartial">
+  <div class="obox">
+    <div class="otitle">Taking the full job?</div>
+    <div class="osub" id="ovPartialInfo">—</div>
+    <div class="g2" style="margin-top:0">
+      <button class="btn" id="btnYesFull">YES — TAKE ALL</button>
+      <button class="btn sec" id="btnNoPartial">NO — PARTIAL</button>
+    </div>
+    <!-- shown only when they hit NO -->
+    <div id="qtyArea" class="hide" style="margin-top:16px">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:8px">How many are you taking?</div>
+      <input id="qtyInput" type="number" min="1" placeholder="Enter qty…"/>
+      <button class="btn" id="btnConfirmQty" style="margin-top:10px">CONFIRM QTY &amp; PICK LOCATION</button>
+    </div>
+    <button class="btn sec" id="btnCancelPartial" style="margin-top:12px">Cancel</button>
+  </div>
+</div>
+
+<!--  OVERLAY 2 — Pick destination   -->
+<div class="overlay hide" id="ovDest">
+  <div class="obox">
+
+    <!-- 2a: Lane or Machine? -->
+    <div id="destType">
+      <div class="otitle">Move to — Lane or Machine?</div>
+      <div class="g2" style="margin-top:0">
+        <button class="btn" id="btnPickLane">LANE</button>
+        <button class="btn" id="btnPickMachine">MACHINE</button>
       </div>
+      <button class="btn sec" id="btnCancelDest" style="margin-top:12px">Cancel</button>
+    </div>
 
-      <div style="color:var(--muted); font-weight:900; margin-bottom:8px;">Move to Lane</div>
-      <div class="laneGrid" id="moveLaneGrid"></div>
+    <!-- 2b: Pick lane number -->
+    <div id="destLanes" class="hide">
+      <button class="back" id="backFromLanes">&#x2190; Back</button>
+      <div class="otitle">Select Lane</div>
+      <div class="lane-grid" id="laneGrid"></div>
+    </div>
 
-      <div style="border-top:1px solid var(--stroke); margin:14px 0;"></div>
+    <!-- 2c: Pick machine -->
+    <div id="destMachines" class="hide">
+      <button class="back" id="backFromMachines">&#x2190; Back</button>
+      <div class="otitle">Select Machine</div>
+      <div class="mach-grid" id="machGrid"></div>
+    </div>
 
-      <div style="color:var(--muted); font-weight:900; margin-bottom:8px;">Move to Machine</div>
-      <div class="laneGrid" id="moveMachineGrid"></div>
+  </div>
+</div>
 
-      <div class="tiny" style="margin-top:12px;">
-        Rule: Moving to a <b>Machine</b> clears the lane. Moving to a <b>Lane</b> clears the machine.
-      </div>
+<!--   OVERLAY 3 — Multi-pallet picker   -->
+<div class="overlay hide" id="ovWhich">
+  <div class="obox">
+    <div class="otitle" style="color:#ffd166">Multiple Pallets Found</div>
+    <div class="osub">Which pallet are you moving?</div>
+    <div id="whichGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+    <button class="btn sec" id="btnWhichCancel" style="margin-top:14px">Cancel</button>
+  </div>
+</div>
+
+<!--   OVERLAY 4 — Search   -->
+<div class="overlay hide" id="ovSearch">
+  <div class="obox">
+    <div class="otitle">Search Job / MO</div>
+    <input id="searchInput" placeholder="Job number or MO…"/>
+    <div class="g2" style="margin-top:10px">
+      <button class="btn" id="btnDoSearch">SEARCH</button>
+      <button class="btn sec" id="btnSearchCancel">Cancel</button>
+    </div>
+    <div id="searchMsg" style="font-size:12px;color:var(--muted);padding:8px 0;min-height:20px;"></div>
+    <div id="searchResult" class="hide" style="border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:4px">
+      <div style="font-weight:900" id="srTitle">—</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px" id="srSub">—</div>
+      <button class="btn" id="btnLoadSearchJob" style="margin-top:12px">LOAD THIS JOB</button>
     </div>
   </div>
+</div>
 
-  <script>
-  /* =========================
-     TRACE — CLEANED BUILD
-     - no duplicate apiGet
-     - no duplicate let inventory
-     - one init block
-     ========================= */
+<div class="overlay hide" id="ovStatus">
+  <div class="obox">
+    <div class="otitle">Update Status</div>
+    <div class="osub" id="ovStatusJob">—</div>
+    <div id="statusBtnGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;"></div>
+    <button class="btn sec" id="btnStatusCancel" style="margin-top:12px;">Cancel</button>
+  </div>
+</div>
 
-  const API_BASE = "https://trace-api-sak3.onrender.com";
+<div class="toast" id="toast"></div>
 
-  async function apiGet(path){
-    const r = await fetch(`${API_BASE}${path}`);
-    if(!r.ok) throw new Error(`${path} -> ${r.status}`);
-    return r.json();
+<script>
+const API  = "https://api.traceinventory.org";
+const ADMIN = "./admin.html";
+const $     = id => document.getElementById(id);
+
+// ── state ──────────────────────────────────────────────────────────────────
+let activeItem = null;  // { id, job, mo, qty, status, lane, machine, location_id, notes }
+let takingQty  = null;  // null = full job, number = partial
+let locations  = [];
+let inventory  = [];
+let locByLane  = new Map();  // "Lane 5" → id
+let locByMach  = new Map();  // "S8"     → id
+let pinBuf     = "";
+let pendingSearch = null;
+let pinAttempts = 0;
+const PIN_MAX_ATTEMPTS = 5;
+
+const scannedJob = (new URLSearchParams(location.search).get("job") || "").trim().toUpperCase();
+
+// ── toast ──────────────────────────────────────────────────────────────────
+function toast(msg, err=false) {
+  const t=$("toast");
+  t.textContent=msg;
+  t.style.cssText=`background:${err?"#3a1a1a":"#1a3a1a"};border:1px solid ${err?"#7a2d2d":"#2d7a2d"};color:${err?"#ff7f7f":"#7fff7f"};`;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),3500);
+}
+
+// ── PIN ────────────────────────────────────────────────────────────────────
+function renderPin(){
+  $("pinDots").textContent=(pinBuf+"____").slice(0,4).split("").map(c=>c==="_"?"_":"•").join("");
+}
+$("pinPad").addEventListener("click",e=>{
+  const d=e.target.closest("[data-d]")?.dataset.d;
+  if(d!==undefined && pinBuf.length<4){ pinBuf+=d; renderPin(); }
+});
+$("pinBack").onclick  =()=>{ pinBuf=pinBuf.slice(0,-1); renderPin(); };
+$("pinClear").onclick =()=>{ pinBuf=""; renderPin(); };
+$("pinAdmin").onclick =()=>location.href=ADMIN;
+
+$("pinSubmit").onclick=async()=>{
+  if(pinAttempts >= PIN_MAX_ATTEMPTS){
+    $("pinMsg").textContent="Too many attempts — contact your supervisor";
+    pinBuf=""; renderPin(); return;
   }
-  async function apiPost(path, body){
-    const r = await fetch(`${API_BASE}${path}`, {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify(body)
+  if(!/^\d{4}$/.test(pinBuf)){$("pinMsg").textContent="PIN must be 4 digits";return;}
+  $("pinMsg").textContent="Checking…";
+  try{
+    const r=await fetch(`${API}/auth/pin-login`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pin:pinBuf})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||d.ok===false) throw d;
+    pinAttempts=0;
+    localStorage.setItem("tt",d.token);
+    localStorage.setItem("tu",JSON.stringify(d.user));
+    pinBuf="";renderPin();$("pinMsg").textContent="";
+    enterHub(d.user);
+  }catch(e){
+    pinAttempts++;
+    const left=PIN_MAX_ATTEMPTS-pinAttempts;
+    $("pinMsg").textContent=left>0?`Invalid PIN — ${left} attempt${left===1?"":"s"} left`:"Too many attempts — contact your supervisor";
+    pinBuf="";renderPin();
+  }
+};
+
+function auth(){return{token:localStorage.getItem("tt"),user:JSON.parse(localStorage.getItem("tu")||"null")};}
+function clearAuth(){localStorage.removeItem("tt");localStorage.removeItem("tu");}
+
+// ── data ───────────────────────────────────────────────────────────────────
+async function loadLocations(){
+  try{
+    const r=await fetch(`${API}/locations`,{cache:"no-store"});
+    const d=await r.json().catch(()=>({}));
+    const raw=Array.isArray(d)?d:(d.locations||d.rows||[]);
+    locations=raw.map(x=>({
+      id:Number(x.location_id??x.id),
+      laneNum:String(x.lane??x.lane_number??x.laneNum??"").trim(),
+      machName:String(x.machine??x.machine_name??x.machineName??x.name??"").trim()
+    })).filter(x=>x.id>0);
+    locByLane.clear(); locByMach.clear();
+    locations.forEach(l=>{
+      if(l.laneNum)  locByLane.set("Lane "+l.laneNum, l.id);
+      if(l.machName) locByMach.set(l.machName, l.id);
     });
-    if(!r.ok) throw new Error(`${path} -> ${r.status}`);
-    return r.json();
-  }
-  async function apiPut(path, body){
-    const r = await fetch(`${API_BASE}${path}`, {
-      method:"PUT",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify(body)
-    });
-    if(!r.ok) throw new Error(`${path} -> ${r.status}`);
-    return r.json();
-  }
-  async function apiDel(path){
-    const r = await fetch(`${API_BASE}${path}`, { method:"DELETE" });
-    if(!r.ok) throw new Error(`${path} -> ${r.status}`);
-    return r.json();
-  }
-
-  apiGet("/health")
-    .then(d => console.log("API CONNECTED", d))
-    .catch(e => console.error("API FAILED", e));
-
-  const DELETED_KEY = "trace_simple_deleted_v1";
-
-  const MACHINES = ["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane"];
-  const ADMIN_PIN = "4793";
-
-  const els = {
-    itemsPill: document.getElementById("itemsPill"),
-    rolePill: document.getElementById("rolePill"),
-
-    roleSelect: document.getElementById("roleSelect"),
-    adminUnlockBtn: document.getElementById("adminUnlockBtn"),
-    adminLockBtn: document.getElementById("adminLockBtn"),
-
-    globalSearch: document.getElementById("globalSearch"),
-    globalResults: document.getElementById("globalResults"),
-
-    laneGrid: document.getElementById("laneGrid"),
-    laneTitle: document.getElementById("laneTitle"),
-    laneCount: document.getElementById("laneCount"),
-    laneSearch: document.getElementById("laneSearch"),
-    laneResults: document.getElementById("laneResults"),
-
-    machineGrid: document.getElementById("machineGrid"),
-    machineTitle: document.getElementById("machineTitle"),
-    machineCount: document.getElementById("machineCount"),
-    machineSearch: document.getElementById("machineSearch"),
-    machineResults: document.getElementById("machineResults"),
-
-    moveOverlay: document.getElementById("moveOverlay"),
-    moveTitle: document.getElementById("moveTitle"),
-    moveCloseBtn: document.getElementById("moveCloseBtn"),
-    moveLaneGrid: document.getElementById("moveLaneGrid"),
-    moveMachineGrid: document.getElementById("moveMachineGrid"),
-
-    job: document.getElementById("job"),
-    qty: document.getElementById("qty"),
-    status: document.getElementById("status"),
-    notes: document.getElementById("notes"),
-    updatedBy: document.getElementById("updatedBy"),
-    saveBtn: document.getElementById("saveBtn"),
-    newBtn: document.getElementById("newBtn"),
-    deleteBtn: document.getElementById("deleteBtn"),
-
-    historyBtn: document.getElementById("historyBtn"),
-    historyPanel: document.getElementById("historyPanel"),
-    historySearch: document.getElementById("historySearch"),
-    historyResults: document.getElementById("historyResults"),
-
-    exportBtn: document.getElementById("exportBtn"),
-    importBtn: document.getElementById("importBtn"),
-    seedBtn: document.getElementById("seedBtn"),
-    fileInput: document.getElementById("fileInput"),
-  };
-
-  let inventory = [];
-  let deletedItems = loadDeleted();
-
-  let selectedLane = "Lane 1";
-  let selectedMachine = MACHINES[0];
-  let selectedId = null;
-
-  let role = "forklift";
-  let adminUnlocked = false;
-  let moveTargetId = null;
-
-  function normalize(s){ return (s ?? "").trim().toLowerCase(); }
-  function onlyDigits(s){ return String(s ?? "").replace(/\D+/g, ""); }
-
-  function nowStamp(){
-    const d = new Date();
-    const mm = String(d.getMonth()+1).padStart(2,'0');
-    const dd = String(d.getDate()).padStart(2,'0');
-    const yy = String(d.getFullYear()).slice(-2);
-    const hh = String(d.getHours()).padStart(2,'0');
-    const mi = String(d.getMinutes()).padStart(2,'0');
-    return `${mm}/${dd}/${yy} ${hh}:${mi}`;
-  }
-
-  function escapeHtml(s){
-    return String(s ?? "")
-      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;").replaceAll("'","&#039;");
-  }
-
-  function saveDeleted(){ localStorage.setItem(DELETED_KEY, JSON.stringify(deletedItems)); }
-  function loadDeleted(){
-    try{
-      const raw = localStorage.getItem(DELETED_KEY);
-      if(!raw) return [];
-      const data = JSON.parse(raw);
-      return Array.isArray(data) ? data : [];
-    }catch{return [];}
-  }
-
-  async function loadInventory(){
-    try{
-      const data = await apiGet("/items");
-      return Array.isArray(data) ? data : [];
-    }catch(err){
-      console.error("Failed to load inventory from API", err);
-      return [];
-    }
-  }
-
-  function setRole(nextRole){
-    role = nextRole;
-
-    if(role !== "admin"){
-      adminUnlocked = false;
-      els.adminLockBtn.style.display = "none";
-      els.adminUnlockBtn.style.display = "inline-block";
-    }
-
-    updateRoleUI();
-    renderLaneList();
-    renderMachineList();
-    renderGlobalSearch();
-  }
-
-  function updateRoleUI(){
-    const effectiveRole = (role === "admin" && adminUnlocked) ? "ADMIN" : role.toUpperCase();
-    els.rolePill.textContent = `ROLE: ${effectiveRole}`;
-
-    const canDelete = (role === "admin" && adminUnlocked);
-    els.deleteBtn.disabled = !canDelete || !selectedId;
-
-    const forklift = role === "forklift";
-    const machineRole = role === "machine";
-    const admin = (role === "admin" && adminUnlocked);
-
-    const canCreate = admin;
-    const hasSelection = !!selectedId;
-
-    els.job.disabled = hasSelection || !canCreate;
-
-    els.qty.disabled = forklift;
-    els.status.disabled = forklift;
-    els.notes.disabled = forklift;
-    els.updatedBy.disabled = forklift;
-
-    els.saveBtn.disabled = forklift;
-    els.newBtn.disabled = forklift;
-  }
-
-  function buildLaneButtons(){
-    els.laneGrid.innerHTML = "";
-    for(let i=1;i<=12;i++){
-      const lane = `Lane ${i}`;
-      const btn = document.createElement("div");
-      btn.className = "laneBtn" + (lane===selectedLane ? " active" : "");
-      btn.textContent = lane;
-      btn.addEventListener("click", () => selectLane(lane));
-      els.laneGrid.appendChild(btn);
-    }
-  }
-
-  function buildMachineButtons(){
-    els.machineGrid.innerHTML = "";
-    MACHINES.forEach(m => {
-      const btn = document.createElement("div");
-      btn.className = "laneBtn" + (m===selectedMachine ? " active" : "");
-      btn.textContent = m;
-      btn.addEventListener("click", () => selectMachine(m));
-      els.machineGrid.appendChild(btn);
-    });
-  }
-
-  function selectLane(lane){
-    selectedLane = lane;
-    selectedId = null;
-    buildLaneButtons();
-    els.laneTitle.textContent = lane;
-    els.laneSearch.value = "";
-    clearForm();
-    renderLaneList();
-    renderGlobalSearch();
-  }
-
-  function selectMachine(m){
-    selectedMachine = m;
-    selectedId = null;
-    buildMachineButtons();
-    els.machineTitle.textContent = `Machine: ${m}`;
-    els.machineSearch.value = "";
-    clearForm();
-    renderMachineList();
-    renderGlobalSearch();
-  }
-
-  function renderLaneList(){
-    const q = normalize(els.laneSearch.value);
-    const laneItemsAll = inventory.filter(x => String(x.lane ?? "") === selectedLane);
-
-    let laneItems = laneItemsAll;
-    if(q){
-      laneItems = laneItemsAll.filter(x =>
-        normalize(x.job).includes(q) ||
-        normalize(x.status).includes(q)
-      );
-    }
-
-    els.laneCount.textContent = `${laneItemsAll.length} items`;
-    els.laneResults.innerHTML = "";
-
-    if(laneItemsAll.length === 0){
-      els.laneResults.innerHTML = `<div style="color:var(--muted)">Empty lane.</div>`;
-      return;
-    }
-    if(laneItems.length === 0){
-      els.laneResults.innerHTML = `<div style="color:var(--muted)">No match in this lane.</div>`;
-      return;
-    }
-
-    laneItems.sort((a,b) => (parseInt(a.job,10)||0) - (parseInt(b.job,10)||0));
-
-    laneItems.forEach(item => {
-      const div = document.createElement("div");
-      div.className = "resultItem" + (item.id===selectedId ? " active" : "");
-
-      const by = item.updatedBy ? ` • ${escapeHtml(item.updatedBy)}` : "";
-      const at = item.updatedAt ? ` • ${escapeHtml(item.updatedAt)}` : "";
-      const status = item.status ? escapeHtml(item.status) : "—";
-      const notes = item.notes ? escapeHtml(item.notes) : "—";
-
-      div.innerHTML = `
-        <div class="big">Job #${escapeHtml(item.job)}</div>
-        <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
-        <div class="meta">${escapeHtml(item.lane)} • Notes: ${notes}${by}${at}</div>
-      `;
-      div.addEventListener("click", ()=> loadToForm(item.id));
-      els.laneResults.appendChild(div);
-    });
-  }
-
-  function renderMachineList(){
-    const q = normalize(els.machineSearch.value);
-    const machineItemsAll = inventory.filter(x => String(x.machine ?? "") === selectedMachine);
-
-    let machineItems = machineItemsAll;
-    if(q){
-      machineItems = machineItemsAll.filter(x =>
-        normalize(x.job).includes(q) ||
-        normalize(x.status).includes(q)
-      );
-    }
-
-    els.machineCount.textContent = `${machineItemsAll.length} jobs`;
-    els.machineResults.innerHTML = "";
-
-    if(machineItemsAll.length === 0){
-      els.machineResults.innerHTML = `<div style="color:var(--muted)">Empty machine.</div>`;
-      return;
-    }
-    if(machineItems.length === 0){
-      els.machineResults.innerHTML = `<div style="color:var(--muted)">No match on this machine.</div>`;
-      return;
-    }
-
-    machineItems.sort((a,b) => (parseInt(a.job,10)||0) - (parseInt(b.job,10)||0));
-
-    machineItems.forEach(item => {
-      const div = document.createElement("div");
-      div.className = "resultItem" + (item.id===selectedId ? " active" : "");
-
-      const by = item.updatedBy ? ` • ${escapeHtml(item.updatedBy)}` : "";
-      const at = item.updatedAt ? ` • ${escapeHtml(item.updatedAt)}` : "";
-      const status = item.status ? escapeHtml(item.status) : "—";
-      const notes = item.notes ? escapeHtml(item.notes) : "—";
-
-      div.innerHTML = `
-        <div class="big">Job #${escapeHtml(item.job)}</div>
-        <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
-        <div class="meta">Machine: ${escapeHtml(item.machine)} • Notes: ${notes}${by}${at}</div>
-      `;
-      div.addEventListener("click", ()=> loadToForm(item.id));
-      els.machineResults.appendChild(div);
-    });
-  }
-
-  function renderGlobalSearch(){
-    const q = normalize(els.globalSearch.value);
-    els.globalResults.innerHTML = "";
-
-    if(!q){
-      els.globalResults.innerHTML = `<div style="color:var(--muted)">Type a Job # to search all lanes/machines.</div>`;
-      return;
-    }
-
-    const matches = inventory
-      .filter(x => normalize(x.job).includes(q))
-      .slice(0, 15);
-
-    if(matches.length === 0){
-      els.globalResults.innerHTML = `<div style="color:var(--muted)">No match found.</div>`;
-      return;
-    }
-
-    matches.forEach(item => {
-      const div = document.createElement("div");
-      div.className = "resultItem";
-
-      const created = item.createdAt ? escapeHtml(item.createdAt) : "—";
-      const updated = item.updatedAt ? escapeHtml(item.updatedAt) : "—";
-      const status = item.status ? escapeHtml(item.status) : "—";
-      const notes = item.notes ? escapeHtml(item.notes) : "—";
-
-      const canMove = (role === "forklift") || (role === "admin" && adminUnlocked);
-
-      const location = item.machine
-        ? `Machine: ${escapeHtml(item.machine)}`
-        : (item.lane ? escapeHtml(item.lane) : "—");
-
-      div.innerHTML = `
-        <div class="big">Job #${escapeHtml(item.job)}</div>
-        <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
-        <div class="meta">
-          ${location}
-          • Added: ${created}
-          • Updated: ${updated}
-          • Notes: ${notes}
-        </div>
-        ${canMove ? `
-          <div class="btnRow" style="margin-top:10px;">
-            <button class="primary" data-move="1">Move</button>
-          </div>
-        ` : ``}
-      `;
-
-      const moveBtn = div.querySelector('[data-move]');
-      if(moveBtn){
-        moveBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          openMoveOverlay(item.id);
-        });
-      }
-
-      div.addEventListener("click", () => {
-        if(item.machine){
-          selectMachine(item.machine);
-        }else if(item.lane){
-          selectLane(item.lane);
-        }
-        loadToForm(item.id);
-      });
-
-      els.globalResults.appendChild(div);
-    });
-  }
-
-  function clearForm(){
-    selectedId = null;
-    els.job.value = "";
-    els.qty.value = "";
-    els.status.value = "";
-    els.notes.value = "";
-    els.updatedBy.value = "";
-    updateRoleUI();
-  }
-
-  function loadToForm(id){
-    const item = inventory.find(x => x.id === id);
-    if(!item) return;
-    selectedId = id;
-
-    els.job.value = item.job ?? "";
-    els.qty.value = String(item.qty ?? 0);
-    els.status.value = item.status ?? "";
-    els.notes.value = item.notes ?? "";
-    els.updatedBy.value = item.updatedBy ?? "";
-
-    updateRoleUI();
-    renderLaneList();
-    renderMachineList();
-  }
-
-  async function upsertItem(){
-    const machineRole = role === "machine";
-    const admin = (role === "admin" && adminUnlocked);
-
-    if(!(machineRole || admin)){
-      alert("Forklift role cannot edit job details.");
-      return;
-    }
-
-    if(machineRole && !selectedId){
-      alert("Machine role cannot create new jobs. Ask Admin.");
-      return;
-    }
-
-    const jobRaw = onlyDigits(els.job.value).trim();
-    if(!jobRaw){
-      alert("Job # is required (numbers only).");
-      els.job.focus();
-      return;
-    }
-
-    const qty = Math.max(0, parseInt(els.qty.value || "0", 10));
-    const status = els.status.value.trim().slice(0, 40);
-    const notes = els.notes.value.trim().slice(0, 120);
-    const updatedBy = els.updatedBy.value.trim().slice(0, 10);
-    const stamp = nowStamp();
-
-    // UPDATE
-    if(selectedId){
-      const idx = inventory.findIndex(x => x.id === selectedId);
-      if(idx < 0) return;
-
-      const updatedItem = {
-        ...inventory[idx],
-        qty,
-        status,
-        notes,
-        updatedBy,
-        updatedAt: stamp
+  }catch(e){console.warn(e);}
+}
+
+async function loadInventory(){
+  try{
+    const r=await fetch(`${API}/items`,{cache:"no-store"});
+    const d=await r.json().catch(()=>({}));
+    const raw=Array.isArray(d)?d:(d.items||d.rows||[]);
+    inventory=raw.map(it=>{
+      const lid=Number(it.location_id??it.locationId??0);
+      const loc=locations.find(l=>l.id===lid);
+      return{
+        id:it.item_id??it.id,
+        job:String(it.job_number??it.job??"").trim().toUpperCase(),
+        mo:String(it.mo??"").trim().toUpperCase(),
+        qty:parseInt(it.qty??0,10),
+        status:String(it.status??"").trim(),
+        lane:loc?.laneNum?`Lane ${loc.laneNum}`:"",
+        machine:loc?.machName||"",
+        location_id:lid,
+        notes:it.notes||""
       };
+    }).filter(x=>x.job&&x.status.toLowerCase()!=="deleted");
+  }catch(e){console.warn(e);}
+}
 
-      try{
-        const saved = await apiPut(`/items/${selectedId}`, updatedItem);
-        inventory[idx] = saved ?? updatedItem;
-      }catch(e){
-        console.warn("API update failed; keeping local view", e);
-        inventory[idx] = updatedItem;
-      }
+function findJob(q){
+  const s=String(q).trim().toUpperCase();
+  return inventory.filter(x=>x.job===s||x.mo===s);
+}
 
-      els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
-      renderLaneList();
-      renderMachineList();
-      renderGlobalSearch();
-      return;
-    }
-
-    // CREATE
-    const exists = inventory.some(x => normalize(x.job) === normalize(jobRaw));
-    if(exists){
-      alert("That Job # already exists. Search it and update it instead.");
-      return;
-    }
-
-    const newItem = {
-      job: jobRaw,
-      lane: selectedLane,
-      machine: "",
-      qty,
-      status,
-      notes,
-      updatedBy,
-      createdAt: stamp,
-      updatedAt: stamp
-    };
-
-    try{
-      const created = await apiPost("/items", newItem);
-      inventory.unshift(created);
-      selectedId = created.id;
-    }catch(e){
-      console.error(e);
-      alert("Create failed (API). Check /items endpoint.");
-      return;
-    }
-
-    els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
-    updateRoleUI();
-    renderLaneList();
-    renderMachineList();
-    renderGlobalSearch();
+// ── hub ────────────────────────────────────────────────────────────────────
+async function enterHub(user){
+  const h=new Date().getHours();
+  $("hubGreet").textContent=(h<12?"Good Morning":h<17?"Good Afternoon":"Good Evening")+", "+(user.display_name||user.name||"Driver");
+  $("hubAdmin").style.display=user.role==="admin"?"block":"none";
+  $("pillStatus").textContent="UNLOCKED";
+  $("viewPin").classList.add("hide");
+  $("viewHub").classList.remove("hide");
+  $("jobLine").textContent="Loading…";
+  await loadLocations();
+  await loadInventory();
+  buildKioskLaneButtons();
+  // load job from QR scan
+  if(scannedJob){
+    const m=findJob(scannedJob);
+    if(!m.length){$("jobLine").textContent=`Job #${scannedJob} not found`;$("jobStatus").textContent="NOT FOUND";}
+    else if(m.length===1) setActive(m[0]);
+    else showWhich(m,picked=>setActive(picked));
+  } else {
+    $("jobLine").textContent="No job loaded";
   }
+}
 
-  async function deleteSelected(){
-    const admin = (role === "admin" && adminUnlocked);
-    if(!admin){
-      alert("Only Admin can delete.");
-      return;
-    }
-    if(!selectedId) return;
+function setActive(item){
+  activeItem=item;
+  const loc=item.machine?`Machine ${item.machine}`:(item.lane||"No location");
+  const moStr = item.mo ? `MO ${item.mo} &bull; ` : `<span style="color:#ff7f7f;font-size:12px;">MO missing</span><span style="color:#eaf2ff;"> &bull; </span>`;
+$("jobLine").innerHTML=`<span style="color:#eaf2ff;font-weight:700;">Job ${item.job} &bull; </span>${moStr}<span style="color:#eaf2ff;font-weight:700;">QTY ${item.qty}</span><br><span style="color:#6dbf8a;font-size:15px;">Location: ${loc}</span>`;
+$("jobStatus").textContent=item.status||"active";
+const statusColors={
+  "Printed":"#1a3a1a;color:#7fff7f",
+  "On Press":"#3a2a00;color:#ffd166",
+  "On Hold":"#3a1a1a;color:#ff7f7f",
+  "Completed":"#1a3a1a;color:#7fff7f",
+  "Tauro Queue":"#1a2a3a;color:#4fc3f7",
+};
+const sc=statusColors[item.status]||"transparent;color:var(--muted)";
+$("jobStatus").style.cssText=`background:${sc.split(";")[0]};${sc.split(";")[1]};border-color:transparent;`;
+}
 
-    const item = inventory.find(x => x.id === selectedId);
-    const ok = confirm(`Delete Job #${item?.job ?? ""}? (It will go to History)`);
-    if(!ok) return;
+$("hubLogout").onclick=()=>{
+  clearAuth();activeItem=null;takingQty=null;
+  $("viewHub").classList.add("hide");$("viewPin").classList.remove("hide");
+  $("pillStatus").textContent="LOCKED";
+};
+$("hubAdmin").onclick=()=>location.href=ADMIN;
+$("hubSearch").onclick=openSearch;
 
-    try{
-      await apiDel(`/items/${selectedId}`);
-    }catch(e){
-      console.warn("API delete failed; removing locally anyway", e);
-    }
-
-    if(item){
-      deletedItems.unshift({ ...item, deletedAt: nowStamp() });
-      saveDeleted();
-    }
-
-    inventory = inventory.filter(x => x.id !== selectedId);
-    els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
-    clearForm();
-    renderLaneList();
-    renderMachineList();
-    renderGlobalSearch();
-    if(els.historyPanel.style.display !== "none") renderHistory();
+// ══════════════════════════════════════════════════════════════════════════
+//   MOVE BUTTON FLOW
+// ══════════════════════════════════════════════════════════════════════════
+$("hubMove").onclick=()=>{
+  if(!activeItem){toast("No job loaded — scan a job first",true);return;}
+  const {user}=auth();
+  if(user?.role==="operator"){
+    doMove("Lane 1", locByLane.get("Lane 1"));
+  } else {
+    openPartial();
   }
+};
 
-  function openMoveOverlay(id){
-    const item = inventory.find(x => x.id === id);
-    if(!item) return;
+// ── Overlay 1: Full or Partial? ────────────────────────────────────────────
+function openPartial(){
+  takingQty=null;
+  $("ovPartialInfo").textContent=`Job ${activeItem.job}  \u2022  MO ${activeItem.mo||"-"}  \u2022  QTY ${activeItem.qty}`;
+  $("qtyArea").classList.add("hide");
+  $("qtyInput").value="";
+  $("ovPartial").classList.remove("hide");
+}
 
-    const allowed = (role === "forklift") || (role === "admin" && adminUnlocked);
-    if(!allowed){
-      alert("Only Forklift (or Admin) can move jobs.");
-      return;
-    }
+$("btnYesFull").onclick=()=>{
+  takingQty=null;
+  $("ovPartial").classList.add("hide");
+  openDest();
+};
 
-    moveTargetId = id;
-    els.moveTitle.textContent = `Move Job #${item.job}`;
+$("btnNoPartial").onclick=()=>{
+  $("qtyArea").classList.remove("hide");
+  $("qtyInput").focus();
+};
 
-    els.moveLaneGrid.innerHTML = "";
-    for(let i=1;i<=12;i++){
-      const lane = `Lane ${i}`;
-      const btn = document.createElement("div");
-      btn.className = "laneBtn";
-      btn.textContent = lane;
-      btn.addEventListener("click", async () => {
-        await moveToLane(moveTargetId, lane);
-        closeMoveOverlay();
-      });
-      els.moveLaneGrid.appendChild(btn);
-    }
+$("btnConfirmQty").onclick=()=>{
+  const v=parseInt($("qtyInput").value||"0",10);
+  if(!v||v<=0){toast("Enter a valid qty",true);return;}
+  if(v>=activeItem.qty){toast("That covers the full qty — tap YES instead",true);return;}
+  takingQty=v;
+  $("ovPartial").classList.add("hide");
+  openDest();
+};
 
-    els.moveMachineGrid.innerHTML = "";
-    MACHINES.forEach(m => {
-      const btn = document.createElement("div");
-      btn.className = "laneBtn";
-      btn.textContent = m;
-      btn.addEventListener("click", async () => {
-        await moveToMachine(moveTargetId, m);
-        closeMoveOverlay();
-      });
-      els.moveMachineGrid.appendChild(btn);
+$("btnCancelPartial").onclick=()=>{$("ovPartial").classList.add("hide");takingQty=null;};
+
+// ── Overlay 2: Pick destination ────────────────────────────────────────────
+function openDest(){
+  $("destType").classList.remove("hide");
+  $("destLanes").classList.add("hide");
+  $("destMachines").classList.add("hide");
+  $("ovDest").classList.remove("hide");
+}
+function closeDest(){$("ovDest").classList.add("hide");}
+
+$("btnPickLane").onclick   =()=>{$("destType").classList.add("hide");$("destLanes").classList.remove("hide");};
+$("btnPickMachine").onclick=()=>{$("destType").classList.add("hide");$("destMachines").classList.remove("hide");};
+$("backFromLanes").onclick   =()=>{$("destLanes").classList.add("hide");$("destType").classList.remove("hide");};
+$("backFromMachines").onclick=()=>{$("destMachines").classList.add("hide");$("destType").classList.remove("hide");};
+$("btnCancelDest").onclick   =()=>{closeDest();takingQty=null;};
+
+// Build lane buttons 1-12
+function buildKioskLaneButtons(){
+  const g=$("laneGrid");
+  g.innerHTML="";
+  const sorted = locations
+    .filter(l=>l.laneNum)
+    .sort((a,b)=>{
+      const aStr=String(a.laneNum), bStr=String(b.laneNum);
+      const aNum=parseInt(aStr,10), bNum=parseInt(bStr,10);
+      const aIsA=/[A-Za-z]/.test(aStr), bIsA=/[A-Za-z]/.test(bStr);
+      if(aIsA!==bIsA) return aIsA?1:-1;
+      if(aNum!==bNum) return aNum-bNum;
+      return aStr.localeCompare(bStr,undefined,{numeric:true});
     });
-
-    els.moveOverlay.classList.add("show");
+  if(sorted.length===0){
+    g.innerHTML=`<div style="color:var(--muted);font-size:13px;grid-column:1/-1;">No lanes found.</div>`;
+    return;
   }
-
-  function closeMoveOverlay(){
-    els.moveOverlay.classList.remove("show");
-    moveTargetId = null;
-  }
-
-  async function moveToLane(id, lane){
-    const item = inventory.find(x => x.id === id);
-    if(!item) return;
-
-    const updatedItem = { ...item, lane, machine:"", updatedAt: nowStamp() };
-
-    try{
-      const saved = await apiPut(`/items/${id}`, updatedItem);
-      Object.assign(item, saved ?? updatedItem);
-    }catch(e){
-      console.warn("API move failed; keeping local view", e);
-      Object.assign(item, updatedItem);
-    }
-
-    selectLane(lane);
-    renderMachineList();
-    renderGlobalSearch();
-    loadToForm(item.id);
-  }
-
-  async function moveToMachine(id, machine){
-    const item = inventory.find(x => x.id === id);
-    if(!item) return;
-
-    const updatedItem = { ...item, machine, lane:"", updatedAt: nowStamp() };
-
-    try{
-      const saved = await apiPut(`/items/${id}`, updatedItem);
-      Object.assign(item, saved ?? updatedItem);
-    }catch(e){
-      console.warn("API move failed; keeping local view", e);
-      Object.assign(item, updatedItem);
-    }
-
-    selectMachine(machine);
-    renderLaneList();
-    renderGlobalSearch();
-    loadToForm(item.id);
-  }
-
-  function toggleHistory(){
-    const open = els.historyPanel.style.display !== "none";
-    els.historyPanel.style.display = open ? "none" : "block";
-    if(!open){
-      els.historySearch.value = "";
-      renderHistory();
-    }
-  }
-
-  function renderHistory(){
-    const q = normalize(els.historySearch.value);
-    els.historyResults.innerHTML = "";
-
-    let list = deletedItems;
-    if(q){
-      list = deletedItems.filter(x =>
-        normalize(x.job).includes(q) ||
-        normalize(x.lane).includes(q) ||
-        normalize(x.machine).includes(q)
-      );
-    }
-
-    if(list.length === 0){
-      els.historyResults.innerHTML = `<div style="color:var(--muted)">No deleted jobs.</div>`;
-      return;
-    }
-
-    list.slice(0, 60).forEach(item => {
+  let dividerAdded = false;
+  sorted.forEach(l=>{
+    const isALane = /[A-Za-z]/.test(l.laneNum);
+    if(isALane && !dividerAdded){
+      dividerAdded = true;
       const div = document.createElement("div");
-      div.className = "resultItem";
+      div.style.cssText = "grid-column:1/-1;height:1px;background:rgba(42,127,255,.3);margin:4px 0;";
+      g.appendChild(div);
+    }
+    const label="Lane "+l.laneNum;
+    const b=document.createElement("button");
+    b.className="sbtn";b.textContent=label;
+    b.onclick=()=>doMove(label, locByLane.get(label));
+    g.appendChild(b);
+  });
+ }
 
-      const when = item.deletedAt ? escapeHtml(item.deletedAt) : "—";
-      const status = item.status ? escapeHtml(item.status) : "—";
-      const notes = item.notes ? escapeHtml(item.notes) : "—";
+// Build machine buttons
+["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane"].forEach(m=>{
+  const b=document.createElement("button");
+  b.className="sbtn";b.textContent=m;
+  b.onclick=()=>doMove(m, locByMach.get(m));
+  $("machGrid").appendChild(b);
+});
 
-      const wasWhere = item.machine
-        ? `Machine: ${escapeHtml(item.machine)}`
-        : `Was: ${escapeHtml(item.lane || "—")}`;
+// ── The actual API calls ────────────────────────────────────────────────────
+async function doMove(label, destId){
+  closeDest();
+  if(!destId){toast(`"${label}" has no DB location`,true);return;}
+  const {token,user}=auth();
+  const by=user?.display_name||user?.name||"kiosk";
+  const item=activeItem;
 
-      const canRestore = (role === "admin" && adminUnlocked);
+  try{
+    const body={location_id:destId, updated_by:by};
+    if(takingQty!==null) body.qty=takingQty;
 
-      div.innerHTML = `
-        <div class="big">Job #${escapeHtml(item.job)}</div>
-        <div class="qty">Qty: ${Number.isFinite(item.qty) ? item.qty : 0} • Status: ${status}</div>
-        <div class="meta">${wasWhere} • Deleted: ${when} • Notes: ${notes}</div>
-        ${canRestore ? `<div class="tiny">Restore can be added when API supports it.</div>`
-                     : `<div class="tiny">Admin required.</div>`}
-      `;
-
-      els.historyResults.appendChild(div);
+    const r=await fetch(`${API}/items/${item.id}/move`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
+      body:JSON.stringify(body)
     });
-  }
-
-  function exportJson(){
-    const blob = new Blob([JSON.stringify(inventory, null, 2)], {type:"application/json"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `trace_backup_${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(a.href);
-  }
-
-  function importJsonFile(file){
-    const reader = new FileReader();
-    reader.onload = async () => {
-      try{
-        const data = JSON.parse(reader.result);
-        if(!Array.isArray(data)) throw new Error("Invalid file format.");
-
-        // NOTE: This import is local-only; use carefully.
-        inventory = data;
-        els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
-        clearForm();
-        renderLaneList();
-        renderMachineList();
-        renderGlobalSearch();
-        alert("Import loaded into view. (Does not auto-write to API.)");
-      }catch(e){
-        alert("Import failed: " + e.message);
-      }
-    };
-    reader.readAsText(file);
-  }
-
-  function seedDemo(){
-    const stamp = nowStamp();
-    const demo = [
-      { job:"400848", lane:"Lane 7", machine:"", qty:12, status:"WAITING", notes:"", updatedBy:"TR", createdAt:stamp, updatedAt:stamp },
-      { job:"70800",  lane:"", machine:"S8", qty:30, status:"RUNNING", notes:"", updatedBy:"TR", createdAt:stamp, updatedAt:stamp },
-      { job:"123456", lane:"Lane 1", machine:"", qty:50, status:"READY",   notes:"", updatedBy:"TR", createdAt:stamp, updatedAt:stamp },
-    ];
-    inventory = [...demo, ...inventory];
-    els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
-    renderLaneList();
-    renderMachineList();
-    renderGlobalSearch();
-  }
-
-  function toggleFullscreen(){
-    if(!document.fullscreenElement){
-      document.documentElement.requestFullscreen().catch(()=>{});
-    }else{
-      document.exitFullscreen().catch(()=>{});
-    }
-  }
-
-  // events
-  els.globalSearch.addEventListener("input", renderGlobalSearch);
-  els.laneSearch.addEventListener("input", renderLaneList);
-  els.machineSearch.addEventListener("input", renderMachineList);
-
-  els.saveBtn.addEventListener("click", upsertItem);
-  els.newBtn.addEventListener("click", clearForm);
-  els.deleteBtn.addEventListener("click", deleteSelected);
-
-  els.exportBtn.addEventListener("click", exportJson);
-  els.importBtn.addEventListener("click", () => els.fileInput.click());
-  els.fileInput.addEventListener("change", (e) => {
-    const file = e.target.files?.[0];
-    if(file) importJsonFile(file);
-    els.fileInput.value = "";
-  });
-  els.seedBtn.addEventListener("click", seedDemo);
-
-  els.historyBtn.addEventListener("click", toggleHistory);
-  els.historySearch.addEventListener("input", renderHistory);
-
-  els.moveCloseBtn.addEventListener("click", closeMoveOverlay);
-  els.moveOverlay.addEventListener("click", (e) => {
-    if(e.target === els.moveOverlay) closeMoveOverlay();
-  });
-
-  els.roleSelect.addEventListener("change", (e) => {
-    const v = e.target.value;
-    if(v === "admin"){
-      setRole("admin");
-    }else{
-      setRole(v);
-    }
-  });
-
-  els.adminUnlockBtn.addEventListener("click", () => {
-    const pin = prompt("Enter Admin PIN:");
-    if(pin === null) return;
-    if(String(pin).trim() !== ADMIN_PIN){
-      alert("Wrong PIN.");
-      els.roleSelect.value = "forklift";
-      setRole("forklift");
+    if(r.status===401){
+      clearAuth();
+      toast("Session expired — please log in again",true);
+      setTimeout(()=>{
+        activeItem=null;takingQty=null;
+        $("viewHub").classList.add("hide");
+        $("viewPin").classList.remove("hide");
+        $("pillStatus").textContent="LOCKED";
+      },1500);
       return;
     }
-    role = "admin";
-    adminUnlocked = true;
-    els.adminUnlockBtn.style.display = "none";
-    els.adminLockBtn.style.display = "inline-block";
-    els.roleSelect.value = "admin";
-    updateRoleUI();
-    renderGlobalSearch();
-  });
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||d.ok===false) throw new Error(d.error||"Move failed");
 
-  els.adminLockBtn.addEventListener("click", () => {
-    adminUnlocked = false;
-    els.adminLockBtn.style.display = "none";
-    els.adminUnlockBtn.style.display = "inline-block";
-    els.roleSelect.value = "forklift";
-    setRole("forklift");
-  });
-
-  els.job.addEventListener("input", () => {
-    els.job.value = onlyDigits(els.job.value);
-  });
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key.toLowerCase() === "f") toggleFullscreen();
-    if(e.key === "Escape") closeMoveOverlay();
-
-    const tag = document.activeElement?.tagName?.toLowerCase();
-    const typing = tag === "input" || tag === "textarea" || document.activeElement?.isContentEditable;
-    if (typing) return;
-
-    if (/^[1-9]$/.test(e.key)) {
-      const laneNum = parseInt(e.key, 10);
-      if (laneNum >= 1 && laneNum <= 12) selectLane(`Lane ${laneNum}`);
+    if(takingQty!==null){
+      const remaining=item.qty-takingQty;
+      toast(`${takingQty} of ${item.job} \u2192 ${label} \u2022 ${remaining} remaining`);
+      // Non-blocking email notify
+      fetch(`${API}/notify/partial-pick`,{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({job:item.job,mo:item.mo,taken:takingQty,remaining,destination:label,driver:by})
+      }).catch(()=>{});
+    } else {
+      toast(`Job ${item.job} moved to ${label}`);
     }
+
+    takingQty=null;
+    await loadLocations();
+    await loadInventory();
+    buildKioskLaneButtons();
+    const fresh=findJob(item.job);
+    if(fresh.length) setActive(fresh[0]);
+
+  }catch(e){
+    toast(e.message||"Move failed",true);
+  }
+}
+
+async function put(id,body,token){
+  const r=await fetch(`${API}/items/${id}`,{method:"PUT",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify(body)});
+  if(r.status===401){
+    clearAuth();
+    toast("Session expired — please log in again",true);
+    setTimeout(()=>{
+      activeItem=null;takingQty=null;
+      $("viewHub").classList.add("hide");
+      $("viewPin").classList.remove("hide");
+      $("pillStatus").textContent="LOCKED";
+    },1500);
+    throw new Error("Session expired");
+  }
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok||d.ok===false) throw new Error(d.error||"Update failed");
+  return d;
+}
+async function post(body,token){
+  const r=await fetch(`${API}/items`,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify(body)});
+  if(r.status===401){
+    clearAuth();
+    toast("Session expired — please log in again",true);
+    setTimeout(()=>{
+      activeItem=null;takingQty=null;
+      $("viewHub").classList.add("hide");
+      $("viewPin").classList.remove("hide");
+      $("pillStatus").textContent="LOCKED";
+    },1500);
+    throw new Error("Session expired");
+  }
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok||d.ok===false) throw new Error(d.error||"Create failed");
+  return d;
+}
+
+// ── Multi-pallet picker ─────────────────────────────────────────────────────
+function showWhich(matches, onPick){
+  const g=$("whichGrid");g.innerHTML="";
+  matches.forEach(item=>{
+    const loc=item.machine?`Machine ${item.machine}`:(item.lane||"No location");
+    const b=document.createElement("button");
+    b.className="sbtn";
+    b.innerHTML=`<div style="font-size:14px;font-weight:900">${loc}</div><div style="font-size:11px;margin-top:3px;opacity:.7">QTY ${item.qty}</div>`;
+    b.onclick=()=>{$("ovWhich").classList.add("hide");onPick(item);};
+    g.appendChild(b);
   });
+  $("btnWhichCancel").onclick=()=>$("ovWhich").classList.add("hide");
+  $("ovWhich").classList.remove("hide");
+}
 
-  [els.job, els.qty, els.status, els.notes, els.updatedBy].forEach(el => {
-    el.addEventListener("keydown", (e) => {
-      if(e.key === "Enter"){
-        e.preventDefault();
-        if(!els.saveBtn.disabled) upsertItem();
-      }
-    });
+// ── Search ──────────────────────────────────────────────────────────────────
+function openSearch(){
+  $("searchInput").value="";$("searchMsg").textContent="";
+  $("searchResult").classList.add("hide");pendingSearch=null;
+  $("ovSearch").classList.remove("hide");
+  setTimeout(()=>$("searchInput").focus(),50);
+}
+$("btnSearchCancel").onclick=()=>$("ovSearch").classList.add("hide");
+
+$("btnDoSearch").onclick=()=>{
+  const q=$("searchInput").value.trim();
+  if(!q){$("searchMsg").textContent="Enter a job number or MO.";return;}
+  const m=findJob(q);
+if(!m.length){$("searchMsg").textContent="Not found in TRACE.";$("searchResult").classList.add("hide");return;}
+
+// Multiple matches — show the which-pallet picker then load result
+if(m.length>1){
+  $("ovSearch").classList.add("hide");
+  showWhich(m, picked=>{
+    setActive(picked);
+    toast("Job loaded");
   });
+  return;
+}
 
-  // ONE init block
-  (async () => {
-    try{
-      inventory = await loadInventory();
-      els.itemsPill.textContent = `ITEMS: ${inventory.length}`;
+pendingSearch=m[0];
+$("searchMsg").textContent="";
+const loc=m[0].machine?`Machine ${m[0].machine}`:(m[0].lane||"No location");
+$("srTitle").textContent=`Job ${m[0].job} \u2022 MO ${m[0].mo||"-"} \u2022 QTY ${m[0].qty}`;
+$("srSub").innerHTML=`<span style="color:#6dbf8a;font-size:13px;">Location: ${loc}</span>`;
+$("searchResult").classList.remove("hide");
+};  // ← closes btnDoSearch.onclick
 
-      buildLaneButtons();
-      buildMachineButtons();
+$("btnLoadSearchJob").onclick=()=>{
+  if(!pendingSearch) return;
+  setActive(pendingSearch);
+  $("ovSearch").classList.add("hide");
+  toast("Job loaded");
+};
 
-      els.laneTitle.textContent = selectedLane;
-      els.machineTitle.textContent = `Machine: ${selectedMachine}`;
 
-      renderLaneList();
-      renderMachineList();
-      renderGlobalSearch();
+// ====== STATUS UPDATE ======
+const STATUSES_KEY = "trace_statuses_v1";
+const DEFAULT_STATUSES = ["Tauro Queue","On Press","Printed","Partially Printed","On Hold","Completed","Move To Lane"];
 
-      setRole("forklift");
-    }catch(err){
-      console.error("Init failed:", err);
-    }
-  })();
-  </script>
+function getStatuses(){
+  try{ const r = localStorage.getItem(STATUSES_KEY); return r ? JSON.parse(r) : [...DEFAULT_STATUSES]; }
+  catch(e){ return [...DEFAULT_STATUSES]; }
+}
+
+$("hubStatus").onclick = () => {
+  if(!activeItem){ toast("No job loaded — scan a job first", true); return; }
+  $("ovStatusJob").textContent = `Job ${activeItem.job} • Current: ${activeItem.status || "—"}`;
+  const grid = $("statusBtnGrid");
+  grid.innerHTML = "";
+  getStatuses().forEach(s => {
+    const b = document.createElement("button");
+    b.className = "btn";
+    b.textContent = s;
+    b.onclick = () => applyStatus(s);
+    grid.appendChild(b);
+  });
+  $("ovStatus").classList.remove("hide");
+};
+
+$("btnStatusCancel").onclick = () => $("ovStatus").classList.add("hide");
+
+async function applyStatus(status){
+  $("ovStatus").classList.add("hide");
+  const { token, user } = auth();
+  const by = user?.display_name || user?.name || "kiosk";
+  try{
+    await put(activeItem.id, {
+      location_id: activeItem.location_id,
+      mo: activeItem.mo || "",
+      qty: activeItem.qty,
+      status: status,
+      notes: activeItem.notes || "",
+      updated_by: by
+    }, token);
+    activeItem.status = status;
+    setActive(activeItem);
+    toast(`Status updated → ${status}`);
+  } catch(e){
+    toast(e.message || "Update failed", true);
+  }
+}
+
+// ── Boot ────────────────────────────────────────────────────────────────────
+(async function boot(){
+  renderPin();
+  try{
+    const r=await fetch(`${API}/health`,{cache:"no-store"});
+    $("pillStatus").textContent="LOCKED";
+  }catch(e){$("pillStatus").textContent="LOCKED";}
+  const {token,user}=auth();
+  if(token&&user) enterHub(user);
+})();
+</script>
 </body>
 </html>
