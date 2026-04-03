@@ -2362,6 +2362,7 @@ input[type="number"] {
   <button class="ghost" id="openQueueBtn">Print Dept. Queue</button>
   <button class="ghost" id="openFeedBtn">Activity Feed</button>
   <button class="ghost" id="openPartialPicksBtn">Partial Pick Log</button>
+  <button class="ghost" id="openAuditBtn">Inventory Audit</button>
   <div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#6C86A8;padding:4px 2px;margin-top:8px;border-bottom:1px solid rgba(42,127,255,0.15);margin-bottom:4px;">Administration</div>
   <button class="ghost" id="openUsersBtn">User Management</button>
   <button class="ghost" id="openStatusesBtn">Status Options</button>
@@ -2700,6 +2701,100 @@ input[type="number"] {
     </div>
   </div>
 </div>
+
+<!-- INVENTORY AUDIT PAGE -->
+<div id="auditPage" class="appPage hidden">
+  <div class="wrap" style="max-width:900px;">
+    <div class="pageHeader">
+      <button class="ghost" id="auditPageBack">← Back</button>
+      <h2 style="margin:0;font-size:18px;letter-spacing:.08em;text-transform:uppercase;">Inventory Audit</h2>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="auditProgress" class="completedCount">0 / 0</span>
+      </div>
+    </div>
+
+    <!-- Lane Selector -->
+    <div id="auditLaneSelector" style="margin-bottom:16px;">
+      <div style="font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:rgba(140,170,255,.68);margin-bottom:8px;">Select Lane to Audit</div>
+      <div class="laneGrid" id="auditLaneGrid"></div>
+    </div>
+
+    <!-- Audit Active View -->
+    <div id="auditActiveView" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;">
+        <div>
+          <div style="font-size:20px;font-weight:900;color:#fff;" id="auditLaneTitle">Lane 1</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;" id="auditLaneSub">0 items expected</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="ghost" id="auditCheckAllBtn">Check All</button>
+          <button class="ghost" id="auditUncheckAllBtn">Uncheck All</button>
+        </div>
+      </div>
+
+      <!-- Expected Items List -->
+      <div style="font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:rgba(140,170,255,.62);margin-bottom:8px;">Expected Items</div>
+      <div id="auditExpectedList" class="results" style="margin-bottom:16px;"></div>
+
+      <!-- Add Unexpected Item -->
+      <div style="background:var(--panel);border:1px solid var(--stroke);border-radius:12px;padding:14px;margin-bottom:16px;">
+        <div style="font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,209,102,.68);margin-bottom:8px;">Found Something Not Listed?</div>
+        <div style="display:flex;gap:10px;">
+          <input id="auditUnexpectedInput" type="text" placeholder="Enter Item # or scan" style="flex:1;">
+          <button class="primary" id="auditAddUnexpectedBtn" style="white-space:nowrap;">+ Add</button>
+        </div>
+        <div id="auditUnexpectedList" class="results" style="margin-top:10px;"></div>
+      </div>
+
+      <!-- Complete Audit -->
+      <button class="primary" id="auditCompleteBtn" style="width:100%;padding:14px;font-size:16px;margin-bottom:14px;">
+        Complete Audit
+      </button>
+    </div>
+
+    <!-- Audit Summary -->
+    <div id="auditSummary" style="display:none;">
+      <div style="font-size:20px;font-weight:900;color:#fff;margin-bottom:4px;" id="auditSummaryTitle">Audit Complete</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;" id="auditSummaryTimestamp"></div>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
+        <div style="background:rgba(138,255,138,.08);border:1px solid rgba(138,255,138,.22);border-radius:12px;padding:14px;text-align:center;">
+          <div style="font-size:28px;font-weight:900;color:#8aff8a;" id="auditConfirmedNum">0</div>
+          <div style="font-size:11px;font-weight:800;color:rgba(138,255,138,.7);letter-spacing:.1em;text-transform:uppercase;">Confirmed</div>
+        </div>
+        <div style="background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.22);border-radius:12px;padding:14px;text-align:center;">
+          <div style="font-size:28px;font-weight:900;color:#ff6b6b;" id="auditMissingNum">0</div>
+          <div style="font-size:11px;font-weight:800;color:rgba(255,107,107,.7);letter-spacing:.1em;text-transform:uppercase;">Missing</div>
+        </div>
+        <div style="background:rgba(255,209,102,.08);border:1px solid rgba(255,209,102,.22);border-radius:12px;padding:14px;text-align:center;">
+          <div style="font-size:28px;font-weight:900;color:#ffd166;" id="auditUnexpectedNum">0</div>
+          <div style="font-size:11px;font-weight:800;color:rgba(255,209,102,.7);letter-spacing:.1em;text-transform:uppercase;">Unexpected</div>
+        </div>
+      </div>
+
+      <div id="auditSummaryConfirmedWrap" style="margin-bottom:12px;">
+        <div style="font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:rgba(138,255,138,.62);margin-bottom:6px;">Confirmed</div>
+        <div id="auditSummaryConfirmed" class="results"></div>
+      </div>
+
+      <div id="auditSummaryMissingWrap" style="margin-bottom:12px;">
+        <div style="font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,107,107,.62);margin-bottom:6px;">Missing</div>
+        <div id="auditSummaryMissing" class="results"></div>
+      </div>
+
+      <div id="auditSummaryUnexpectedWrap" style="margin-bottom:12px;">
+        <div style="font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,209,102,.62);margin-bottom:6px;">Unexpected</div>
+        <div id="auditSummaryUnexpected" class="results"></div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <button class="primary" id="auditNewBtn" style="flex:1;">New Audit</button>
+        <button class="ghost" id="auditPrintBtn" style="flex:1;">Print Summary</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <div id="statusesPage" class="appPage hidden">
   <div class="wrap" style="max-width:600px;">
@@ -6247,6 +6342,358 @@ document.getElementById("openPartialPicksBtn").addEventListener("click", async (
   apiDelete("/partial-picks/cleanup").catch(() => {});
 });
 
+// ====== INVENTORY AUDIT ======
+let auditState = {
+  lane: null,
+  expectedItems: [],
+  unexpectedItems: [],
+};
+
+function resetAuditState(){
+  auditState = { lane: null, expectedItems: [], unexpectedItems: [] };
+}
+
+function buildAuditLaneGrid(){
+  const grid = document.getElementById("auditLaneGrid");
+  if(!grid) return;
+  grid.innerHTML = "";
+
+  locations
+    .filter(l => l.type === "lane" && l.laneNum)
+    .sort((a, b) => {
+      const aStr = String(a.laneNum), bStr = String(b.laneNum);
+      const aNum = parseInt(aStr, 10), bNum = parseInt(bStr, 10);
+      const aIsA = /[A-Za-z]/.test(aStr), bIsA = /[A-Za-z]/.test(bStr);
+      if (aIsA !== bIsA) return aIsA ? 1 : -1;
+      if (aNum !== bNum) return aNum - bNum;
+      return aStr.localeCompare(bStr, undefined, { numeric: true });
+    })
+    .forEach(loc => {
+      const lane = `Lane ${loc.laneNum}`;
+      const count = inventory.filter(x => x.lane === lane).length;
+      const btn = document.createElement("div");
+      btn.className = "laneBtn";
+      btn.innerHTML = `${lane} ${count > 0 ? `<span class="laneBtnBadge">${count}</span>` : ""}`;
+      btn.addEventListener("click", () => startAudit(lane));
+      grid.appendChild(btn);
+    });
+}
+
+function startAudit(lane){
+  resetAuditState();
+  auditState.lane = lane;
+
+  const items = inventory.filter(x => x.lane === lane);
+  auditState.expectedItems = items.map(item => ({
+    id: item.id,
+    job: item.job,
+    mo: item.mo || "",
+    qty: item.qty ?? 0,
+    status: item.status || "",
+    notes: item.notes || "",
+    checked: false
+  }));
+
+  document.getElementById("auditLaneSelector").style.display = "none";
+  document.getElementById("auditActiveView").style.display = "block";
+  document.getElementById("auditSummary").style.display = "none";
+
+  document.getElementById("auditLaneTitle").textContent = lane;
+  document.getElementById("auditLaneSub").textContent = `${auditState.expectedItems.length} item${auditState.expectedItems.length !== 1 ? "s" : ""} expected`;
+
+  renderAuditExpected();
+  renderAuditUnexpected();
+  updateAuditProgress();
+}
+
+function renderAuditExpected(){
+  const container = document.getElementById("auditExpectedList");
+  if(!container) return;
+  container.innerHTML = "";
+
+  if(auditState.expectedItems.length === 0){
+    container.innerHTML = `
+      <div class="emptyState" style="padding:24px;">
+        <div class="emptyState-title">Lane is Empty</div>
+        <div class="emptyState-sub">TRACE shows no items in this lane.</div>
+      </div>`;
+    return;
+  }
+
+  auditState.expectedItems.forEach((item, idx) => {
+    const div = document.createElement("div");
+    div.className = "auditItem" + (item.checked ? " checked" : "");
+    div.innerHTML = `
+      <div class="auditCheckbox">
+        <svg class="auditCheckmark" viewBox="0 0 12 12" fill="none" stroke="rgba(138,255,138,.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 6l3 3 5-5"/>
+        </svg>
+      </div>
+      <div class="auditItemInfo">
+        <div class="auditItemJob">Item #${escapeHtml(item.job)}</div>
+        <div class="auditItemMeta">
+          ${item.mo ? `MO: ${escapeHtml(item.mo)} • ` : ""}Qty: ${item.qty} • ${escapeHtml(item.status || "No status")}
+          ${item.notes ? ` • ${escapeHtml(item.notes)}` : ""}
+        </div>
+      </div>
+    `;
+
+    div.addEventListener("click", () => {
+      auditState.expectedItems[idx].checked = !auditState.expectedItems[idx].checked;
+      renderAuditExpected();
+      updateAuditProgress();
+    });
+
+    container.appendChild(div);
+  });
+}
+
+function renderAuditUnexpected(){
+  const container = document.getElementById("auditUnexpectedList");
+  if(!container) return;
+  container.innerHTML = "";
+
+  auditState.unexpectedItems.forEach((item, idx) => {
+    const div = document.createElement("div");
+    div.className = "auditUnexpectedItem";
+    div.innerHTML = `
+      <div style="width:24px;height:24px;border-radius:8px;background:rgba(255,209,102,.18);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <span style="font-size:14px;">⚠</span>
+      </div>
+      <div class="auditItemInfo">
+        <div class="auditItemJob">Item #${escapeHtml(item.job)}</div>
+        <div class="auditItemMeta">Not in TRACE for this lane</div>
+      </div>
+      <button class="auditRemoveBtn" data-idx="${idx}" title="Remove">✕</button>
+    `;
+
+    div.querySelector(".auditRemoveBtn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      auditState.unexpectedItems.splice(idx, 1);
+      renderAuditUnexpected();
+      updateAuditProgress();
+    });
+
+    container.appendChild(div);
+  });
+}
+
+function updateAuditProgress(){
+  const total = auditState.expectedItems.length;
+  const checked = auditState.expectedItems.filter(x => x.checked).length;
+  const el = document.getElementById("auditProgress");
+  if(el) el.textContent = `${checked} / ${total}`;
+}
+
+// Add unexpected item
+document.getElementById("auditAddUnexpectedBtn").addEventListener("click", () => {
+  const input = document.getElementById("auditUnexpectedInput");
+  const raw = cleanJob(input.value);
+  if(!raw){
+    toast("Enter an Item # first");
+    return;
+  }
+
+  const alreadyExpected = auditState.expectedItems.find(x => x.job === raw);
+  if(alreadyExpected){
+    toast(`${raw} is already in the expected list — check it off instead`);
+    input.value = "";
+    return;
+  }
+
+  const alreadyUnexpected = auditState.unexpectedItems.find(x => x.job === raw);
+  if(alreadyUnexpected){
+    toast(`${raw} already added`);
+    input.value = "";
+    return;
+  }
+
+  auditState.unexpectedItems.push({ job: raw });
+  input.value = "";
+  renderAuditUnexpected();
+  updateAuditProgress();
+  toast(`⚠ ${raw} flagged as unexpected`);
+});
+
+document.getElementById("auditUnexpectedInput").addEventListener("keydown", (e) => {
+  if(e.key === "Enter"){
+    e.preventDefault();
+    document.getElementById("auditAddUnexpectedBtn").click();
+  }
+});
+
+document.getElementById("auditUnexpectedInput").addEventListener("input", (e) => {
+  e.target.value = cleanJob(e.target.value);
+});
+
+// Check all / Uncheck all
+document.getElementById("auditCheckAllBtn").addEventListener("click", () => {
+  auditState.expectedItems.forEach(x => x.checked = true);
+  renderAuditExpected();
+  updateAuditProgress();
+});
+
+document.getElementById("auditUncheckAllBtn").addEventListener("click", () => {
+  auditState.expectedItems.forEach(x => x.checked = false);
+  renderAuditExpected();
+  updateAuditProgress();
+});
+
+// Complete audit
+document.getElementById("auditCompleteBtn").addEventListener("click", async () => {
+  const confirmed = auditState.expectedItems.filter(x => x.checked);
+  const missing = auditState.expectedItems.filter(x => !x.checked);
+  const unexpected = auditState.unexpectedItems;
+
+  if(confirmed.length === 0 && missing.length === 0 && unexpected.length === 0){
+    await uiAlert("Audit", "Nothing to audit — lane is empty and no unexpected items added.");
+    return;
+  }
+
+  const total = auditState.expectedItems.length;
+  if(confirmed.length === 0 && total > 0){
+    const ok = await uiConfirm("Heads Up", `You haven't confirmed any of the ${total} expected items. Complete anyway?`, "Complete", "Go Back");
+    if(!ok) return;
+  }
+
+  // Hide active view, show summary
+  document.getElementById("auditActiveView").style.display = "none";
+  document.getElementById("auditSummary").style.display = "block";
+
+  const now = new Date();
+  document.getElementById("auditSummaryTitle").textContent = `Audit Complete — ${auditState.lane}`;
+  document.getElementById("auditSummaryTimestamp").textContent = `${now.toLocaleDateString(undefined, { weekday:"long", month:"long", day:"numeric", year:"numeric" })} at ${now.toLocaleTimeString(undefined, { hour:"2-digit", minute:"2-digit" })}`;
+
+  document.getElementById("auditConfirmedNum").textContent = String(confirmed.length);
+  document.getElementById("auditMissingNum").textContent = String(missing.length);
+  document.getElementById("auditUnexpectedNum").textContent = String(unexpected.length);
+
+  // Render confirmed list
+  const confirmedWrap = document.getElementById("auditSummaryConfirmedWrap");
+  const confirmedContainer = document.getElementById("auditSummaryConfirmed");
+  confirmedContainer.innerHTML = "";
+  if(confirmed.length === 0){
+    confirmedWrap.style.display = "none";
+  } else {
+    confirmedWrap.style.display = "block";
+    confirmed.forEach(item => {
+      const div = document.createElement("div");
+      div.className = "auditSummaryItem confirmed";
+      div.innerHTML = `✓ Item #${escapeHtml(item.job)}${item.mo ? ` • MO: ${escapeHtml(item.mo)}` : ""} • Qty: ${item.qty}`;
+      confirmedContainer.appendChild(div);
+    });
+  }
+
+  // Render missing list
+  const missingWrap = document.getElementById("auditSummaryMissingWrap");
+  const missingContainer = document.getElementById("auditSummaryMissing");
+  missingContainer.innerHTML = "";
+  if(missing.length === 0){
+    missingWrap.style.display = "none";
+  } else {
+    missingWrap.style.display = "block";
+    missing.forEach(item => {
+      const div = document.createElement("div");
+      div.className = "auditSummaryItem missing";
+      div.innerHTML = `✗ Item #${escapeHtml(item.job)}${item.mo ? ` • MO: ${escapeHtml(item.mo)}` : ""} • Qty: ${item.qty}`;
+      missingContainer.appendChild(div);
+    });
+  }
+
+  // Render unexpected list
+  const unexpectedWrap = document.getElementById("auditSummaryUnexpectedWrap");
+  const unexpectedContainer = document.getElementById("auditSummaryUnexpected");
+  unexpectedContainer.innerHTML = "";
+  if(unexpected.length === 0){
+    unexpectedWrap.style.display = "none";
+  } else {
+    unexpectedWrap.style.display = "block";
+    unexpected.forEach(item => {
+      const div = document.createElement("div");
+      div.className = "auditSummaryItem unexpected";
+      div.innerHTML = `⚠ Item #${escapeHtml(item.job)} — not expected in ${escapeHtml(auditState.lane)}`;
+      unexpectedContainer.appendChild(div);
+    });
+  }
+
+  toast(`Audit complete: ${confirmed.length} confirmed, ${missing.length} missing, ${unexpected.length} unexpected`);
+});
+
+// New audit button
+document.getElementById("auditNewBtn").addEventListener("click", () => {
+  resetAuditState();
+  document.getElementById("auditSummary").style.display = "none";
+  document.getElementById("auditActiveView").style.display = "none";
+  document.getElementById("auditLaneSelector").style.display = "block";
+  buildAuditLaneGrid();
+  document.getElementById("auditProgress").textContent = "0 / 0";
+});
+
+// Print summary
+document.getElementById("auditPrintBtn").addEventListener("click", () => {
+  const confirmed = auditState.expectedItems.filter(x => x.checked);
+  const missing = auditState.expectedItems.filter(x => !x.checked);
+  const unexpected = auditState.unexpectedItems;
+  const now = new Date();
+
+  const html = `<!DOCTYPE html>
+<html><head><title>Audit — ${escapeHtml(auditState.lane)}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:Arial,sans-serif;padding:24px;color:#111;font-size:13px;}
+  h1{font-size:22px;margin-bottom:4px;}
+  .sub{color:#666;font-size:12px;margin-bottom:20px;}
+  .stats{display:flex;gap:16px;margin-bottom:20px;}
+  .stat{padding:12px 18px;border-radius:10px;text-align:center;flex:1;}
+  .stat-num{font-size:28px;font-weight:900;}
+  .stat-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-top:2px;}
+  .stat-g{background:#e8ffe8;border:1px solid #8aff8a;}
+  .stat-r{background:#ffe8e8;border:1px solid #ff6b6b;}
+  .stat-y{background:#fff8e0;border:1px solid #ffd166;}
+  .section{margin-bottom:16px;}
+  .section-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.15em;color:#666;margin-bottom:6px;border-bottom:1px solid #ddd;padding-bottom:4px;}
+  .item{padding:6px 0;border-bottom:1px solid #eee;font-size:13px;}
+  .item:last-child{border-bottom:none;}
+  .green{color:#1a7a1a;} .red{color:#c02020;} .yellow{color:#8a6d00;}
+  @media print{body{padding:12px;}@page{margin:0.5in;}}
+</style></head><body>
+  <h1>Inventory Audit — ${escapeHtml(auditState.lane)}</h1>
+  <div class="sub">${now.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric",year:"numeric"})} at ${now.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"})}</div>
+  <div class="stats">
+    <div class="stat stat-g"><div class="stat-num">${confirmed.length}</div><div class="stat-label">Confirmed</div></div>
+    <div class="stat stat-r"><div class="stat-num">${missing.length}</div><div class="stat-label">Missing</div></div>
+    <div class="stat stat-y"><div class="stat-num">${unexpected.length}</div><div class="stat-label">Unexpected</div></div>
+  </div>
+  ${confirmed.length ? `<div class="section"><div class="section-title green">Confirmed</div>${confirmed.map(i => `<div class="item">✓ Item #${escapeHtml(i.job)}${i.mo ? ` — MO: ${escapeHtml(i.mo)}` : ""} — Qty: ${i.qty}</div>`).join("")}</div>` : ""}
+  ${missing.length ? `<div class="section"><div class="section-title red">Missing</div>${missing.map(i => `<div class="item">✗ Item #${escapeHtml(i.job)}${i.mo ? ` — MO: ${escapeHtml(i.mo)}` : ""} — Qty: ${i.qty}</div>`).join("")}</div>` : ""}
+  ${unexpected.length ? `<div class="section"><div class="section-title yellow">Unexpected</div>${unexpected.map(i => `<div class="item">⚠ Item #${escapeHtml(i.job)}</div>`).join("")}</div>` : ""}
+  <script>window.onload=()=>{window.print();};<\/script>
+</body></html>`;
+
+  const win = window.open("", "_blank");
+  if(!win){ toast("Pop-up blocked"); return; }
+  win.document.write(html);
+  win.document.close();
+});
+
+// Page navigation
+document.getElementById("auditPageBack").addEventListener("click", () => {
+  resetAuditState();
+  hidePage("auditPage");
+});
+
+document.getElementById("openAuditBtn").addEventListener("click", async () => {
+  closeSideMenu();
+  await loadLocations();
+  await loadInventory();
+  showPage("auditPage");
+  resetAuditState();
+  document.getElementById("auditLaneSelector").style.display = "block";
+  document.getElementById("auditActiveView").style.display = "none";
+  document.getElementById("auditSummary").style.display = "none";
+  buildAuditLaneGrid();
+});
+
 // ====== STATUS OPTIONS ======
 const STATUSES_KEY = "trace_statuses_v1";
 const DEFAULT_STATUSES = ["Tauro Queue","On Press","Printed","Partially Printed","On Hold","Completed","Move To Lane"];
@@ -6915,6 +7362,137 @@ function generateLaneReport(){
     size: letter portrait;
     margin: 0.45in;
   }
+}
+
+/* ===== INVENTORY AUDIT ===== */
+.auditItem{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  background:var(--panel2);
+  border:1px solid var(--stroke);
+  border-radius:12px;
+  padding:12px 14px;
+  cursor:pointer;
+  transition:border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+  user-select:none;
+}
+
+.auditItem:hover{
+  border-color:rgba(58,122,254,.35);
+}
+
+.auditItem.checked{
+  border-color:rgba(138,255,138,.45);
+  background:rgba(138,255,138,.04);
+  box-shadow:0 0 0 2px rgba(138,255,138,.12);
+}
+
+.auditCheckbox{
+  width:24px;
+  height:24px;
+  border-radius:8px;
+  border:2px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.04);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  transition:all 150ms ease;
+}
+
+.auditItem.checked .auditCheckbox{
+  border-color:rgba(138,255,138,.7);
+  background:rgba(138,255,138,.22);
+}
+
+.auditCheckmark{
+  width:12px;
+  height:12px;
+  opacity:0;
+  transition:opacity 150ms ease;
+}
+
+.auditItem.checked .auditCheckmark{
+  opacity:1;
+}
+
+.auditItemInfo{
+  flex:1;
+  min-width:0;
+}
+
+.auditItemJob{
+  font-size:16px;
+  font-weight:900;
+  color:#fff;
+}
+
+.auditItemMeta{
+  font-size:12px;
+  color:var(--muted);
+  margin-top:2px;
+}
+
+.auditUnexpectedItem{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  background:rgba(255,209,102,.06);
+  border:1px solid rgba(255,209,102,.25);
+  border-radius:12px;
+  padding:10px 14px;
+}
+
+.auditUnexpectedItem .auditItemJob{
+  color:#ffd166;
+}
+
+.auditRemoveBtn{
+  width:28px;
+  height:28px;
+  border-radius:8px;
+  border:1px solid rgba(255,107,107,.25);
+  background:rgba(255,107,107,.08);
+  color:#ff6b6b;
+  font-weight:900;
+  font-size:14px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+}
+
+.auditRemoveBtn:hover{
+  background:rgba(255,107,107,.18);
+  border-color:rgba(255,107,107,.45);
+}
+
+.auditSummaryItem{
+  padding:10px 14px;
+  border-radius:10px;
+  font-weight:800;
+  font-size:14px;
+}
+
+.auditSummaryItem.confirmed{
+  background:rgba(138,255,138,.06);
+  border:1px solid rgba(138,255,138,.18);
+  color:rgba(138,255,138,.9);
+}
+
+.auditSummaryItem.missing{
+  background:rgba(255,107,107,.06);
+  border:1px solid rgba(255,107,107,.18);
+  color:rgba(255,107,107,.9);
+}
+
+.auditSummaryItem.unexpected{
+  background:rgba(255,209,102,.06);
+  border:1px solid rgba(255,209,102,.18);
+  color:rgba(255,209,102,.9);
 }
 
    
