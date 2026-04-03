@@ -6726,7 +6726,41 @@ document.getElementById("auditCompleteBtn").addEventListener("click", async () =
     missing.forEach(item => {
       const div = document.createElement("div");
       div.className = "auditSummaryItem missing";
-      div.innerHTML = `✗ Item #${escapeHtml(item.job)}${item.mo ? ` • MO: ${escapeHtml(item.mo)}` : ""} • Qty: ${item.qty}`;
+      div.style.display = "flex";
+      div.style.alignItems = "center";
+      div.style.justifyContent = "space-between";
+      div.style.gap = "10px";
+      div.innerHTML = `
+        <div style="flex:1;min-width:0;">✗ Item #${escapeHtml(item.job)}${item.mo ? ` • MO: ${escapeHtml(item.mo)}` : ""} • Qty: ${item.qty}</div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="primary" data-audit-move="${item.id}" style="padding:6px 12px;font-size:12px;">Move</button>
+          <button class="danger" data-audit-delete="${item.id}" style="padding:6px 12px;font-size:12px;">Delete</button>
+        </div>
+      `;
+
+      div.querySelector("[data-audit-move]").addEventListener("click", async (e) => {
+        e.stopPropagation();
+        openMoveOverlay(item.id);
+      });
+
+      div.querySelector("[data-audit-delete]").addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const ok = await uiConfirm("Delete from Audit", `Delete Item #${item.job} from TRACE?`, "Delete", "Cancel");
+        if(!ok) return;
+        try {
+          await apiDelete(`/items/${item.id}`);
+          await loadInventory();
+          div.style.opacity = "0.3";
+          div.style.pointerEvents = "none";
+          div.querySelector("[data-audit-move]").disabled = true;
+          div.querySelector("[data-audit-delete]").disabled = true;
+          div.querySelector("div").innerHTML = `🗑 Item #${escapeHtml(item.job)} — deleted`;
+          toast(`🗑 ${item.job} deleted`);
+        } catch(err) {
+          await uiAlert("Delete Failed", err.message || "Could not delete item.");
+        }
+      });
+
       missingContainer.appendChild(div);
     });
   }
