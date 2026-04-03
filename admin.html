@@ -4607,6 +4607,19 @@ renderGlobalSearch();
 updateTabBadges();
 
     console.log("✅ ADMIN INIT COMPLETE");
+    // Auto-open audit if coming from kiosk lane link
+const urlParams = new URLSearchParams(window.location.search);
+const auditLaneParam = urlParams.get("audit_lane");
+if(auditLaneParam){
+  history.replaceState({}, "", window.location.pathname);
+  showPage("auditPage");
+  resetAuditState();
+  document.getElementById("auditLaneSelector").style.display = "none";
+  document.getElementById("auditActiveView").style.display = "none";
+  document.getElementById("auditSummary").style.display = "none";
+  buildAuditLaneGrid();
+  startAudit(`Lane ${auditLaneParam}`);
+}
     runAutoCleanupIfNeeded();
     runMachineExpiryCheck();
    setInterval(async () => {
