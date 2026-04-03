@@ -68,6 +68,32 @@
     .toast.show{opacity:1;}
     .back{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:0;margin-bottom:14px;display:block;}
     .back:hover{color:var(--text)}
+    .laneViewItem{
+  background:var(--btn);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:12px 14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.laneViewItem .lvi-info{flex:1;min-width:0;}
+.laneViewItem .lvi-job{font-weight:900;font-size:15px;color:var(--text);}
+.laneViewItem .lvi-meta{font-size:12px;color:var(--muted);margin-top:2px;}
+.laneViewItem .lvi-btn{
+  background:rgba(42,127,255,.18);
+  border:1px solid rgba(42,127,255,.4);
+  color:#eaf2ff;
+  border-radius:10px;
+  padding:8px 14px;
+  font-weight:900;
+  font-size:12px;
+  cursor:pointer;
+  white-space:nowrap;
+  flex-shrink:0;
+}
+.laneViewItem .lvi-btn:hover{background:rgba(42,127,255,.3);}
   </style>
 </head>
 <body>
@@ -120,12 +146,28 @@
             </div>
             <div class="tiny" id="jobLine">No job loaded</div>
           </div>
-        </div>
 
-      </div>
-    </div>
+          <!-- LANE VIEW -->
+          <div id="laneView" class="hide" style="margin-top:12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <div>
+                <div style="font-weight:900;font-size:18px;" id="laneViewTitle">Lane 1</div>
+                <div style="font-size:12px;color:var(--muted);" id="laneViewCount">0 items</div>
+              </div>
+              <button class="btn sec" style="width:auto;padding:8px 14px;" id="laneViewClose">✕ Close</button>
+            </div>
+            <div id="laneViewList" style="display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto;"></div>
+            <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);text-align:center;">
+              <a id="laneAdminLink" href="#" style="font-size:12px;color:rgba(58,122,254,.8);text-decoration:none;">Admin? Tap here to audit this lane</a>
+            </div>
+          </div>
+
+        </div> 
+
+      </div> 
+    </div> 
   </div>
-</div>
+</div> 
 
 <!--   OVERLAY 1 — Full or Partial?   -->
 <div class="overlay hide" id="ovPartial">
@@ -234,6 +276,7 @@ let pinAttempts = 0;
 const PIN_MAX_ATTEMPTS = 5;
 
 const scannedJob = (new URLSearchParams(location.search).get("job") || "").trim().toUpperCase();
+const scannedLane = (new URLSearchParams(location.search).get("lane") || "").trim();
 
 // ── toast ──────────────────────────────────────────────────────────────────
 function toast(msg, err=false) {
@@ -343,6 +386,9 @@ async function enterHub(user){
   await loadInventory();
   buildKioskLaneButtons();
   // load job from QR scan
+   if(scannedLane){
+    showLaneView(scannedLane);
+  }
   if(scannedJob){
     const m=findJob(scannedJob);
     if(!m.length){$("jobLine").textContent=`Job #${scannedJob} not found`;$("jobStatus").textContent="NOT FOUND";}
@@ -672,6 +718,51 @@ async function applyStatus(status){
     toast(e.message || "Update failed", true);
   }
 }
+
+// ====== LANE VIEW ======
+function showLaneView(laneNum){
+  const label = `Lane ${laneNum}`;
+  const items = inventory.filter(x => x.lane === label);
+
+  $("laneViewTitle").textContent = label;
+  $("laneViewCount").textContent = `${items.length} item${items.length !== 1 ? "s" : ""}`;
+
+  const list = $("laneViewList");
+  list.innerHTML = "";
+
+  if(items.length === 0){
+    list.innerHTML = `<div style="text-align:center;padding:24px;color:var(--muted);font-weight:700;">Lane is empty</div>`;
+  } else {
+    items.sort((a,b) => (parseInt(a.job,10)||0) - (parseInt(b.job,10)||0));
+    items.forEach(item => {
+      const div = document.createElement("div");
+      div.className = "laneViewItem";
+      div.innerHTML = `
+        <div class="lvi-info">
+          <div class="lvi-job">Item #${item.job}</div>
+          <div class="lvi-meta">${item.mo ? `MO: ${item.mo} • ` : ""}Qty: ${item.qty} • ${item.status || "—"}</div>
+        </div>
+        <button class="lvi-btn" data-lv-move="1">Move</button>
+      `;
+      div.querySelector("[data-lv-move]").addEventListener("click", (e) => {
+        e.stopPropagation();
+        setActive(item);
+        $("laneView").classList.add("hide");
+        openPartial();
+      });
+      div.addEventListener("click", () => {
+        setActive(item);
+        toast(`Loaded ${item.job}`);
+      });
+      list.appendChild(div);
+    });
+  }
+
+  $("laneAdminLink").href = `./admin.html?audit_lane=${laneNum}`;
+  $("laneView").classList.remove("hide");
+}
+
+$("laneViewClose").onclick = () => $("laneView").classList.add("hide");
 
 // ── Boot ────────────────────────────────────────────────────────────────────
 (async function boot(){
