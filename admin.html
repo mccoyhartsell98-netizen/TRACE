@@ -2494,6 +2494,7 @@ input[type="number"] {
   <button class="ghost" id="openFeedBtn">Activity Feed</button>
   <button class="ghost" id="openPartialPicksBtn">Partial Pick Log</button>
   <button class="ghost" id="openAuditBtn">Inventory Audit</button>
+  <button class="ghost" id="openLaneQrBtn">Generate Lane QR</button>
   <div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#6C86A8;padding:4px 2px;margin-top:8px;border-bottom:1px solid rgba(42,127,255,0.15);margin-bottom:4px;">Administration</div>
   <button class="ghost" id="openUsersBtn">User Management</button>
   <button class="ghost" id="openStatusesBtn">Status Options</button>
@@ -2926,6 +2927,27 @@ input[type="number"] {
   </div>
 </div>
 
+<!-- LANE QR PAGE -->
+<div id="laneQrPage" class="appPage hidden">
+  <div class="wrap" style="max-width:600px;">
+    <div class="pageHeader">
+      <button class="ghost" id="laneQrPageBack">← Back</button>
+      <h2 style="margin:0;font-size:18px;">Generate Lane QR</h2>
+      <div></div>
+    </div>
+    <div class="card">
+      <h2>Select a Lane</h2>
+      <div class="laneGrid" id="laneQrGrid"></div>
+      <div style="display:flex;justify-content:center;margin-top:18px;">
+        <div id="laneQrCanvas" style="background:#fff;padding:10px;border-radius:12px;display:none;"></div>
+      </div>
+      <div class="tiny" id="laneQrUrlPreview" style="margin-top:10px;color:var(--muted);word-break:break-all;"></div>
+      <div class="btnRow" style="margin-top:14px;">
+        <button type="button" class="ghost" id="downloadLaneQrBtn" disabled>Download PNG</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div id="statusesPage" class="appPage hidden">
   <div class="wrap" style="max-width:600px;">
@@ -6857,6 +6879,107 @@ document.getElementById("openAuditBtn").addEventListener("click", async () => {
   document.getElementById("auditActiveView").style.display = "none";
   document.getElementById("auditSummary").style.display = "none";
   buildAuditLaneGrid();
+});
+
+// ====== LANE QR GENERATOR ======
+document.getElementById("openLaneQrBtn").addEventListener("click", async () => {
+  closeSideMenu();
+  await loadLocations();
+  showPage("laneQrPage");
+  buildLaneQrGrid();
+  document.getElementById("laneQrCanvas").innerHTML = "";
+  document.getElementById("laneQrCanvas").style.display = "none";
+  document.getElementById("laneQrUrlPreview").textContent = "";
+  document.getElementById("downloadLaneQrBtn").disabled = true;
+});
+
+document.getElementById("laneQrPageBack").addEventListener("click", () => hidePage("laneQrPage"));
+
+function buildLaneQrGrid(){
+  const grid = document.getElementById("laneQrGrid");
+  grid.innerHTML = "";
+  locations
+    .filter(l => l.type === "lane" && l.laneNum)
+    .sort((a, b) => {
+      const aStr = String(a.laneNum), bStr = String(b.laneNum);
+      const aNum = parseInt(aStr, 10), bNum = parseInt(bStr, 10);
+      const aIsA = /[A-Za-z]/.test(aStr), bIsA = /[A-Za-z]/.test(bStr);
+      if (aIsA !== bIsA) return aIsA ? 1 : -1;
+      if (aNum !== bNum) return aNum - bNum;
+      return aStr.localeCompare(bStr, undefined, { numeric: true });
+    })
+    .forEach(loc => {
+      const btn = document.createElement("div");
+      btn.className = "laneBtn";
+      btn.textContent = `Lane ${loc.laneNum}`;
+      btn.addEventListener("click", () => generateLaneQr(loc.laneNum));
+      grid.appendChild(btn);
+    });
+}
+
+function generateLaneQr(laneNum){
+  const url = `https://traceinventory.org/index.html?lane=${encodeURIComponent(laneNum)}`;
+  const container = document.getElementById("laneQrCanvas");
+  container.innerHTML = "";
+  container.style.display = "inline-block";
+  new QRCode(container, { text: url, width: 260, height: 260, correctLevel: QRCode.CorrectLevel.H });
+  document.getElementById("laneQrUrlPreview").textContent = url;
+  document.getElementById("downloadLaneQrBtn").disabled = false;
+
+  // Highlight selected lane
+  document.querySelectorAll("#laneQrGrid .laneBtn").forEach(b => {
+    b.classList.toggle("active", b.textContent === `Lane ${laneNum}`);
+  });
+}
+
+document.getElementById("downloadLaneQrBtn").addEventListener("click", () => {
+  const container = document.getElementById("laneQrCanvas");
+  const qrCanvas = container.querySelector("canvas");
+  if(!qrCanvas){ toast("Generate a QR first"); return; }
+
+  const selected = document.querySelector("#laneQrGrid .laneBtn.active");
+  const label = selected ? selected.textContent : "Lane";
+
+  const logo = new Image();
+  logo.crossOrigin = "anonymous";
+  logo.src = "./Offcial-Trace-Logo.png";
+  logo.onload = () => {
+    const tmp = document.createElement("canvas");
+    tmp.width = logo.naturalWidth;
+    tmp.height = logo.naturalHeight;
+    const tctx = tmp.getContext("2d");
+    tctx.drawImage(logo, 0, 0);
+    const pixels = tctx.getImageData(0, 0, tmp.width, tmp.height).data;
+    let minX = tmp.width, minY = tmp.height, maxX = 0, maxY = 0;
+    for(let y=0;y<tmp.height;y++) for(let x=0;x<tmp.width;x++){
+      const i=(y*tmp.width+x)*4;
+      if(pixels[i+3]>30&&(pixels[i]>30||pixels[i+1]>30||pixels[i+2]>60)){
+        if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y;
+      }
+    }
+    const cropX=minX-10,cropY=minY-10,cropW=(maxX-minX)+20,cropH=(maxY-minY)+20;
+    const padding=28,gap=14,logoDrawH=60,logoDrawW=Math.round(logoDrawH*(cropW/cropH)),labelHeight=70;
+    const totalWidth=qrCanvas.width+padding*2;
+    const totalHeight=padding+logoDrawH+gap+qrCanvas.height+gap+labelHeight+padding;
+    const out=document.createElement("canvas");
+    out.width=totalWidth; out.height=totalHeight;
+    const ctx=out.getContext("2d");
+    ctx.clearRect(0,0,out.width,out.height);
+    ctx.drawImage(tmp,cropX,cropY,cropW,cropH,(totalWidth-logoDrawW)/2,padding,logoDrawW,logoDrawH);
+    ctx.drawImage(qrCanvas,padding,padding+logoDrawH+gap);
+    ctx.fillStyle="#111"; ctx.font="bold 48px Arial"; ctx.textAlign="center";
+    ctx.fillText(label,totalWidth/2,padding+logoDrawH+gap+qrCanvas.height+gap+26);
+    const a=document.createElement("a");
+    a.download=`TRACE_${label.replace(/\s/g,"_")}.png`;
+    a.href=out.toDataURL("image/png");
+    a.click();
+  };
+  logo.onerror = () => {
+    const a=document.createElement("a");
+    a.download=`TRACE_${label.replace(/\s/g,"_")}.png`;
+    a.href=qrCanvas.toDataURL("image/png");
+    a.click();
+  };
 });
 
 // ====== STATUS OPTIONS ======
