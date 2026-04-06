@@ -334,8 +334,7 @@
 <script>
 const API = "https://api.traceinventory.org";
 const QUEUE_MACHINE = "QUEUE";
-const REFRESH_MS = 15000;
-const QUEUE_ORDER_KEY = "trace_queue_order_v1";
+const REFRESH_MS = 5000;
 
 let locations = [];
 let inventory = [];
@@ -374,13 +373,7 @@ async function loadInventory(){
   } catch(e){ console.warn("loadInventory failed:", e); }
 }
 
-// ── Queue Order (reads admin's saved order from localStorage) ──
-function loadQueueOrder(){
-  try{
-    const r = localStorage.getItem(QUEUE_ORDER_KEY);
-    return r ? JSON.parse(r) : [];
-  } catch(e){ return []; }
-}
+
 
 // ── Render ──
 function renderQueue(){
@@ -398,17 +391,7 @@ function renderQueue(){
     return aTime - bTime;
   });
 
-  // Apply admin's custom order if available
-  const savedOrder = loadQueueOrder();
-  if(savedOrder.length){
-    const idSet = new Set(queueItems.map(x => x.id));
-    const ordered = savedOrder
-      .filter(id => idSet.has(id))
-      .map(id => queueItems.find(x => x.id === id))
-      .filter(Boolean);
-    const unordered = queueItems.filter(x => !savedOrder.includes(x.id));
-    queueItems = [...ordered, ...unordered];
-  }
+
 
   countEl.textContent = String(queueItems.length);
 
