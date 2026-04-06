@@ -335,11 +335,15 @@
 const API = "https://api.traceinventory.org";
 const QUEUE_MACHINE = "QUEUE";
 const REFRESH_MS = 5000;
-const QUEUE_ORDER_KEY = "trace_queue_order_v1";
+let cachedOrder = [];
 
-function loadQueueOrder(){
-  try{ const r = localStorage.getItem(QUEUE_ORDER_KEY); return r ? JSON.parse(r) : []; }
-  catch(e){ return []; }
+async function loadQueueOrder(){
+  try{
+    const r = await fetch(`${API}/queue-order`, { cache:"no-store" });
+    const d = await r.json().catch(() => ({}));
+    cachedOrder = Array.isArray(d.order) ? d.order : [];
+  } catch(e){ console.warn("loadQueueOrder failed:", e); }
+  return cachedOrder;
 }
 
 let locations = [];
@@ -398,7 +402,7 @@ function renderQueue(){
   });
 
   // Apply admin's custom drag order if available
-  const savedOrder = loadQueueOrder();
+  const savedOrder = cachedOrder;
   if(savedOrder.length){
     const idSet = new Set(queueItems.map(x => x.id));
     const ordered = savedOrder
@@ -462,6 +466,7 @@ function esc(s){
 async function refresh(){
   await loadLocations();
   await loadInventory();
+  await loadQueueOrder();
   renderQueue();
 }
 
