@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-Z8Z41J6Z0H"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-Z8Z41J6Z0H');
+  </script>
+
+  <title>TRACE — Print Queue</title>
+  <link rel="icon" type="image/png" href="favicon - Copy.png?v=1">
+
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0b0f16">
+
+  <style>
+    :root{
+      --bg:#0b0f16;
+      --panel:rgba(16,26,42,.96);
+      --panel2:rgba(15,21,34,.55);
+      --text:#eaf2ff;
+      --muted:rgba(234,242,255,.7);
+      --border:rgba(255,255,255,.12);
+      --blue:#2A7FFF;
+      --blue-soft:rgba(42,127,255,.18);
+      --good:#7fff7f;
+      --good-bg:rgba(28,176,104,.12);
+      --warn:#ffd166;
+      --warn-bg:rgba(255,209,102,.10);
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0;}
+
+    html,body{
+      min-height:100%;
+      font-family:system-ui,'Segoe UI',Arial,sans-serif;
+      background:
+        radial-gradient(1100px 700px at 25% 10%,rgba(42,127,255,.16),transparent 60%),
+        var(--bg);
+      color:var(--text);
+    }
+
+    .shell{
+      max-width:580px;
+      margin:0 auto;
+      padding:18px 16px 40px;
+    }
+
+    /* ── Header ── */
+    .header{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:6px;
+      padding-bottom:16px;
+      border-bottom:1px solid var(--border);
+      margin-bottom:16px;
+    }
+
+    .header img{
+      height:120px;
+      width:auto;
+    }
+
+    .header-title{
+      font-size:18px;
+      font-weight:900;
+      letter-spacing:.04em;
+    }
+
+    .header-sub{
+      font-size:12px;
+      color:var(--muted);
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .live-dot{
+      width:8px;height:8px;
+      border-radius:50%;
+      background:var(--good);
+      box-shadow:0 0 10px rgba(127,255,127,.5);
+      animation:pulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pulse{
+      0%,100%{transform:scale(.85);opacity:.6;}
+      50%{transform:scale(1.15);opacity:1;}
+    }
+
+    .count-badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:32px;
+      height:32px;
+      padding:0 10px;
+      border-radius:999px;
+      border:1px solid rgba(42,127,255,.35);
+      background:rgba(42,127,255,.14);
+      color:#fff;
+      font-weight:900;
+      font-size:14px;
+    }
+
+    /* ── Queue List ── */
+    .queue-list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .queue-card{
+      position:relative;
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px 16px 12px 18px;
+      overflow:hidden;
+      transition:border-color .18s ease;
+    }
+
+    .queue-card::before{
+      content:"";
+      position:absolute;
+      left:0;top:10px;bottom:10px;
+      width:4px;
+      border-radius:999px;
+      background:linear-gradient(180deg,var(--blue),rgba(42,127,255,.16));
+    }
+
+    .queue-card-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    .queue-pos{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:26px;height:26px;
+      border-radius:8px;
+      background:var(--blue-soft);
+      border:1px solid rgba(42,127,255,.35);
+      color:rgba(180,205,255,.9);
+      font-size:12px;
+      font-weight:900;
+      flex-shrink:0;
+    }
+
+    .queue-job{
+      font-size:17px;
+      font-weight:900;
+      color:#fff;
+    }
+
+    .queue-mo{
+      font-size:13px;
+      color:var(--muted);
+      margin-top:3px;
+    }
+
+    .queue-meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-top:10px;
+    }
+
+    .queue-pill{
+      display:inline-flex;
+      align-items:center;
+      padding:5px 10px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:800;
+      border:1px solid rgba(255,255,255,.06);
+      background:rgba(255,255,255,.04);
+      color:rgba(226,236,255,.9);
+    }
+
+    .queue-pill strong{
+      color:#fff;
+      margin-right:5px;
+    }
+
+    .queue-status-pill{
+      background:var(--blue-soft);
+      border-color:rgba(42,127,255,.3);
+      color:rgba(190,214,255,.96);
+    }
+
+    .onpress-pill{
+      background:linear-gradient(90deg,rgba(138,255,138,.12) 0%,rgba(138,255,138,.35) 45%,rgba(138,255,138,.12) 100%) !important;
+      background-size:200% auto !important;
+      border:1px solid rgba(138,255,138,.55) !important;
+      color:rgba(138,255,138,.95) !important;
+      animation:onPressSweep 2s linear infinite;
+    }
+    .onpress-pill strong{color:rgba(138,255,138,.65) !important;}
+
+    @keyframes onPressSweep{
+      0%{background-position:-200% center;}
+      100%{background-position:200% center;}
+    }
+
+    /* ── Empty State ── */
+    .empty{
+      text-align:center;
+      padding:48px 20px;
+    }
+
+    .empty-icon{
+      font-size:48px;
+      opacity:.5;
+      margin-bottom:12px;
+    }
+
+    .empty-title{
+      font-size:16px;
+      font-weight:900;
+      color:var(--muted);
+    }
+
+    .empty-sub{
+      font-size:13px;
+      color:rgba(255,255,255,.35);
+      margin-top:6px;
+      max-width:260px;
+      margin-left:auto;
+      margin-right:auto;
+      line-height:1.5;
+    }
+
+    /* ── Last Updated ── */
+    .last-updated{
+      text-align:center;
+      font-size:11px;
+      color:rgba(255,255,255,.3);
+      margin-top:16px;
+      font-weight:700;
+    }
+
+    /* ── Loading Spinner ── */
+    .loading{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      padding:40px;
+      color:var(--muted);
+      font-weight:700;
+    }
+
+    .spin{
+      width:16px;height:16px;
+      border-radius:50%;
+      border:2px solid rgba(255,255,255,.15);
+      border-top-color:var(--blue);
+      animation:spin .8s linear infinite;
+    }
+
+    @keyframes spin{to{transform:rotate(360deg);}}
+
+    /* ── Footer ── */
+    .footer{
+      text-align:center;
+      margin-top:24px;
+      padding-top:16px;
+      border-top:1px solid var(--border);
+    }
+
+    .footer-text{
+      font-size:10px;
+      font-weight:800;
+      letter-spacing:.2em;
+      text-transform:uppercase;
+      color:rgba(255,255,255,.25);
+    }
+
+    .footer-tagline{
+      font-size:9px;
+      letter-spacing:.3em;
+      text-transform:uppercase;
+      color:rgba(42,127,255,.5);
+      margin-top:4px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- Header -->
+  <div class="header">
+    <img src="./trace-logo.png.png" alt="TRACE" />
+    <div class="header-title">Print Dept. Queue</div>
+    <div class="header-sub">
+      <span class="live-dot"></span>
+      <span>Live — Auto-refreshes</span>
+      <span class="count-badge" id="queueCount">0</span>
+    </div>
+  </div>
+
+  <!-- Queue List -->
+  <div id="queueList" class="queue-list">
+    <div class="loading">
+      <div class="spin"></div>
+      Loading queue…
+    </div>
+  </div>
+
+  <!-- Last Updated -->
+  <div class="last-updated" id="lastUpdated"></div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-text">TRACE Inventory System</div>
+    <div class="footer-tagline">We Track. You Improve.</div>
+  </div>
+
+</div>
+
+<script>
+const API = "https://api.traceinventory.org";
+const QUEUE_MACHINE = "QUEUE";
+const REFRESH_MS = 15000;
+const QUEUE_ORDER_KEY = "trace_queue_order_v1";
+
+let locations = [];
+let inventory = [];
+
+// ── Data Loading ──
+async function loadLocations(){
+  try{
+    const r = await fetch(`${API}/locations`, { cache:"no-store" });
+    const d = await r.json().catch(() => ({}));
+    locations = (Array.isArray(d) ? d : (d.locations || d.rows || [])).map(x => ({
+      id: Number(x.location_id ?? x.id),
+      laneNum: String(x.lane ?? x.lane_number ?? "").trim(),
+      machName: String(x.machine ?? x.machine_name ?? x.machineName ?? x.name ?? "").trim()
+    })).filter(x => x.id > 0);
+  } catch(e){ console.warn("loadLocations failed:", e); }
+}
+
+async function loadInventory(){
+  try{
+    const r = await fetch(`${API}/items`, { cache:"no-store" });
+    const d = await r.json().catch(() => ({}));
+    const raw = Array.isArray(d) ? d : (d.items || d.rows || []);
+    inventory = raw.map(it => {
+      const lid = Number(it.location_id ?? it.locationId ?? 0);
+      const loc = locations.find(l => l.id === lid);
+      return {
+        id: String(it.item_id ?? it.id),
+        job: String(it.job_number ?? it.job ?? "").trim().toUpperCase(),
+        mo: String(it.mo ?? "").trim().toUpperCase(),
+        qty: parseInt(it.qty ?? 0, 10),
+        status: String(it.status ?? "").trim(),
+        machine: loc?.machName || "",
+        createdAt: it.created_at || it.createdAt || ""
+      };
+    }).filter(x => x.job && x.status.toLowerCase() !== "deleted");
+  } catch(e){ console.warn("loadInventory failed:", e); }
+}
+
+// ── Queue Order (reads admin's saved order from localStorage) ──
+function loadQueueOrder(){
+  try{
+    const r = localStorage.getItem(QUEUE_ORDER_KEY);
+    return r ? JSON.parse(r) : [];
+  } catch(e){ return []; }
+}
+
+// ── Render ──
+function renderQueue(){
+  const container = document.getElementById("queueList");
+  const countEl = document.getElementById("queueCount");
+  const updatedEl = document.getElementById("lastUpdated");
+
+  // Filter to queue items only
+  let queueItems = inventory.filter(x => x.machine.toUpperCase() === QUEUE_MACHINE);
+
+  // Sort by creation time (oldest first = first in queue)
+  queueItems.sort((a, b) => {
+    const aTime = new Date(a.createdAt || 0).getTime();
+    const bTime = new Date(b.createdAt || 0).getTime();
+    return aTime - bTime;
+  });
+
+  // Apply admin's custom order if available
+  const savedOrder = loadQueueOrder();
+  if(savedOrder.length){
+    const idSet = new Set(queueItems.map(x => x.id));
+    const ordered = savedOrder
+      .filter(id => idSet.has(id))
+      .map(id => queueItems.find(x => x.id === id))
+      .filter(Boolean);
+    const unordered = queueItems.filter(x => !savedOrder.includes(x.id));
+    queueItems = [...ordered, ...unordered];
+  }
+
+  countEl.textContent = String(queueItems.length);
+
+  if(queueItems.length === 0){
+    container.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">📭</div>
+        <div class="empty-title">Queue is Empty</div>
+        <div class="empty-sub">No jobs in the print queue right now. Check back soon.</div>
+      </div>
+    `;
+  } else {
+    container.innerHTML = queueItems.map((item, idx) => {
+      const statusLower = (item.status || "").toLowerCase().trim();
+      const isOnPress = statusLower === "on press";
+      const statusClass = isOnPress ? "onpress-pill" : "queue-status-pill";
+
+      return `
+        <div class="queue-card">
+          <div class="queue-card-top">
+            <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+              <span class="queue-pos">${idx + 1}</span>
+              <div style="min-width:0;">
+                <div class="queue-job">Item #${esc(item.job)}</div>
+                <div class="queue-mo">MO: ${esc(item.mo || "—")}</div>
+              </div>
+            </div>
+          </div>
+          <div class="queue-meta">
+            <span class="queue-pill"><strong>Qty:</strong> ${item.qty}</span>
+            <span class="queue-pill ${statusClass}"><strong>Status:</strong> ${esc(item.status || "—")}</span>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  // Update timestamp
+  const now = new Date();
+  updatedEl.textContent = `Last updated: ${now.toLocaleTimeString(undefined, { hour:"2-digit", minute:"2-digit", second:"2-digit" })}`;
+}
+
+function esc(s){
+  return String(s ?? "")
+    .replaceAll("&","&amp;").replaceAll("<","&lt;")
+    .replaceAll(">","&gt;").replaceAll('"',"&quot;");
+}
+
+// ── Refresh Loop ──
+async function refresh(){
+  await loadLocations();
+  await loadInventory();
+  renderQueue();
+}
+
+// ── Boot ──
+(async function boot(){
+  await refresh();
+  setInterval(refresh, REFRESH_MS);
+})();
+</script>
+
+</body>
+</html>
