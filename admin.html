@@ -3461,9 +3461,24 @@ const QUEUE_MACHINE_NAME = "QUEUE"; // you will add this location in DB (see not
 const QUEUE_ORDER_KEY = "trace_queue_order_v1";
 function saveQueueOrder(order) {
   try { localStorage.setItem(QUEUE_ORDER_KEY, JSON.stringify(order)); } catch(e) {}
+  fetch(API_BASE + "/queue-order", {
+    method: "PUT",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ order: order })
+  }).catch(e => console.warn("queue-order save failed:", e));
 }
 function loadQueueOrder() {
   try { const r = localStorage.getItem(QUEUE_ORDER_KEY); return r ? JSON.parse(r) : []; } catch(e) { return []; }
+}
+
+async function syncQueueOrderFromApi() {
+  try {
+    const r = await fetch(API_BASE + "/queue-order", { cache: "no-store" });
+    const d = await r.json();
+    if (d.ok && Array.isArray(d.order) && d.order.length) {
+      localStorage.setItem(QUEUE_ORDER_KEY, JSON.stringify(d.order));
+    }
+  } catch(e) { console.warn("queue-order sync failed:", e); }
 }
 
 function getQueueLocationId(){
@@ -4597,6 +4612,7 @@ window.initApp = async function initApp() {
 
     await loadLocations();
     await loadInventory();
+    await syncQueueOrderFromApi();
     applyScanParams();
 
 initTabs();
