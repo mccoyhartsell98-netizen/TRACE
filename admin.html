@@ -4620,6 +4620,15 @@ if(auditLaneParam){
   buildAuditLaneGrid();
   startAudit(`Lane ${auditLaneParam}`);
 }
+
+// Auto-open queue if coming from QR scan
+const viewParam = urlParams.get("view");
+if(viewParam === "queue"){
+  history.replaceState({}, "", window.location.pathname);
+  showPage("queuePage");
+  renderQueuePage();
+}
+
     runAutoCleanupIfNeeded();
     runMachineExpiryCheck();
    setInterval(async () => {
