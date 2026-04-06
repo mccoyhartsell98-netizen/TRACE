@@ -335,6 +335,12 @@
 const API = "https://api.traceinventory.org";
 const QUEUE_MACHINE = "QUEUE";
 const REFRESH_MS = 5000;
+const QUEUE_ORDER_KEY = "trace_queue_order_v1";
+
+function loadQueueOrder(){
+  try{ const r = localStorage.getItem(QUEUE_ORDER_KEY); return r ? JSON.parse(r) : []; }
+  catch(e){ return []; }
+}
 
 let locations = [];
 let inventory = [];
@@ -384,12 +390,24 @@ function renderQueue(){
   // Filter to queue items only
   let queueItems = inventory.filter(x => x.machine.toUpperCase() === QUEUE_MACHINE);
 
-  // Sort by creation time (oldest first = first in queue)
+  // Sort by creation time first as fallback
   queueItems.sort((a, b) => {
     const aTime = new Date(a.createdAt || 0).getTime();
     const bTime = new Date(b.createdAt || 0).getTime();
     return aTime - bTime;
   });
+
+  // Apply admin's custom drag order if available
+  const savedOrder = loadQueueOrder();
+  if(savedOrder.length){
+    const idSet = new Set(queueItems.map(x => x.id));
+    const ordered = savedOrder
+      .filter(id => idSet.has(id))
+      .map(id => queueItems.find(x => x.id === id))
+      .filter(Boolean);
+    const unordered = queueItems.filter(x => !savedOrder.includes(x.id));
+    queueItems = [...ordered, ...unordered];
+  }
 
 
 
