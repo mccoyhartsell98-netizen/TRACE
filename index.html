@@ -329,43 +329,55 @@ function clearAuth(){localStorage.removeItem("tt");localStorage.removeItem("tu")
 // ── data ───────────────────────────────────────────────────────────────────
 async function loadLocations(){
   try{
-    const r=await fetch(`${API}/locations`,{cache:"no-store"});
-    const d=await r.json().catch(()=>({}));
-    const raw=Array.isArray(d)?d:(d.locations||d.rows||[]);
-    locations=raw.map(x=>({
-      id:Number(x.location_id??x.id),
-      laneNum:String(x.lane??x.lane_number??x.laneNum??"").trim(),
-      machName:String(x.machine??x.machine_name??x.machineName??x.name??"").trim()
-    })).filter(x=>x.id>0);
+    const r = await fetch(`${API}/locations`, {cache:"no-store"});
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json();
+    const raw = Array.isArray(d) ? d : (d.locations || d.rows || []);
+    locations = raw.map(x => ({
+      id: Number(x.location_id ?? x.id),
+      laneNum: String(x.lane ?? x.lane_number ?? x.laneNum ?? "").trim(),
+      machName: String(x.machine ?? x.machine_name ?? x.machineName ?? x.name ?? "").trim()
+    })).filter(x => x.id > 0);
     locByLane.clear(); locByMach.clear();
-    locations.forEach(l=>{
-      if(l.laneNum)  locByLane.set("Lane "+l.laneNum, l.id);
+    locations.forEach(l => {
+      if(l.laneNum) locByLane.set("Lane " + l.laneNum, l.id);
       if(l.machName) locByMach.set(l.machName, l.id);
     });
-  }catch(e){console.warn(e);}
+  } catch(e) {
+    console.error("❌ loadLocations failed:", e);
+    toast("Connection issue — retrying…", true);
+  }
 }
 
 async function loadInventory(){
   try{
-    const r=await fetch(`${API}/items`,{cache:"no-store"});
-    const d=await r.json().catch(()=>({}));
-    const raw=Array.isArray(d)?d:(d.items||d.rows||[]);
-    inventory=raw.map(it=>{
-      const lid=Number(it.location_id??it.locationId??0);
-      const loc=locations.find(l=>l.id===lid);
-      return{
-        id:it.item_id??it.id,
-        job:String(it.job_number??it.job??"").trim().toUpperCase(),
-        mo:String(it.mo??"").trim().toUpperCase(),
-        qty:parseInt(it.qty??0,10),
-        status:String(it.status??"").trim(),
-        lane:loc?.laneNum?`Lane ${loc.laneNum}`:"",
-        machine:loc?.machName||"",
-        location_id:lid,
-        notes:it.notes||""
+    const r = await fetch(`${API}/items`, {cache:"no-store"});
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json();
+    const raw = Array.isArray(d) ? d : (d.items || d.rows || []);
+    if(!raw.length && inventory.length){
+      console.warn("⚠️ API returned empty items — keeping previous data");
+      return; // don't blow away good data with empty response
+    }
+    inventory = raw.map(it => {
+      const lid = Number(it.location_id ?? it.locationId ?? 0);
+      const loc = locations.find(l => l.id === lid);
+      return {
+        id: it.item_id ?? it.id,
+        job: String(it.job_number ?? it.job ?? "").trim().toUpperCase(),
+        mo: String(it.mo ?? "").trim().toUpperCase(),
+        qty: parseInt(it.qty ?? 0, 10),
+        status: String(it.status ?? "").trim(),
+        lane: loc?.laneNum ? `Lane ${loc.laneNum}` : "",
+        machine: loc?.machName || "",
+        location_id: lid,
+        notes: it.notes || ""
       };
-    }).filter(x=>x.job&&x.status.toLowerCase()!=="deleted");
-  }catch(e){console.warn(e);}
+    }).filter(x => x.job && x.status.toLowerCase() !== "deleted");
+  } catch(e) {
+    console.error("❌ loadInventory failed:", e);
+    toast("Connection issue — using cached data", true);
+  }
 }
 
 function findJob(q){
@@ -385,8 +397,25 @@ async function enterHub(user){
   await loadLocations();
   await loadInventory();
   buildKioskLaneButtons();
+
+  // ── keep inventory fresh — poll every 20s ──
+  if(window._kioskPoll) clearInterval(window._kioskPoll);
+  window._kioskPoll = setInterval(async () => {
+    await loadLocations();
+    await loadInventory();
+    buildKioskLaneButtons();
+    if(activeItem){
+      const fresh = findJob(activeItem.job);
+      if(fresh.length === 1) setActive(fresh[0]);
+      else if(fresh.length > 1){
+        const exact = fresh.find(x => x.id === activeItem.id);
+        if(exact) setActive(exact);
+      }
+    }
+  }, 20000);
+
   // load job from QR scan
-   if(scannedLane){
+  if(scannedLane){
     showLaneView(scannedLane);
   }
   if(scannedJob){
@@ -403,21 +432,23 @@ function setActive(item){
   activeItem=item;
   const loc=item.machine?`Machine ${item.machine}`:(item.lane||"No location");
   const moStr = item.mo ? `MO ${item.mo} &bull; ` : `<span style="color:#ff7f7f;font-size:12px;">MO missing</span><span style="color:#eaf2ff;"> &bull; </span>`;
-$("jobLine").innerHTML=`<span style="color:#eaf2ff;font-weight:700;">Job ${item.job} &bull; </span>${moStr}<span style="color:#eaf2ff;font-weight:700;">QTY ${item.qty}</span><br><span style="color:#6dbf8a;font-size:15px;">Location: ${loc}</span>`;
-$("jobStatus").textContent=item.status||"active";
-const statusColors={
-  "Printed":"#1a3a1a;color:#7fff7f",
-  "On Press":"#3a2a00;color:#ffd166",
-  "On Hold":"#3a1a1a;color:#ff7f7f",
-  "Completed":"#1a3a1a;color:#7fff7f",
-  "Tauro Queue":"#1a2a3a;color:#4fc3f7",
-};
-const sc=statusColors[item.status]||"transparent;color:var(--muted)";
-$("jobStatus").style.cssText=`background:${sc.split(";")[0]};${sc.split(";")[1]};border-color:transparent;`;
+  $("jobLine").innerHTML=`<span style="color:#eaf2ff;font-weight:700;">Job ${item.job} &bull; </span>${moStr}<span style="color:#eaf2ff;font-weight:700;">QTY ${item.qty}</span><br><span style="color:#6dbf8a;font-size:15px;">Location: ${loc}</span>`;
+  $("jobStatus").textContent=item.status||"active";
+  const statusColors={
+    "Printed":"#1a3a1a;color:#7fff7f",
+    "On Press":"#3a2a00;color:#ffd166",
+    "On Hold":"#3a1a1a;color:#ff7f7f",
+    "Completed":"#1a3a1a;color:#7fff7f",
+    "Tauro Queue":"#1a2a3a;color:#4fc3f7",
+  };
+  const sc=statusColors[item.status]||"transparent;color:var(--muted)";
+  $("jobStatus").style.cssText=`background:${sc.split(";")[0]};${sc.split(";")[1]};border-color:transparent;`;
 }
 
 $("hubLogout").onclick=()=>{
   clearAuth();activeItem=null;takingQty=null;
+  if(window._kioskPoll) clearInterval(window._kioskPoll);
+  window._kioskPoll=null;
   $("viewHub").classList.add("hide");$("viewPin").classList.remove("hide");
   $("pillStatus").textContent="LOCKED";
 };
