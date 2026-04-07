@@ -2499,6 +2499,7 @@ input[type="number"] {
   <button class="ghost" id="openUsersBtn">User Management</button>
   <button class="ghost" id="openStatusesBtn">Status Options</button>
   <button class="ghost" id="exportReportBtn">Export Lane Report</button>
+  <button class="ghost" id="exportSummaryBtn">Export Summary Report</button>
 </div>
       </aside>
 
@@ -7159,6 +7160,11 @@ document.getElementById("exportReportBtn").addEventListener("click", () => {
   generateLaneReport();
 });
 
+document.getElementById("exportSummaryBtn").addEventListener("click", () => {
+  closeSideMenu();
+  generateSummaryReport();
+});
+
 function generateLaneReport(){
   const now = new Date();
   const dateStr = now.toLocaleDateString(undefined, {
@@ -7737,6 +7743,562 @@ function generateLaneReport(){
     return;
   }
 
+  win.document.write(html);
+  win.document.close();
+}
+
+function generateSummaryReport(){
+  const now = new Date();
+  const dateStr = now.toLocaleDateString(undefined, {
+    weekday: "long", year: "numeric", month: "long", day: "numeric"
+  });
+  const timeStr = now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  const TRACE_LOGO = "./Offcial-Trace-Logo.png";
+
+  // Get ALL items (lanes + machines + queue)
+  const allItems = [...inventory].sort((a, b) => {
+    const aNum = parseInt(a.job, 10) || 0;
+    const bNum = parseInt(b.job, 10) || 0;
+    if (aNum !== bNum) return aNum - bNum;
+    return String(a.job).localeCompare(String(b.job));
+  });
+
+  // Find duplicates (same job # appearing more than once)
+  const jobCounts = {};
+  allItems.forEach(item => {
+    const key = item.job.toUpperCase();
+    if (!jobCounts[key]) jobCounts[key] = [];
+    jobCounts[key].push(item);
+  });
+
+  const totalBoxes = allItems.length;
+  const totalQty = allItems.reduce((s, x) => s + (x.qty || 0), 0);
+  const dupCount = Object.values(jobCounts).filter(arr => arr.length > 1).reduce((s, arr) => s + arr.length, 0);
+  const uniqueDups = Object.values(jobCounts).filter(arr => arr.length > 1).length;
+
+  function getLocation(item) {
+    if (item.machine && item.machine.toUpperCase() === "QUEUE") return "Queue";
+    if (item.machine) return item.machine;
+    if (item.lane) return item.lane;
+    return "—";
+  }
+
+  function getStatusClass(status) {
+    const s = String(status || "").trim().toLowerCase();
+    if (s.includes("complete")) return "status-completed";
+    if (s.includes("queue")) return "status-queue";
+    if (s.includes("hold")) return "status-hold";
+    if (s.includes("print")) return "status-printed";
+    if (s.includes("press")) return "status-press";
+    return "status-default";
+  }
+
+  // Build rows — grouped by job number, duplicates flagged
+  let rowsHtml = "";
+  let rowIdx = 0;
+  const sortedKeys = Object.keys(jobCounts).sort((a, b) => {
+    const aNum = parseInt(a, 10) || 0;
+    const bNum = parseInt(b, 10) || 0;
+    if (aNum !== bNum) return aNum - bNum;
+    return a.localeCompare(b);
+  });
+
+  sortedKeys.forEach(jobKey => {
+    const group = jobCounts[jobKey];
+    const isDup = group.length > 1;
+
+    group.forEach((item, gi) => {
+      const rowClass = rowIdx % 2 === 0 ? "row-even" : "row-odd";
+      const dupBadge = isDup
+        ? `<span class="dup-badge">DUPLICATE${gi === 0 ? " (" + group.length + ")" : ""}</span>`
+        : "";
+      const dupRowClass = isDup ? " dup-row" : "";
+
+      rowsHtml += `
+        <tr class="${rowClass}${dupRowClass}">
+          <td style="text-align:center;font-weight:800;color:#0f2446;font-size:13px;">${rowIdx + 1}</td>
+          <td class="job-cell">
+            ${escapeHtml(item.job)}
+            ${dupBadge}
+          </td>
+          <td>${escapeHtml(item.mo || "—")}</td>
+          <td class="qty-cell">${item.qty ?? 0}</td>
+          <td class="loc-cell">${escapeHtml(getLocation(item))}</td>
+          <td><span class="status-pill ${getStatusClass(item.status)}">${escapeHtml(item.status || "—")}</span></td>
+          <td class="notes-cell">${escapeHtml(item.notes || "—")}</td>
+        </tr>
+      `;
+      rowIdx++;
+    });
+  });
+
+  if (allItems.length === 0) {
+    rowsHtml = `<tr><td colspan="7" style="padding:40px;text-align:center;color:#7084a3;font-weight:700;">No items in inventory.</td></tr>`;
+  }
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TRACE Summary Report — ${dateStr}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+    :root{
+      --bg: #eef3fa;
+      --sheet: #ffffff;
+      --blue: #3a7afe;
+      --line: #d8e2f0;
+      --line-soft: #e9eff7;
+      --text: #15253d;
+      --muted: #7084a3;
+      --row-a: #ffffff;
+      --row-b: #f7faff;
+      --shadow: 0 14px 36px rgba(12, 26, 52, .10);
+    }
+
+    *{ box-sizing:border-box; margin:0; padding:0; }
+
+    html, body{
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', Arial, sans-serif;
+      font-size: 12px;
+    }
+
+    body{ padding: 24px; }
+
+    .report-shell{
+      max-width: 1200px;
+      margin: 0 auto;
+      background: var(--sheet);
+      border-radius: 22px;
+      overflow: hidden;
+      box-shadow: 0 24px 70px rgba(7, 19, 43, .14);
+      border: 1px solid rgba(255,255,255,.7);
+    }
+
+    .page-header{
+      position: relative;
+      display: grid;
+      grid-template-columns: 0.9fr 1.35fr 0.75fr;
+      align-items: center;
+      gap: 12px;
+      padding: 24px 28px 22px;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(58,122,254,.18), transparent 38%),
+        linear-gradient(135deg, #050c18 0%, #0a1934 55%, #123160 100%);
+      color: #fff;
+      overflow: hidden;
+      border-bottom: 3px solid var(--blue);
+    }
+
+    .page-header::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+      background-size: 26px 26px;
+      opacity: .12;
+      pointer-events: none;
+    }
+
+    .page-header > *{ position: relative; z-index: 1; }
+
+    .header-left{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      align-items:flex-start;
+    }
+
+    .report-title{
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -.03em;
+      line-height: .95;
+      color:#fff;
+      max-width: 280px;
+    }
+
+    .report-sub{
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: rgba(205,223,255,.75);
+    }
+
+    .report-summary{
+      margin-top: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(213,227,255,.82);
+    }
+
+    .header-center{
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+    }
+
+    .header-center img{
+      height: 128px;
+      max-width: 100%;
+      display: block;
+      margin-bottom: -2px;
+      transform: translateX(4px);
+      filter:
+        drop-shadow(0 0 18px rgba(58,122,254,.24))
+        drop-shadow(0 0 34px rgba(58,122,254,.14));
+    }
+
+    .tagline{
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .24em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.84);
+      transform: translateX(-5px);
+    }
+
+    .header-right{
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 6px;
+      text-align: right;
+    }
+
+    .report-date{
+      font-size: 13px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.15;
+      max-width: 150px;
+    }
+
+    .report-time{
+      font-size: 11px;
+      color: rgba(201,220,255,.72);
+      line-height: 1.1;
+    }
+
+    .content{
+      padding: 24px;
+      background:
+        radial-gradient(circle at top, rgba(58,122,254,.05), transparent 30%),
+        linear-gradient(180deg, #f4f8fd 0%, #edf3f9 100%);
+    }
+
+    /* STAT CARDS */
+    .stat-row{
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+
+    .stat-card{
+      text-align: center;
+      padding: 14px 10px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .stat-num{
+      font-size: 32px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .stat-label{
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .stat-blue .stat-num{ color: #1b4ea8; }
+    .stat-green .stat-num{ color: #177247; }
+    .stat-red .stat-num{ color: #a32d2d; }
+    .stat-purple .stat-num{ color: #5442c8; }
+
+    /* MAIN TABLE */
+    .summary-table-wrap{
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      margin-bottom: 22px;
+    }
+
+    .summary-table{
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .summary-table thead tr{
+      background: linear-gradient(90deg, #0b1730 0%, #102447 55%, #163564 100%);
+    }
+
+    .summary-table th{
+      padding: 12px 10px;
+      text-align: left;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: rgba(200,220,255,.85);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .summary-table th:first-child{ text-align: center; width: 50px; }
+    .summary-table th:nth-child(4){ text-align: center; width: 60px; }
+
+    .summary-table td{
+      padding: 10px 10px;
+      border-bottom: 1px solid var(--line-soft);
+      vertical-align: middle;
+      font-size: 12px;
+      color: var(--text);
+      word-wrap: break-word;
+    }
+
+    .summary-table tbody tr:last-child td{ border-bottom: none; }
+
+    .row-even{ background: var(--row-a); }
+    .row-odd{ background: var(--row-b); }
+
+    .dup-row{
+      background: rgba(255, 90, 102, .04) !important;
+      border-left: 3px solid #ff5a66;
+    }
+
+    .job-cell{
+      font-weight: 800;
+      color: #0f2446;
+      font-size: 13px;
+    }
+
+    .qty-cell{
+      text-align: center;
+      font-weight: 800;
+      color: #183157;
+    }
+
+    .loc-cell{
+      font-weight: 700;
+      color: #1b4ea8;
+    }
+
+    .notes-cell{ color: #4d627f; }
+
+    .dup-badge{
+      display: inline-block;
+      margin-left: 8px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      background: rgba(255, 90, 102, .14);
+      color: #a32d2d;
+      border: 1px solid rgba(255, 90, 102, .28);
+      vertical-align: middle;
+    }
+
+    .status-pill{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .03em;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .status-printed{ background: rgba(58,122,254,.12); color: #1b4ea8; border-color: rgba(58,122,254,.22); }
+    .status-completed{ background: rgba(28,176,104,.12); color: #177247; border-color: rgba(28,176,104,.20); }
+    .status-queue{ background: rgba(117,96,255,.12); color: #5442c8; border-color: rgba(117,96,255,.22); }
+    .status-hold{ background: rgba(234,131,33,.14); color: #9a570f; border-color: rgba(234,131,33,.22); }
+    .status-press{ background: rgba(58,122,254,.12); color: #1b4ea8; border-color: rgba(58,122,254,.22); }
+    .status-default{ background: #eef3fa; color: #526783; border-color: #d8e2f0; }
+
+    /* TOTALS BAR */
+    .totals-bar{
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      padding: 18px 20px;
+      background: linear-gradient(90deg, #0b1730 0%, #102447 55%, #163564 100%);
+      border-radius: 14px;
+      margin-bottom: 22px;
+    }
+
+    .total-item{
+      text-align: center;
+    }
+
+    .total-num{
+      font-size: 28px;
+      font-weight: 900;
+      color: #fff;
+    }
+
+    .total-label{
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: rgba(186,210,255,.65);
+      margin-top: 2px;
+    }
+
+    .page-footer{
+      margin-top: 12px;
+      padding: 18px 4px 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+      color: #7c90ad;
+    }
+
+    @media print{
+      html, body{ background: #fff !important; overflow: visible !important; }
+      body{ padding: 0 !important; }
+      .report-shell{
+        max-width: none; margin: 0; border: none;
+        border-radius: 0; box-shadow: none !important; overflow: visible !important;
+      }
+      .content{
+        padding: 12px !important; background: #fff !important;
+        overflow: visible !important; height: auto !important; max-height: none !important;
+      }
+      .summary-table-wrap{ box-shadow: none !important; margin-bottom: 12px; break-inside: auto; }
+      .summary-table tr{ break-inside: avoid; page-break-inside: avoid; }
+      .summary-table th, .summary-table td{ padding: 6px 8px; }
+      .totals-bar{ break-inside: avoid; }
+      body, .page-header, .summary-table thead tr, .totals-bar, .status-pill, .dup-badge, .dup-row, .stat-card{
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      @page{ size: letter portrait; margin: 0.4in; }
+    }
+  </style>
+</head>
+<body>
+  <div class="report-shell">
+    <header class="page-header">
+      <div class="header-left">
+        <div class="report-title">Inventory Summary Report</div>
+        <div class="report-sub">Print Shop • Full Count</div>
+        <div class="report-summary">
+          ${totalBoxes} total items • ${uniqueDups > 0 ? uniqueDups + " duplicate(s) flagged" : "No duplicates"}
+        </div>
+      </div>
+      <div class="header-center">
+        <img src="${TRACE_LOGO}" alt="TRACE Logo" />
+        <div class="tagline">We Track. You Improve.</div>
+      </div>
+      <div class="header-right">
+        <div class="report-date">${dateStr.replace(",", "<br>")}</div>
+        <div class="report-time">Generated at ${timeStr}</div>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <div class="stat-row">
+        <div class="stat-card stat-blue">
+          <div class="stat-num">${totalBoxes}</div>
+          <div class="stat-label">Total items</div>
+        </div>
+        <div class="stat-card stat-green">
+          <div class="stat-num">${totalQty}</div>
+          <div class="stat-label">Total qty</div>
+        </div>
+        <div class="stat-card stat-red">
+          <div class="stat-num">${dupCount}</div>
+          <div class="stat-label">Duplicate entries</div>
+        </div>
+        <div class="stat-card stat-purple">
+          <div class="stat-num">${Object.keys(jobCounts).length}</div>
+          <div class="stat-label">Unique items</div>
+        </div>
+      </div>
+
+      <div class="summary-table-wrap">
+        <table class="summary-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Item #</th>
+              <th>MO</th>
+              <th>Qty</th>
+              <th>Location</th>
+              <th>Status</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="totals-bar">
+        <div class="total-item">
+          <div class="total-num">${totalBoxes}</div>
+          <div class="total-label">Total items on floor</div>
+        </div>
+        <div class="total-item">
+          <div class="total-num">${totalQty}</div>
+          <div class="total-label">Combined quantity</div>
+        </div>
+        <div class="total-item">
+          <div class="total-num">${uniqueDups}</div>
+          <div class="total-label">Duplicates found</div>
+        </div>
+      </div>
+
+      <footer class="page-footer">
+        <span>TRACE Systems • traceinventory.org</span>
+        <span>We Track. You Improve.</span>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    window.onload = () => { window.print(); };
+  <\/script>
+</body>
+</html>`;
+
+  const win = window.open("", "_blank");
+  if (!win) {
+    toast("Pop-up blocked — allow pop-ups for this site");
+    return;
+  }
   win.document.write(html);
   win.document.close();
 }
