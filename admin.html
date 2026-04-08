@@ -4611,10 +4611,10 @@ window.initApp = async function initApp() {
 
     els.globalResults.innerHTML = `<div style="color:var(--muted)">Loading...</div>`;
 
-    await loadLocations();
+  await loadLocations();
     await loadInventory();
+    await loadStatusesFromApi();
     await syncQueueOrderFromApi();
-    applyScanParams();
 
 initTabs();
 updateFormUI();
@@ -4651,6 +4651,7 @@ if(viewParam === "queue"){
    setInterval(async () => {
   await loadLocations();
   await loadInventory();
+ await loadStatusesFromApi();
   renderLaneList();
   renderMachineList();
   renderGlobalSearch();
@@ -7021,57 +7022,64 @@ document.getElementById("downloadLaneQrBtn").addEventListener("click", () => {
   };
 });
 
-// ====== STATUS OPTIONS ======
-const STATUSES_KEY = "trace_statuses_v1";
-const DEFAULT_STATUSES = ["Tauro Queue","On Press","Printed","Partially Printed","On Hold","Completed","Move To Lane"];
+// ====== STATUS OPTIONS (DB-backed) ======
+let _statusOptionsCache = [];
+
+async function loadStatusesFromApi(){
+  try {
+    const data = await apiGet("/status-options");
+    _statusOptionsCache = (data.statuses || []).map(s => ({ id: s.status_id, label: s.label }));
+  } catch(e) {
+    console.warn("Failed to load status options from API:", e.message);
+  }
+}
 
 function loadStatuses(){
-  try{ const r = localStorage.getItem(STATUSES_KEY); return r ? JSON.parse(r) : [...DEFAULT_STATUSES]; }
-  catch(e){ return [...DEFAULT_STATUSES]; }
+  return _statusOptionsCache.map(s => s.label);
 }
-function saveStatuses(list){ localStorage.setItem(STATUSES_KEY, JSON.stringify(list)); }
+
+function getStatusId(label){
+  const match = _statusOptionsCache.find(s => s.label.toLowerCase() === label.toLowerCase());
+  return match ? match.id : null;
+}
 
 function renderStatusesPage(){
-  const list = loadStatuses();
   const container = document.getElementById("statusList");
   container.innerHTML = "";
-  if(list.length === 0){
+  if(_statusOptionsCache.length === 0){
     container.innerHTML = `<div style="color:var(--muted);font-size:13px;">No statuses yet. Add one above.</div>`;
     return;
   }
-  list.forEach((s, i) => {
+  _statusOptionsCache.forEach(s => {
     const div = document.createElement("div");
     div.className = "resultItem";
     div.style.display = "flex";
     div.style.alignItems = "center";
     div.style.justifyContent = "space-between";
     div.innerHTML = `
-      <div style="font-weight:900;font-size:15px;">${escapeHtml(s)}</div>
-      <button class="danger" style="width:auto;padding:6px 12px;font-size:12px;" data-idx="${i}">Remove</button>
+      <div style="font-weight:900;font-size:15px;">${escapeHtml(s.label)}</div>
+      <button class="danger" style="width:auto;padding:6px 12px;font-size:12px;" data-id="${s.id}">Remove</button>
     `;
-    div.querySelector("[data-idx]").addEventListener("click", async () => {
-  const ok = await uiConfirm("Remove Status", `Remove "${s}" from the list?`, "Remove", "Cancel");
-  if(!ok) return;
-
-  const updated = loadStatuses().filter((_, j) => j !== i);
-  saveStatuses(updated);
-
-  renderStatusesPage();
-  buildStatusPills();
-
-  if ((els.status?.value || "").trim() === s) {
-    els.status.value = "";
-    const triggerText = document.getElementById("statusTriggerText");
-    if (triggerText) {
-      triggerText.textContent = "Status";
-      triggerText.style.color = "var(--muted)";
-    }
-  }
-
-  toast(`Removed "${s}"`);
-});
-container.appendChild(div);
-});
+    div.querySelector("[data-id]").addEventListener("click", async () => {
+      const ok = await uiConfirm("Remove Status", `Remove "${s.label}" from the list?`, "Remove", "Cancel");
+      if(!ok) return;
+      try {
+        await apiDelete(`/status-options/${s.id}`);
+        await loadStatusesFromApi();
+        renderStatusesPage();
+        buildStatusPills();
+        if ((els.status?.value || "").trim().toLowerCase() === s.label.toLowerCase()) {
+          els.status.value = "";
+          const triggerText = document.getElementById("statusTriggerText");
+          if (triggerText) { triggerText.textContent = "Status..."; triggerText.style.color = "var(--muted)"; }
+        }
+        toast(`Removed "${s.label}"`);
+      } catch(e) {
+        await uiAlert("Remove Failed", e.message || "Could not remove status.");
+      }
+    });
+    container.appendChild(div);
+  });
 }
 
 // ====== STATUS PILLS ======
@@ -7129,7 +7137,7 @@ function buildStatusPills(){
   }
 }
 
-document.getElementById("addStatusBtn").addEventListener("click", () => {
+document.getElementById("addStatusBtn").addEventListener("click", async () => {
   const input = document.getElementById("newStatusInput");
   const msg = document.getElementById("statusMsg");
   const val = input.value.trim();
@@ -7138,19 +7146,24 @@ document.getElementById("addStatusBtn").addEventListener("click", () => {
   if(list.map(s => s.toLowerCase()).includes(val.toLowerCase())){
     msg.textContent = `"${val}" already exists.`; return;
   }
-  list.push(val);
-  saveStatuses(list);
-  input.value = "";
-  msg.textContent = "";
-  renderStatusesPage();
-  buildStatusPills(); // ← ADD THIS
-  toast(`✅ Added "${val}"`);
+  try {
+    await apiPost("/status-options", { label: val });
+    await loadStatusesFromApi();
+    input.value = "";
+    msg.textContent = "";
+    renderStatusesPage();
+    buildStatusPills();
+    toast(`✅ Added "${val}"`);
+  } catch(e) {
+    msg.textContent = e.message || "Failed to add status.";
+  }
 });
 
 document.getElementById("statusesPageBack").addEventListener("click", () => hidePage("statusesPage"));
-document.getElementById("openStatusesBtn").addEventListener("click", () => {
+document.getElementById("openStatusesBtn").addEventListener("click", async () => {
   closeSideMenu();
   showPage("statusesPage");
+  await loadStatusesFromApi();
   renderStatusesPage();
 });
 
