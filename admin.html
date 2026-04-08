@@ -1483,6 +1483,15 @@ button:hover::before {
 }
 .onpress-pill strong { color: rgba(138,255,138,.65) !important; }
 
+.upnext-pill {
+  background: linear-gradient(90deg, rgba(255,209,102,.12) 0%, rgba(255,209,102,.35) 45%, rgba(255,209,102,.12) 100%) !important;
+  background-size: 200% auto !important;
+  border: 1px solid rgba(255,209,102,.55) !important;
+  color: rgba(255,209,102,.95) !important;
+  animation: onPressSweep 2s linear infinite;
+}
+.upnext-pill strong { color: rgba(255,209,102,.65) !important; }
+
 @media (max-width:700px){
   .feedCardTop{
     flex-direction:column;
@@ -4938,7 +4947,7 @@ function renderQueuePage(){
 
       <div class="queueMeta">
         <span class="queueMetaPill"><strong>Qty:</strong> ${Number.isFinite(item.qty) ? item.qty : 0}</span>
-       <span class="queueMetaPill ${(item.status||'').toLowerCase().trim()==='on press'?'onpress-pill':'queueStatusPill'}"><strong>Status:</strong> ${escapeHtml(item.status || "—")}</span>
+       <span class="queueMetaPill ${(item.status||'').toLowerCase().trim()==='on press'?'onpress-pill':(item.status||'').toLowerCase().trim()==='up next'?'upnext-pill':'queueStatusPill'}"><strong>Status:</strong> ${escapeHtml(item.status || "—")}</span>
       </div>
 
      <div style="margin-top:12px;">
