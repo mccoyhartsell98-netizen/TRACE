@@ -4620,9 +4620,10 @@ window.initApp = async function initApp() {
 
     els.globalResults.innerHTML = `<div style="color:var(--muted)">Loading...</div>`;
 
-  await loadLocations();
+   await loadLocations();
     await loadInventory();
     await loadStatusesFromApi();
+   buildStatusPills();
     await syncQueueOrderFromApi();
 
 initTabs();
