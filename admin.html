@@ -23,6 +23,7 @@
 
   <script src="https://unpkg.com/html5-qrcode"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   
   <!-- PWA / App support -->
   <link rel="manifest" href="./manifest.json">
@@ -2504,6 +2505,7 @@ input[type="number"] {
   <button class="ghost" id="openPartialPicksBtn">Partial Pick Log</button>
   <button class="ghost" id="openAuditBtn">Inventory Audit</button>
   <button class="ghost" id="openLaneQrBtn">Generate Lane QR</button>
+  <button class="ghost" id="openPalletLabelsBtn">Pallet Labels</button>
   <div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#6C86A8;padding:4px 2px;margin-top:8px;border-bottom:1px solid rgba(42,127,255,0.15);margin-bottom:4px;">Administration</div>
   <button class="ghost" id="openUsersBtn">User Management</button>
   <button class="ghost" id="openStatusesBtn">Status Options</button>
@@ -2974,6 +2976,52 @@ input[type="number"] {
       <div id="statusMsg" style="margin-top:8px;font-size:13px;color:var(--muted);min-height:18px;"></div>
     </div>
     <div id="statusList" class="results"></div>
+  </div>
+</div>
+
+<!-- PALLET LABELS PAGE -->
+<div id="palletLabelsPage" class="appPage hidden">
+  <div class="wrap" style="max-width:600px;">
+    <div class="pageHeader">
+      <button class="ghost" id="palletLabelsPageBack">← Back</button>
+      <h2 style="margin:0;font-size:18px;">Pallet Label Generator</h2>
+      <div></div>
+    </div>
+    <div class="card">
+      <h2>Label Details</h2>
+      <div class="formGrid">
+        <div class="full">
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">Job Number *</label>
+          <input id="plJob" type="text" placeholder="e.g. 70910">
+        </div>
+        <div class="full">
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">Box Type *</label>
+          <input id="plBox" type="text" placeholder="e.g. BX-BEL 42 PLAIN">
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">Source Tag (optional)</label>
+          <input id="plSource" type="text" placeholder="e.g. QDP">
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">Total Quantity *</label>
+          <input id="plTotalQty" type="number" min="1" placeholder="e.g. 1000">
+        </div>
+        <div class="full">
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">Qty Per Pallet *</label>
+          <input id="plQtyPerPallet" type="number" min="1" placeholder="e.g. 200">
+        </div>
+      </div>
+      <div class="btnRow" style="margin-top:16px;">
+        <button class="primary" id="generatePalletLabelsBtn" style="flex:1;padding:14px;font-size:15px;">Generate Labels (PDF)</button>
+      </div>
+      <div id="plPreview" style="margin-top:16px;color:var(--muted);font-size:13px;min-height:18px;"></div>
+
+      <!-- Live preview as user types -->
+      <div id="plBreakdown" style="margin-top:14px;display:none;">
+        <div style="font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:rgba(140,170,255,.62);margin-bottom:8px;">Pallet Breakdown</div>
+        <div id="plBreakdownList" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -7176,6 +7224,274 @@ document.getElementById("openStatusesBtn").addEventListener("click", async () =>
   await loadStatusesFromApi();
   renderStatusesPage();
 });
+
+// ====== PALLET LABEL GENERATOR ======
+document.getElementById("openPalletLabelsBtn").addEventListener("click", () => {
+  closeSideMenu();
+  showPage("palletLabelsPage");
+  document.getElementById("plJob").value = "";
+  document.getElementById("plBox").value = "";
+  document.getElementById("plSource").value = "";
+  document.getElementById("plTotalQty").value = "";
+  document.getElementById("plQtyPerPallet").value = "";
+  document.getElementById("plPreview").textContent = "";
+  document.getElementById("plBreakdown").style.display = "none";
+});
+
+document.getElementById("palletLabelsPageBack").addEventListener("click", () => hidePage("palletLabelsPage"));
+
+// Clean job input
+document.getElementById("plJob").addEventListener("input", (e) => { e.target.value = cleanJob(e.target.value); });
+document.getElementById("plBox").addEventListener("input", (e) => { e.target.value = e.target.value.toUpperCase(); });
+document.getElementById("plSource").addEventListener("input", (e) => { e.target.value = e.target.value.toUpperCase(); });
+
+// Live breakdown preview
+["plTotalQty","plQtyPerPallet"].forEach(id => {
+  document.getElementById(id).addEventListener("input", updatePalletBreakdown);
+});
+
+function updatePalletBreakdown(){
+  const totalQty = parseInt(document.getElementById("plTotalQty").value || "0", 10);
+  const qtyPer   = parseInt(document.getElementById("plQtyPerPallet").value || "0", 10);
+  const breakdown = document.getElementById("plBreakdown");
+  const list      = document.getElementById("plBreakdownList");
+
+  if(!totalQty || !qtyPer || totalQty <= 0 || qtyPer <= 0){
+    breakdown.style.display = "none";
+    return;
+  }
+
+  const fullPallets = Math.floor(totalQty / qtyPer);
+  const remainder   = totalQty % qtyPer;
+  const totalPallets = fullPallets + (remainder > 0 ? 1 : 0);
+
+  breakdown.style.display = "block";
+  list.innerHTML = "";
+
+  for(let i = 1; i <= totalPallets; i++){
+    const isLast = (i === totalPallets && remainder > 0);
+    const palletQty = isLast ? remainder : qtyPer;
+    const div = document.createElement("div");
+    div.style.cssText = `
+      padding:8px 12px;border-radius:10px;font-size:13px;font-weight:700;
+      display:flex;justify-content:space-between;align-items:center;
+      background:${isLast ? "rgba(255,209,102,.08)" : "rgba(58,122,254,.08)"};
+      border:1px solid ${isLast ? "rgba(255,209,102,.25)" : "rgba(58,122,254,.20)"};
+      color:${isLast ? "rgba(255,209,102,.9)" : "rgba(180,205,255,.9)"};
+    `;
+    div.innerHTML = `
+      <span>Pallet ${i} of ${totalPallets}</span>
+      <span style="font-weight:900;">${palletQty} units${isLast ? " (remainder)" : ""}</span>
+    `;
+    list.appendChild(div);
+  }
+}
+
+// Generate PDF
+document.getElementById("generatePalletLabelsBtn").addEventListener("click", async () => {
+  const jobNum    = cleanJob(document.getElementById("plJob").value);
+  const boxType   = document.getElementById("plBox").value.trim();
+  const sourceTag = document.getElementById("plSource").value.trim();
+  const totalQty  = parseInt(document.getElementById("plTotalQty").value || "0", 10);
+  const qtyPer    = parseInt(document.getElementById("plQtyPerPallet").value || "0", 10);
+  const preview   = document.getElementById("plPreview");
+
+  if(!jobNum){ preview.textContent = "⚠️ Job Number is required."; preview.style.color = "var(--bad)"; return; }
+  if(!boxType){ preview.textContent = "⚠️ Box Type is required."; preview.style.color = "var(--bad)"; return; }
+  if(!totalQty || totalQty <= 0){ preview.textContent = "⚠️ Total Quantity must be > 0."; preview.style.color = "var(--bad)"; return; }
+  if(!qtyPer || qtyPer <= 0){ preview.textContent = "⚠️ Qty Per Pallet must be > 0."; preview.style.color = "var(--bad)"; return; }
+
+  const fullPallets  = Math.floor(totalQty / qtyPer);
+  const remainder    = totalQty % qtyPer;
+  const totalPallets = fullPallets + (remainder > 0 ? 1 : 0);
+
+  preview.textContent = `Generating ${totalPallets} label(s)...`;
+  preview.style.color = "var(--muted)";
+
+  const btn = document.getElementById("generatePalletLabelsBtn");
+  btn.disabled = true;
+  btn.textContent = "Generating...";
+
+  try {
+    // Load TRACE logo as base64
+    const logoB64 = await loadImageAsBase64("./Offcial-Trace-Logo.png");
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:"portrait", unit:"pt", format:"letter" });
+    const W = doc.internal.pageSize.getWidth();   // 612
+    const H = doc.internal.pageSize.getHeight();  // 792
+
+    for(let i = 1; i <= totalPallets; i++){
+      if(i > 1) doc.addPage();
+
+      const isLast = (i === totalPallets && remainder > 0);
+      const palletQty = isLast ? remainder : qtyPer;
+
+      const margin = 50;
+      let y = margin;
+
+      // ── CT COMMERCIAL PAPER, LLC ──
+      doc.setFont("helvetica","bold");
+      doc.setFontSize(14);
+      doc.text("CT COMMERCIAL PAPER, LLC", margin, y);
+      y += 28;
+
+      // ── BOX line with border ──
+      const boxLineH = 36;
+      doc.setDrawColor(0);
+      doc.setLineWidth(1);
+      doc.rect(margin, y - 18, W - margin * 2, boxLineH);
+
+      doc.setFont("helvetica","normal");
+      doc.setFontSize(16);
+      const boxText = `BOX: ${boxType}`;
+      doc.text(boxText, margin + 10, y + 4);
+
+      if(sourceTag){
+        const boxTextW = doc.getTextWidth(boxText);
+        doc.setTextColor(200, 0, 0);
+        doc.setFont("helvetica","bold");
+        doc.text(`(${sourceTag})`, margin + 10 + boxTextW + 20, y + 4);
+        doc.setTextColor(0, 0, 0);
+      }
+      y += boxLineH + 20;
+
+      // ── Job Number (big) ──
+      doc.setFont("helvetica","bold");
+      doc.setFontSize(72);
+      doc.text(jobNum, margin, y + 50);
+      y += 80;
+
+      // ── Pallet X of Y ──
+      doc.setFontSize(18);
+      doc.setFont("helvetica","bold");
+      const palletPrefix = "Pallet  ";
+      doc.text(palletPrefix, margin, y);
+
+      const prefixW = doc.getTextWidth(palletPrefix);
+      doc.setFontSize(36);
+      const numText = String(i);
+      doc.text(numText, margin + prefixW, y);
+
+      // underline pallet number
+      const numW = doc.getTextWidth(numText);
+      doc.setLineWidth(1.5);
+      doc.line(margin + prefixW, y + 3, margin + prefixW + numW, y + 3);
+
+      const afterNum = margin + prefixW + numW;
+      doc.setFontSize(18);
+      doc.text("  of  ", afterNum, y);
+      const ofW = doc.getTextWidth("  of  ");
+
+      doc.setFontSize(36);
+      const totalText = String(totalPallets);
+      doc.text(totalText, afterNum + ofW, y);
+      const totalW = doc.getTextWidth(totalText);
+      doc.line(afterNum + ofW, y + 3, afterNum + ofW + totalW, y + 3);
+
+      y += 40;
+
+      // ── Pallet Qty line ──
+      doc.setFontSize(18);
+      doc.setFont("helvetica","normal");
+      doc.text("Pallet Qty:", margin, y);
+      const qtyLabelW = doc.getTextWidth("Pallet Qty: ");
+      doc.setFontSize(32);
+      doc.setFont("helvetica","bold");
+      doc.text(String(palletQty), margin + qtyLabelW, y);
+
+      // ── LAST PALLET: Actual + Total Finished ──
+      if(isLast){
+        const afterQty = margin + qtyLabelW + doc.getTextWidth(String(palletQty));
+        doc.setFontSize(18);
+        doc.setFont("helvetica","normal");
+        doc.text(" Actual : _______", afterQty + 10, y);
+
+        y += 50;
+        doc.setFontSize(22);
+        doc.setFont("helvetica","bold");
+        doc.text("TOTAL FINISHED : ___________", margin, y);
+      }
+
+      // ── QR Code + TRACE Logo (bottom right) ──
+      const qrSize = 140;
+      const qrX = W - margin - qrSize;
+      const qrY = H - margin - qrSize - 50;
+
+      // Generate QR as data URL
+      const qrUrl = buildJobUrl(jobNum);
+      const qrDataUrl = await generateQrDataUrl(qrUrl, qrSize);
+      doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
+
+      // TRACE logo above QR
+      if(logoB64){
+        const logoW = qrSize;
+        const logoH = 40;
+        doc.addImage(logoB64, "PNG", qrX, qrY - logoH - 6, logoW, logoH);
+      }
+
+      // Job number under QR
+      doc.setFontSize(14);
+      doc.setFont("helvetica","bold");
+      doc.setTextColor(0);
+      const qrLabel = jobNum;
+      const qrLabelW = doc.getTextWidth(qrLabel);
+      doc.text(qrLabel, qrX + (qrSize - qrLabelW) / 2, qrY + qrSize + 18);
+    }
+
+    doc.save(`TRACE_Pallet_Labels_${jobNum}.pdf`);
+    preview.textContent = `✅ Generated ${totalPallets} label(s) — PDF downloaded.`;
+    preview.style.color = "var(--good)";
+    toast(`✅ ${totalPallets} pallet labels generated for ${jobNum}`);
+
+  } catch(err) {
+    console.error("Pallet label generation failed:", err);
+    preview.textContent = `❌ Failed: ${err.message}`;
+    preview.style.color = "var(--bad)";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Generate Labels (PDF)";
+  }
+});
+
+// Helper: load image as base64
+function loadImageAsBase64(src){
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      // Crop out black background — find content bounds
+      const tmp = document.createElement("canvas");
+      tmp.width = img.naturalWidth;
+      tmp.height = img.naturalHeight;
+      const ctx = tmp.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+      const pixels = ctx.getImageData(0, 0, tmp.width, tmp.height).data;
+      let minX = tmp.width, minY = tmp.height, maxX = 0, maxY = 0;
+      for(let y = 0; y < tmp.height; y++){
+        for(let x = 0; x < tmp.width; x++){
+          const idx = (y * tmp.width + x) * 4;
+          if(pixels[idx+3] > 30 && (pixels[idx] > 30 || pixels[idx+1] > 30 || pixels[idx+2] > 60)){
+            if(x < minX) minX = x;
+            if(x > maxX) maxX = x;
+            if(y < minY) minY = y;
+            if(y > maxY) maxY = y;
+          }
+        }
+      }
+      const cropX = Math.max(0, minX - 5);
+      const cropY = Math.max(0, minY - 5);
+      const cropW = (maxX - minX) + 10;
+      const cropH = (maxY - minY) + 10;
+
+      const out = document.createElement("canvas");
+      out.width = cropW;
+      out.height = cropH;
+      const octx = out.getContext("2d");
+      octx.drawImage(tmp, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+      resolve(out.toDataURL("image/png"));
+    };
+    img.onerr
 
 // ====== EXPORT LANE REPORT (PDF) ======
 document.getElementById("exportReportBtn").addEventListener("click", () => {
