@@ -7456,25 +7456,35 @@ document.getElementById("generatePalletLabelsBtn").addEventListener("click", asy
       const qrBottomPad = 70;
       const qrY = H - margin - qrBottomPad - qrSize;
 
-      // Blue L-shaped sweep line (goes from left-bottom up to QR)
-      const lineStartX = innerMargin;
-      const lineStartY = H - margin - 30;
-      const lineCornerX = qrX - 20;
-      const lineCornerY = lineStartY;
-      const lineEndX = qrX - 20;
-      const lineEndY = qrY + qrSize;
+      // Blue L-shaped sweep line with curved corner
+      const sweepLineX = innerMargin;
+      const sweepLineY = H - margin - 30;
+      const sweepCornerX = qrX - 30;
+      const sweepTopY = qrY + qrSize + 25;
+      const curveRadius = 40;
 
       doc.setDrawColor(...BLUE);
       doc.setLineWidth(2.5);
-      // Horizontal part
-      doc.line(lineStartX, lineStartY, lineCornerX, lineCornerY);
-      // Curved corner — approximate with short diagonal
-      doc.line(lineCornerX, lineCornerY, lineEndX, lineEndY);
 
-      // QR code
-      const qrUrl = buildJobUrl(jobNum);
-      const qrDataUrl = await generateQrDataUrl(qrUrl, qrSize);
-      doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
+      // Horizontal part (left to before the curve)
+      doc.line(sweepLineX, sweepLineY, sweepCornerX - curveRadius, sweepLineY);
+
+      // Curved corner using bezier approximation — series of short lines
+      const steps = 12;
+      for(let s = 0; s <= steps; s++){
+        const t = s / steps;
+        const angle = (Math.PI / 2) * t;
+        const x1 = sweepCornerX - curveRadius + Math.sin(angle) * curveRadius;
+        const y1 = sweepLineY - (1 - Math.cos(angle)) * curveRadius;
+        const tNext = (s + 1) / steps;
+        const angleNext = (Math.PI / 2) * Math.min(tNext, 1);
+        const x2 = sweepCornerX - curveRadius + Math.sin(angleNext) * curveRadius;
+        const y2 = sweepLineY - (1 - Math.cos(angleNext)) * curveRadius;
+        if(s < steps) doc.line(x1, y1, x2, y2);
+      }
+
+      // Vertical part (after curve up to QR area)
+      doc.line(sweepCornerX, sweepLineY - curveRadius, sweepCornerX, sweepTopY);
 
       // TRACE logo above QR
       if(logoB64){
