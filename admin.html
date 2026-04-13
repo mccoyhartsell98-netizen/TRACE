@@ -7320,8 +7320,6 @@ document.getElementById("generatePalletLabelsBtn").addEventListener("click", asy
     const W = doc.internal.pageSize.getWidth();
     const H = doc.internal.pageSize.getHeight();
 
-    const BLUE = [58, 122, 254];
-
     for(let i = 1; i <= totalPallets; i++){
       if(i > 1) doc.addPage();
 
@@ -7330,23 +7328,18 @@ document.getElementById("generatePalletLabelsBtn").addEventListener("click", asy
       const margin = 28;
       const innerMargin = 50;
 
-      // ════════════════════════════════════════
-      // OUTER FRAME — black
-      // ════════════════════════════════════════
+      // ── Outer frame (black) ──
       doc.setDrawColor(0, 0, 0);
       doc.setLineWidth(3);
       doc.rect(margin, margin, W - margin * 2, H - margin * 2);
 
-      // Blue accent inner border
-      doc.setDrawColor(...BLUE);
+      // ── Blue accent inner border ──
+      doc.setDrawColor(58, 122, 254);
       doc.setLineWidth(1.2);
       doc.rect(margin + 6, margin + 6, W - margin * 2 - 12, H - margin * 2 - 12);
 
-      // ════════════════════════════════════════
-      // FOLD-OVER FLAP
-      // ════════════════════════════════════════
+      // ── Fold line ──
       const foldY = 200;
-
       doc.setDrawColor(180);
       doc.setLineWidth(0.5);
       doc.setLineDashPattern([5, 3], 0);
@@ -7358,19 +7351,17 @@ document.getElementById("generatePalletLabelsBtn").addEventListener("click", asy
       doc.setTextColor(160, 170, 185);
       doc.text("FOLD HERE", W / 2, foldY - 5, { align: "center" });
 
-      // ════════════════════════════════════════
-      // MAIN LABEL
-      // ════════════════════════════════════════
+      // ── Main label starts here ──
       let y = foldY + 38;
 
-      // ── CT COMMERCIAL PAPER, LLC ──
+      // CT COMMERCIAL PAPER, LLC
       doc.setFont("helvetica","bold");
       doc.setFontSize(16);
       doc.setTextColor(0);
       doc.text("CT COMMERCIAL PAPER, LLC", innerMargin, y);
       y += 36;
 
-      // ── BOX line ──
+      // BOX line
       const boxLineH = 42;
       doc.setDrawColor(0);
       doc.setLineWidth(1);
@@ -7390,14 +7381,14 @@ document.getElementById("generatePalletLabelsBtn").addEventListener("click", asy
       }
       y += boxLineH + 48;
 
-      // ── Job Number — HUGE ──
+      // Job Number
       doc.setFont("helvetica","bold");
       doc.setFontSize(130);
       doc.setTextColor(0);
       doc.text(jobNum, innerMargin, y + 88);
       y += 155;
 
-      // ── Pallet X of Y ──
+      // Pallet X of Y
       doc.setFontSize(24);
       doc.setFont("helvetica","bold");
       const palletPrefix = "Pallet  ";
@@ -7426,7 +7417,7 @@ document.getElementById("generatePalletLabelsBtn").addEventListener("click", asy
 
       y += 80;
 
-      // ── Pallet Qty ──
+      // Pallet Qty
       doc.setFontSize(24);
       doc.setFont("helvetica","normal");
       doc.text("Pallet Qty:", innerMargin, y);
@@ -7435,7 +7426,7 @@ document.getElementById("generatePalletLabelsBtn").addEventListener("click", asy
       doc.setFont("helvetica","bold");
       doc.text(String(palletQty), innerMargin + qtyLabelW, y + 3);
 
-      // ── LAST PALLET ──
+      // Last pallet extras
       if(isLast){
         const afterQty = innerMargin + qtyLabelW + doc.getTextWidth(String(palletQty));
         doc.setFontSize(22);
@@ -7448,52 +7439,21 @@ document.getElementById("generatePalletLabelsBtn").addEventListener("click", asy
         doc.text("TOTAL FINISHED : ___________", innerMargin, y);
       }
 
-      // ════════════════════════════════════════
-      // BLUE L-SHAPED LINE + QR + TRACE LOGO
-      // ════════════════════════════════════════
+      // ── QR Code + TRACE Logo (bottom right) ──
       const qrSize = 150;
       const qrX = W - innerMargin - qrSize - 10;
-      const qrBottomPad = 70;
-      const qrY = H - margin - qrBottomPad - qrSize;
+      const qrY = H - margin - 80 - qrSize;
 
-      // Blue L-shaped sweep line with curved corner
-      const sweepLineX = innerMargin;
-      const sweepLineY = H - margin - 30;
-      const sweepCornerX = qrX - 30;
-      const sweepTopY = qrY + qrSize + 25;
-      const curveRadius = 40;
+      const qrUrl = buildJobUrl(jobNum);
+      const qrDataUrl = await generateQrDataUrl(qrUrl, qrSize);
+      doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
 
-      doc.setDrawColor(...BLUE);
-      doc.setLineWidth(2.5);
-
-      // Horizontal part (left to before the curve)
-      doc.line(sweepLineX, sweepLineY, sweepCornerX - curveRadius, sweepLineY);
-
-      // Curved corner using bezier approximation — series of short lines
-      const steps = 12;
-      for(let s = 0; s <= steps; s++){
-        const t = s / steps;
-        const angle = (Math.PI / 2) * t;
-        const x1 = sweepCornerX - curveRadius + Math.sin(angle) * curveRadius;
-        const y1 = sweepLineY - (1 - Math.cos(angle)) * curveRadius;
-        const tNext = (s + 1) / steps;
-        const angleNext = (Math.PI / 2) * Math.min(tNext, 1);
-        const x2 = sweepCornerX - curveRadius + Math.sin(angleNext) * curveRadius;
-        const y2 = sweepLineY - (1 - Math.cos(angleNext)) * curveRadius;
-        if(s < steps) doc.line(x1, y1, x2, y2);
-      }
-
-      // Vertical part (after curve up to QR area)
-      doc.line(sweepCornerX, sweepLineY - curveRadius, sweepCornerX, sweepTopY);
-
-      // TRACE logo above QR
       if(logoB64){
         const logoW = qrSize;
         const logoH = 44;
         doc.addImage(logoB64, "PNG", qrX, qrY - logoH - 10, logoW, logoH);
       }
 
-      // Job number under QR
       doc.setFontSize(13);
       doc.setFont("helvetica","bold");
       doc.setTextColor(80);
