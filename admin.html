@@ -7316,7 +7316,8 @@ document.getElementById("generatePalletLabelsBtn").addEventListener("click", asy
     const logoB64 = await loadImageAsBase64("./Offcial-Trace-Logo.png");
 
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation:"portrait", unit:"pt", format:"letter" });
+    // 8.5 x 14 legal size in points
+    const doc = new jsPDF({ orientation:"portrait", unit:"pt", format:[612, 1008] });
     const W = doc.internal.pageSize.getWidth();
     const H = doc.internal.pageSize.getHeight();
 
@@ -7328,33 +7329,11 @@ document.getElementById("generatePalletLabelsBtn").addEventListener("click", asy
       const margin = 50;
 
       // ════════════════════════════════════════
-      // FOLD-OVER FLAP (top ~200pt)
+      // FOLD-OVER FLAP (blank space for folding)
       // ════════════════════════════════════════
-      let fy = 30;
+      const foldY = 200;
 
-      doc.setFont("helvetica","bold");
-      doc.setFontSize(13);
-      doc.setTextColor(0);
-      doc.text("CT COMMERCIAL PAPER, LLC", margin, fy);
-      fy += 22;
-
-      // Job number in flap — big and bold
-      doc.setFontSize(54);
-      doc.setFont("helvetica","bold");
-      doc.text(jobNum, margin, fy + 38);
-      fy += 52;
-
-      // Pallet info in flap
-      doc.setFontSize(16);
-      doc.setFont("helvetica","bold");
-      doc.text(`Pallet ${i} of ${totalPallets}`, margin, fy + 20);
-      fy += 30;
-
-      doc.setFontSize(16);
-      doc.text(`Qty: ${palletQty}`, margin, fy + 14);
-
-      // ── Fold line (dashed) ──
-      const foldY = 175;
+      // Dashed fold line
       doc.setDrawColor(160);
       doc.setLineWidth(0.75);
       doc.setLineDashPattern([6, 4], 0);
@@ -7371,48 +7350,48 @@ document.getElementById("generatePalletLabelsBtn").addEventListener("click", asy
       // ════════════════════════════════════════
       // MAIN LABEL (below fold)
       // ════════════════════════════════════════
-      let y = foldY + 30;
+      let y = foldY + 40;
 
       // CT COMMERCIAL PAPER, LLC
       doc.setFont("helvetica","bold");
-      doc.setFontSize(15);
+      doc.setFontSize(16);
       doc.text("CT COMMERCIAL PAPER, LLC", margin, y);
-      y += 32;
+      y += 40;
 
       // BOX line with border
-      const boxLineH = 38;
+      const boxLineH = 42;
       doc.setDrawColor(0);
       doc.setLineWidth(1);
-      doc.rect(margin, y - 20, W - margin * 2, boxLineH);
+      doc.rect(margin, y - 22, W - margin * 2, boxLineH);
 
       doc.setFont("helvetica","normal");
-      doc.setFontSize(17);
+      doc.setFontSize(18);
       const boxText = `BOX: ${boxType}`;
-      doc.text(boxText, margin + 12, y + 4);
+      doc.text(boxText, margin + 14, y + 4);
 
       if(sourceTag){
         const boxTextW = doc.getTextWidth(boxText);
         doc.setTextColor(200, 0, 0);
         doc.setFont("helvetica","bold");
-        doc.text(`(${sourceTag})`, margin + 12 + boxTextW + 24, y + 4);
+        doc.text(`(${sourceTag})`, margin + 14 + boxTextW + 28, y + 4);
         doc.setTextColor(0, 0, 0);
       }
-      y += boxLineH + 30;
+      y += boxLineH + 40;
 
       // Job Number — HUGE
       doc.setFont("helvetica","bold");
-      doc.setFontSize(96);
-      doc.text(jobNum, margin, y + 65);
-      y += 100;
+      doc.setFontSize(110);
+      doc.text(jobNum, margin, y + 75);
+      y += 120;
 
       // Pallet X of Y
-      doc.setFontSize(20);
+      doc.setFontSize(22);
       doc.setFont("helvetica","bold");
       const palletPrefix = "Pallet  ";
       doc.text(palletPrefix, margin, y);
 
       const prefixW = doc.getTextWidth(palletPrefix);
-      doc.setFontSize(42);
+      doc.setFontSize(48);
       const numText = String(i);
       doc.text(numText, margin + prefixW, y);
 
@@ -7421,44 +7400,44 @@ document.getElementById("generatePalletLabelsBtn").addEventListener("click", asy
       doc.line(margin + prefixW, y + 4, margin + prefixW + numW, y + 4);
 
       const afterNum = margin + prefixW + numW;
-      doc.setFontSize(20);
+      doc.setFontSize(22);
       doc.text("  of  ", afterNum, y);
       const ofW = doc.getTextWidth("  of  ");
 
-      doc.setFontSize(42);
+      doc.setFontSize(48);
       const totalText = String(totalPallets);
       doc.text(totalText, afterNum + ofW, y);
       const totalW = doc.getTextWidth(totalText);
       doc.line(afterNum + ofW, y + 4, afterNum + ofW + totalW, y + 4);
 
-      y += 50;
+      y += 60;
 
       // Pallet Qty
-      doc.setFontSize(20);
+      doc.setFontSize(22);
       doc.setFont("helvetica","normal");
       doc.text("Pallet Qty:", margin, y);
       const qtyLabelW = doc.getTextWidth("Pallet Qty: ");
-      doc.setFontSize(38);
+      doc.setFontSize(42);
       doc.setFont("helvetica","bold");
       doc.text(String(palletQty), margin + qtyLabelW, y);
 
       // LAST PALLET extras
       if(isLast){
         const afterQty = margin + qtyLabelW + doc.getTextWidth(String(palletQty));
-        doc.setFontSize(20);
+        doc.setFontSize(22);
         doc.setFont("helvetica","normal");
-        doc.text(" Actual : _______", afterQty + 14, y);
+        doc.text(" Actual : _______", afterQty + 16, y);
 
-        y += 55;
-        doc.setFontSize(24);
+        y += 65;
+        doc.setFontSize(26);
         doc.setFont("helvetica","bold");
         doc.text("TOTAL FINISHED : ___________", margin, y);
       }
 
       // ── QR Code + TRACE Logo (bottom right) ──
-      const qrSize = 140;
+      const qrSize = 150;
       const qrX = W - margin - qrSize;
-      const qrY = H - margin - qrSize - 55;
+      const qrY = H - margin - qrSize - 60;
 
       const qrUrl = buildJobUrl(jobNum);
       const qrDataUrl = await generateQrDataUrl(qrUrl, qrSize);
@@ -7466,15 +7445,15 @@ document.getElementById("generatePalletLabelsBtn").addEventListener("click", asy
 
       if(logoB64){
         const logoW = qrSize;
-        const logoH = 40;
-        doc.addImage(logoB64, "PNG", qrX, qrY - logoH - 8, logoW, logoH);
+        const logoH = 44;
+        doc.addImage(logoB64, "PNG", qrX, qrY - logoH - 10, logoW, logoH);
       }
 
-      doc.setFontSize(14);
+      doc.setFontSize(15);
       doc.setFont("helvetica","bold");
       doc.setTextColor(0);
       const qrLabelW = doc.getTextWidth(jobNum);
-      doc.text(jobNum, qrX + (qrSize - qrLabelW) / 2, qrY + qrSize + 20);
+      doc.text(jobNum, qrX + (qrSize - qrLabelW) / 2, qrY + qrSize + 22);
     }
 
     doc.save(`TRACE_Pallet_Labels_${jobNum}.pdf`);
