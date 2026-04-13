@@ -7296,10 +7296,10 @@ document.getElementById("generatePalletLabelsBtn").addEventListener("click", asy
   const qtyPer    = parseInt(document.getElementById("plQtyPerPallet").value || "0", 10);
   const preview   = document.getElementById("plPreview");
 
-  if(!jobNum){ preview.textContent = "⚠️ Job Number is required."; preview.style.color = "var(--bad)"; return; }
-  if(!boxType){ preview.textContent = "⚠️ Box Type is required."; preview.style.color = "var(--bad)"; return; }
-  if(!totalQty || totalQty <= 0){ preview.textContent = "⚠️ Total Quantity must be > 0."; preview.style.color = "var(--bad)"; return; }
-  if(!qtyPer || qtyPer <= 0){ preview.textContent = "⚠️ Qty Per Pallet must be > 0."; preview.style.color = "var(--bad)"; return; }
+  if(!jobNum){ preview.textContent = "Job Number is required."; preview.style.color = "var(--bad)"; return; }
+  if(!boxType){ preview.textContent = "Box Type is required."; preview.style.color = "var(--bad)"; return; }
+  if(!totalQty || totalQty <= 0){ preview.textContent = "Total Quantity must be > 0."; preview.style.color = "var(--bad)"; return; }
+  if(!qtyPer || qtyPer <= 0){ preview.textContent = "Qty Per Pallet must be > 0."; preview.style.color = "var(--bad)"; return; }
 
   const fullPallets  = Math.floor(totalQty / qtyPer);
   const remainder    = totalQty % qtyPer;
@@ -7313,102 +7313,144 @@ document.getElementById("generatePalletLabelsBtn").addEventListener("click", asy
   btn.textContent = "Generating...";
 
   try {
-    // Load TRACE logo as base64
     const logoB64 = await loadImageAsBase64("./Offcial-Trace-Logo.png");
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation:"portrait", unit:"pt", format:"letter" });
-    const W = doc.internal.pageSize.getWidth();   // 612
-    const H = doc.internal.pageSize.getHeight();  // 792
+    const W = doc.internal.pageSize.getWidth();
+    const H = doc.internal.pageSize.getHeight();
 
     for(let i = 1; i <= totalPallets; i++){
       if(i > 1) doc.addPage();
 
       const isLast = (i === totalPallets && remainder > 0);
       const palletQty = isLast ? remainder : qtyPer;
-
       const margin = 50;
-      let y = margin;
 
-      // ── CT COMMERCIAL PAPER, LLC ──
+      // ════════════════════════════════════════
+      // FOLD-OVER FLAP (top ~200pt)
+      // ════════════════════════════════════════
+      let fy = 30;
+
       doc.setFont("helvetica","bold");
-      doc.setFontSize(14);
-      doc.text("CT COMMERCIAL PAPER, LLC", margin, y);
-      y += 28;
+      doc.setFontSize(13);
+      doc.setTextColor(0);
+      doc.text("CT COMMERCIAL PAPER, LLC", margin, fy);
+      fy += 22;
 
-      // ── BOX line with border ──
-      const boxLineH = 36;
+      // Job number in flap — big and bold
+      doc.setFontSize(54);
+      doc.setFont("helvetica","bold");
+      doc.text(jobNum, margin, fy + 38);
+      fy += 52;
+
+      // Pallet info in flap
+      doc.setFontSize(16);
+      doc.setFont("helvetica","bold");
+      doc.text(`Pallet ${i} of ${totalPallets}`, margin, fy + 20);
+      fy += 30;
+
+      doc.setFontSize(16);
+      doc.text(`Qty: ${palletQty}`, margin, fy + 14);
+
+      // ── Fold line (dashed) ──
+      const foldY = 175;
+      doc.setDrawColor(160);
+      doc.setLineWidth(0.75);
+      doc.setLineDashPattern([6, 4], 0);
+      doc.line(margin - 10, foldY, W - margin + 10, foldY);
+      doc.setLineDashPattern([], 0);
+
+      // Fold instruction
+      doc.setFontSize(8);
+      doc.setFont("helvetica","normal");
+      doc.setTextColor(140);
+      doc.text("FOLD HERE", W / 2, foldY - 5, { align: "center" });
+      doc.setTextColor(0);
+
+      // ════════════════════════════════════════
+      // MAIN LABEL (below fold)
+      // ════════════════════════════════════════
+      let y = foldY + 30;
+
+      // CT COMMERCIAL PAPER, LLC
+      doc.setFont("helvetica","bold");
+      doc.setFontSize(15);
+      doc.text("CT COMMERCIAL PAPER, LLC", margin, y);
+      y += 32;
+
+      // BOX line with border
+      const boxLineH = 38;
       doc.setDrawColor(0);
       doc.setLineWidth(1);
-      doc.rect(margin, y - 18, W - margin * 2, boxLineH);
+      doc.rect(margin, y - 20, W - margin * 2, boxLineH);
 
       doc.setFont("helvetica","normal");
-      doc.setFontSize(16);
+      doc.setFontSize(17);
       const boxText = `BOX: ${boxType}`;
-      doc.text(boxText, margin + 10, y + 4);
+      doc.text(boxText, margin + 12, y + 4);
 
       if(sourceTag){
         const boxTextW = doc.getTextWidth(boxText);
         doc.setTextColor(200, 0, 0);
         doc.setFont("helvetica","bold");
-        doc.text(`(${sourceTag})`, margin + 10 + boxTextW + 20, y + 4);
+        doc.text(`(${sourceTag})`, margin + 12 + boxTextW + 24, y + 4);
         doc.setTextColor(0, 0, 0);
       }
-      y += boxLineH + 20;
+      y += boxLineH + 30;
 
-      // ── Job Number (big) ──
+      // Job Number — HUGE
       doc.setFont("helvetica","bold");
-      doc.setFontSize(72);
-      doc.text(jobNum, margin, y + 50);
-      y += 80;
+      doc.setFontSize(96);
+      doc.text(jobNum, margin, y + 65);
+      y += 100;
 
-      // ── Pallet X of Y ──
-      doc.setFontSize(18);
+      // Pallet X of Y
+      doc.setFontSize(20);
       doc.setFont("helvetica","bold");
       const palletPrefix = "Pallet  ";
       doc.text(palletPrefix, margin, y);
 
       const prefixW = doc.getTextWidth(palletPrefix);
-      doc.setFontSize(36);
+      doc.setFontSize(42);
       const numText = String(i);
       doc.text(numText, margin + prefixW, y);
 
-      // underline pallet number
       const numW = doc.getTextWidth(numText);
       doc.setLineWidth(1.5);
-      doc.line(margin + prefixW, y + 3, margin + prefixW + numW, y + 3);
+      doc.line(margin + prefixW, y + 4, margin + prefixW + numW, y + 4);
 
       const afterNum = margin + prefixW + numW;
-      doc.setFontSize(18);
+      doc.setFontSize(20);
       doc.text("  of  ", afterNum, y);
       const ofW = doc.getTextWidth("  of  ");
 
-      doc.setFontSize(36);
+      doc.setFontSize(42);
       const totalText = String(totalPallets);
       doc.text(totalText, afterNum + ofW, y);
       const totalW = doc.getTextWidth(totalText);
-      doc.line(afterNum + ofW, y + 3, afterNum + ofW + totalW, y + 3);
+      doc.line(afterNum + ofW, y + 4, afterNum + ofW + totalW, y + 4);
 
-      y += 40;
+      y += 50;
 
-      // ── Pallet Qty line ──
-      doc.setFontSize(18);
+      // Pallet Qty
+      doc.setFontSize(20);
       doc.setFont("helvetica","normal");
       doc.text("Pallet Qty:", margin, y);
       const qtyLabelW = doc.getTextWidth("Pallet Qty: ");
-      doc.setFontSize(32);
+      doc.setFontSize(38);
       doc.setFont("helvetica","bold");
       doc.text(String(palletQty), margin + qtyLabelW, y);
 
-      // ── LAST PALLET: Actual + Total Finished ──
+      // LAST PALLET extras
       if(isLast){
         const afterQty = margin + qtyLabelW + doc.getTextWidth(String(palletQty));
-        doc.setFontSize(18);
+        doc.setFontSize(20);
         doc.setFont("helvetica","normal");
-        doc.text(" Actual : _______", afterQty + 10, y);
+        doc.text(" Actual : _______", afterQty + 14, y);
 
-        y += 50;
-        doc.setFontSize(22);
+        y += 55;
+        doc.setFontSize(24);
         doc.setFont("helvetica","bold");
         doc.text("TOTAL FINISHED : ___________", margin, y);
       }
@@ -7416,37 +7458,33 @@ document.getElementById("generatePalletLabelsBtn").addEventListener("click", asy
       // ── QR Code + TRACE Logo (bottom right) ──
       const qrSize = 140;
       const qrX = W - margin - qrSize;
-      const qrY = H - margin - qrSize - 50;
+      const qrY = H - margin - qrSize - 55;
 
-      // Generate QR as data URL
       const qrUrl = buildJobUrl(jobNum);
       const qrDataUrl = await generateQrDataUrl(qrUrl, qrSize);
       doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
 
-      // TRACE logo above QR
       if(logoB64){
         const logoW = qrSize;
         const logoH = 40;
-        doc.addImage(logoB64, "PNG", qrX, qrY - logoH - 6, logoW, logoH);
+        doc.addImage(logoB64, "PNG", qrX, qrY - logoH - 8, logoW, logoH);
       }
 
-      // Job number under QR
       doc.setFontSize(14);
       doc.setFont("helvetica","bold");
       doc.setTextColor(0);
-      const qrLabel = jobNum;
-      const qrLabelW = doc.getTextWidth(qrLabel);
-      doc.text(qrLabel, qrX + (qrSize - qrLabelW) / 2, qrY + qrSize + 18);
+      const qrLabelW = doc.getTextWidth(jobNum);
+      doc.text(jobNum, qrX + (qrSize - qrLabelW) / 2, qrY + qrSize + 20);
     }
 
     doc.save(`TRACE_Pallet_Labels_${jobNum}.pdf`);
-    preview.textContent = `✅ Generated ${totalPallets} label(s) — PDF downloaded.`;
+    preview.textContent = `Done — ${totalPallets} label(s) downloaded.`;
     preview.style.color = "var(--good)";
-    toast(`✅ ${totalPallets} pallet labels generated for ${jobNum}`);
+    toast(`${totalPallets} pallet labels generated for ${jobNum}`);
 
   } catch(err) {
     console.error("Pallet label generation failed:", err);
-    preview.textContent = `❌ Failed: ${err.message}`;
+    preview.textContent = `Failed: ${err.message}`;
     preview.style.color = "var(--bad)";
   } finally {
     btn.disabled = false;
