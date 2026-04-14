@@ -2420,7 +2420,10 @@ input[type="number"] {
         <input id="loginPass" class="loginInput" type="password" placeholder="••••••••" autocomplete="current-password"/>
         <button id="loginBtn" class="loginBtn" type="button">Login</button>
         <div id="loginMsg" class="loginMsg"></div>
-        <div style="text-align:center;margin-top:14px;">
+          <div id="forgotLink" style="text-align:center;margin-top:10px;display:none;">
+          <button type="button" id="showForgotBtn" style="background:none;border:none;color:rgba(255,107,107,.8);font-weight:700;font-size:13px;cursor:pointer;padding:2px 6px;">Forgot password?</button>
+        </div>
+        <div style="text-align:center;margin-top:8px;">
           <span style="font-size:13px;color:rgba(255,255,255,.45);">No account?</span>
           <button type="button" id="showRegisterBtn" style="background:none;border:none;color:rgba(58,122,254,.9);font-weight:700;font-size:13px;cursor:pointer;padding:2px 6px;">Create one</button>
         </div>
@@ -2455,7 +2458,35 @@ input[type="number"] {
           <button type="button" id="backToRegBtn" style="background:none;border:none;color:rgba(58,122,254,.9);font-weight:700;font-size:13px;cursor:pointer;padding:2px 6px;">← Back</button>
         </div>
       </div>
+ 
 
+ <!-- FORGOT PASSWORD VIEW -->
+      <div id="authForgot" style="display:none;">
+        <div class="loginSub" style="margin-bottom:16px;">Reset Password</div>
+        <label class="loginLabel">Email</label>
+        <input id="forgotEmail" class="loginInput" type="email" placeholder="you@company.com" autocomplete="email"/>
+        <button id="forgotBtn" class="loginBtn" type="button">Send Reset Code</button>
+        <div id="forgotMsg" class="loginMsg"></div>
+        <div style="text-align:center;margin-top:14px;">
+          <button type="button" id="backToLoginFromForgot" style="background:none;border:none;color:rgba(58,122,254,.9);font-weight:700;font-size:13px;cursor:pointer;padding:2px 6px;">← Back to login</button>
+        </div>
+      </div>
+
+      <!-- RESET PASSWORD VIEW -->
+      <div id="authReset" style="display:none;">
+        <div class="loginSub" style="margin-bottom:8px;">Enter Reset Code</div>
+        <div id="resetInfo" style="font-size:13px;color:rgba(255,255,255,.55);text-align:center;margin-bottom:16px;"></div>
+        <label class="loginLabel">6-Digit Code</label>
+        <input id="resetCode" class="loginInput" type="text" maxlength="6" placeholder="000000" style="text-align:center;font-size:28px;letter-spacing:8px;font-weight:900;" autocomplete="one-time-code"/>
+        <label class="loginLabel">New Password</label>
+        <input id="resetNewPass" class="loginInput" type="password" placeholder="Min 6 characters" autocomplete="new-password"/>
+        <button id="resetBtn" class="loginBtn" type="button">Reset Password</button>
+        <div id="resetMsg" class="loginMsg"></div>
+        <div style="text-align:center;margin-top:14px;">
+          <button type="button" id="backToForgot" style="background:none;border:none;color:rgba(58,122,254,.9);font-weight:700;font-size:13px;cursor:pointer;padding:2px 6px;">← Back</button>
+        </div>
+      </div>
+    
     </div>
   </div>
 
@@ -3415,7 +3446,7 @@ function wireLoginUI() {
       await startAfterLogin();
     } catch (e) {
       console.error("Login error:", e);
-      loginMsg.textContent = e.message || "Login failed";
+      document.getElementById("forgotLink").style.display = "block";
     } finally {
       loginBtn.disabled = false;
       loginBtn.textContent = "Login";
@@ -3509,6 +3540,106 @@ function wireLoginUI() {
 
   verifyBtn.addEventListener("click", submitVerify);
   document.getElementById("verifyCode").addEventListener("keydown", (e) => { if (e.key === "Enter") submitVerify(); });
+// ── FORGOT PASSWORD (show after failed login) ──
+  document.getElementById("showForgotBtn").addEventListener("click", () => {
+    document.getElementById("authLogin").style.display = "none";
+    document.getElementById("authForgot").style.display = "block";
+    document.getElementById("forgotEmail").value = emailEl.value || "";
+    document.getElementById("forgotMsg").textContent = "";
+  });
+
+  document.getElementById("backToLoginFromForgot").addEventListener("click", () => {
+    document.getElementById("authForgot").style.display = "none";
+    document.getElementById("authLogin").style.display = "block";
+  });
+
+  document.getElementById("backToForgot").addEventListener("click", () => {
+    document.getElementById("authReset").style.display = "none";
+    document.getElementById("authForgot").style.display = "block";
+  });
+
+  // Send reset code
+  const forgotBtn = document.getElementById("forgotBtn");
+  const forgotMsg = document.getElementById("forgotMsg");
+
+  async function submitForgot() {
+    const email = document.getElementById("forgotEmail").value.trim();
+    forgotMsg.textContent = "";
+    if (!email || !email.includes("@")) { forgotMsg.textContent = "Enter a valid email."; return; }
+
+    forgotBtn.disabled = true;
+    forgotBtn.textContent = "Sending code...";
+    try {
+      const res = await fetch(API_BASE + "/auth/forgot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json().catch(() => ({}));
+
+      // Show reset view regardless (don't reveal if email exists)
+      document.getElementById("authForgot").style.display = "none";
+      document.getElementById("authReset").style.display = "block";
+      document.getElementById("resetInfo").textContent = `If ${email} has an account, a code was sent`;
+      document.getElementById("resetCode").value = "";
+      document.getElementById("resetNewPass").value = "";
+      document.getElementById("resetMsg").textContent = "";
+      document.getElementById("resetCode").dataset.email = email;
+      setTimeout(() => document.getElementById("resetCode").focus(), 50);
+    } catch (e) {
+      forgotMsg.textContent = e.message || "Failed to send code";
+    } finally {
+      forgotBtn.disabled = false;
+      forgotBtn.textContent = "Send Reset Code";
+    }
+  }
+
+  forgotBtn.addEventListener("click", submitForgot);
+  document.getElementById("forgotEmail").addEventListener("keydown", (e) => { if (e.key === "Enter") submitForgot(); });
+
+  // Reset password
+  const resetBtn = document.getElementById("resetBtn");
+  const resetMsg = document.getElementById("resetMsg");
+
+  async function submitReset() {
+    const code = document.getElementById("resetCode").value.trim();
+    const email = document.getElementById("resetCode").dataset.email || "";
+    const newPass = document.getElementById("resetNewPass").value;
+    resetMsg.textContent = "";
+
+    if (code.length !== 6) { resetMsg.textContent = "Enter the full 6-digit code."; return; }
+    if (newPass.length < 6) { resetMsg.textContent = "Password must be at least 6 characters."; return; }
+
+    resetBtn.disabled = true;
+    resetBtn.textContent = "Resetting...";
+    try {
+      const res = await fetch(API_BASE + "/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code, password: newPass })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) throw new Error(data.error || "Reset failed");
+
+      // Success — back to login
+      document.getElementById("authReset").style.display = "none";
+      document.getElementById("authLogin").style.display = "block";
+      document.getElementById("loginEmail").value = email;
+      document.getElementById("loginPass").value = "";
+      loginMsg.style.color = "#8aff8a";
+      loginMsg.textContent = "Password reset — log in with your new password!";
+      document.getElementById("forgotLink").style.display = "none";
+      setTimeout(() => document.getElementById("loginPass").focus(), 50);
+    } catch (e) {
+      resetMsg.textContent = e.message || "Reset failed";
+    } finally {
+      resetBtn.disabled = false;
+      resetBtn.textContent = "Reset Password";
+    }
+  }
+
+  resetBtn.addEventListener("click", submitReset);
+  document.getElementById("resetNewPass").addEventListener("keydown", (e) => { if (e.key === "Enter") submitReset(); });
 }
 
 // ====== INTRO ANIMATION ======
