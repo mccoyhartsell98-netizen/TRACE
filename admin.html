@@ -2410,13 +2410,52 @@ input[type="number"] {
   <!-- LOGIN OVERLAY -->
   <div id="loginOverlay" class="loginOverlay">
     <div class="loginCard">
-      <div class="loginSub" style="margin-bottom:16px;">Admin Access</div>
-      <label class="loginLabel">Email</label>
-      <input id="loginEmail" class="loginInput" type="email" placeholder="you@trace.app" autocomplete="username"/>
-      <label class="loginLabel">Password</label>
-      <input id="loginPass" class="loginInput" type="password" placeholder="••••••••" autocomplete="current-password"/>
-      <button id="loginBtn" class="loginBtn" type="button">Login</button>
-      <div id="loginMsg" class="loginMsg"></div>
+
+      <!-- LOGIN VIEW -->
+      <div id="authLogin">
+        <div class="loginSub" style="margin-bottom:16px;">Admin Access</div>
+        <label class="loginLabel">Email</label>
+        <input id="loginEmail" class="loginInput" type="email" placeholder="you@company.com" autocomplete="username"/>
+        <label class="loginLabel">Password</label>
+        <input id="loginPass" class="loginInput" type="password" placeholder="••••••••" autocomplete="current-password"/>
+        <button id="loginBtn" class="loginBtn" type="button">Login</button>
+        <div id="loginMsg" class="loginMsg"></div>
+        <div style="text-align:center;margin-top:14px;">
+          <span style="font-size:13px;color:rgba(255,255,255,.45);">No account?</span>
+          <button type="button" id="showRegisterBtn" style="background:none;border:none;color:rgba(58,122,254,.9);font-weight:700;font-size:13px;cursor:pointer;padding:2px 6px;">Create one</button>
+        </div>
+      </div>
+
+      <!-- REGISTER VIEW -->
+      <div id="authRegister" style="display:none;">
+        <div class="loginSub" style="margin-bottom:16px;">Create Account</div>
+        <label class="loginLabel">Email</label>
+        <input id="regEmail" class="loginInput" type="email" placeholder="you@company.com" autocomplete="email"/>
+        <label class="loginLabel">Password</label>
+        <input id="regPass" class="loginInput" type="password" placeholder="Min 6 characters" autocomplete="new-password"/>
+        <label class="loginLabel">Confirm Password</label>
+        <input id="regPass2" class="loginInput" type="password" placeholder="••••••••" autocomplete="new-password"/>
+        <button id="registerBtn" class="loginBtn" type="button">Send Verification Code</button>
+        <div id="regMsg" class="loginMsg"></div>
+        <div style="text-align:center;margin-top:14px;">
+          <span style="font-size:13px;color:rgba(255,255,255,.45);">Already have an account?</span>
+          <button type="button" id="showLoginBtn" style="background:none;border:none;color:rgba(58,122,254,.9);font-weight:700;font-size:13px;cursor:pointer;padding:2px 6px;">Log in</button>
+        </div>
+      </div>
+
+      <!-- VERIFY VIEW -->
+      <div id="authVerify" style="display:none;">
+        <div class="loginSub" style="margin-bottom:8px;">Verify Your Email</div>
+        <div id="verifyInfo" style="font-size:13px;color:rgba(255,255,255,.55);text-align:center;margin-bottom:16px;"></div>
+        <label class="loginLabel">6-Digit Code</label>
+        <input id="verifyCode" class="loginInput" type="text" maxlength="6" placeholder="000000" style="text-align:center;font-size:28px;letter-spacing:8px;font-weight:900;" autocomplete="one-time-code"/>
+        <button id="verifyBtn" class="loginBtn" type="button">Verify & Activate</button>
+        <div id="verifyMsg" class="loginMsg"></div>
+        <div style="text-align:center;margin-top:14px;">
+          <button type="button" id="backToRegBtn" style="background:none;border:none;color:rgba(58,122,254,.9);font-weight:700;font-size:13px;cursor:pointer;padding:2px 6px;">← Back</button>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -3336,17 +3375,38 @@ function hideLogin() {
   if (el) el.style.display = "none";
 }
 function wireLoginUI() {
-  const btn = document.getElementById("loginBtn");
-  const msg = document.getElementById("loginMsg");
+  const loginBtn = document.getElementById("loginBtn");
+  const loginMsg = document.getElementById("loginMsg");
   const emailEl = document.getElementById("loginEmail");
   const passEl  = document.getElementById("loginPass");
-  if (!btn || !msg || !emailEl || !passEl) return;
+  if (!loginBtn || !loginMsg || !emailEl || !passEl) return;
 
-  async function submit() {
-    msg.textContent = "";
-    btn.disabled = true;
-    const old = btn.textContent;
-    btn.textContent = "Logging in...";
+  // Toggle views
+  document.getElementById("showRegisterBtn").addEventListener("click", () => {
+    document.getElementById("authLogin").style.display = "none";
+    document.getElementById("authRegister").style.display = "block";
+    document.getElementById("authVerify").style.display = "none";
+    document.getElementById("regMsg").textContent = "";
+  });
+
+  document.getElementById("showLoginBtn").addEventListener("click", () => {
+    document.getElementById("authLogin").style.display = "block";
+    document.getElementById("authRegister").style.display = "none";
+    document.getElementById("authVerify").style.display = "none";
+    loginMsg.textContent = "";
+  });
+
+  document.getElementById("backToRegBtn").addEventListener("click", () => {
+    document.getElementById("authLogin").style.display = "none";
+    document.getElementById("authRegister").style.display = "block";
+    document.getElementById("authVerify").style.display = "none";
+  });
+
+  // ── LOGIN ──
+  async function submitLogin() {
+    loginMsg.textContent = "";
+    loginBtn.disabled = true;
+    loginBtn.textContent = "Logging in...";
     try {
       const r = await doLogin(emailEl.value.trim(), passEl.value);
       if (!r || r.ok === false) throw new Error(r?.error || "Login failed");
@@ -3355,15 +3415,100 @@ function wireLoginUI() {
       await startAfterLogin();
     } catch (e) {
       console.error("Login error:", e);
-      msg.textContent = e.message || "Login failed";
+      loginMsg.textContent = e.message || "Login failed";
     } finally {
-      btn.disabled = false;
-      btn.textContent = old || "Login";
+      loginBtn.disabled = false;
+      loginBtn.textContent = "Login";
     }
   }
 
-  btn.addEventListener("click", submit);
-  passEl.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+  loginBtn.addEventListener("click", submitLogin);
+  passEl.addEventListener("keydown", (e) => { if (e.key === "Enter") submitLogin(); });
+
+  // ── REGISTER ──
+  const registerBtn = document.getElementById("registerBtn");
+  const regMsg = document.getElementById("regMsg");
+
+  async function submitRegister() {
+    const email = document.getElementById("regEmail").value.trim();
+    const pass = document.getElementById("regPass").value;
+    const pass2 = document.getElementById("regPass2").value;
+    regMsg.textContent = "";
+
+    if (!email || !email.includes("@")) { regMsg.textContent = "Enter a valid email."; return; }
+    if (pass.length < 6) { regMsg.textContent = "Password must be at least 6 characters."; return; }
+    if (pass !== pass2) { regMsg.textContent = "Passwords don't match."; return; }
+
+    registerBtn.disabled = true;
+    registerBtn.textContent = "Sending code...";
+    try {
+      const res = await fetch(API_BASE + "/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password: pass })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) throw new Error(data.error || "Registration failed");
+
+      // Show verify view
+      document.getElementById("authRegister").style.display = "none";
+      document.getElementById("authVerify").style.display = "block";
+      document.getElementById("verifyInfo").textContent = `We sent a 6-digit code to ${email}`;
+      document.getElementById("verifyCode").value = "";
+      document.getElementById("verifyMsg").textContent = "";
+      document.getElementById("verifyCode").dataset.email = email;
+      setTimeout(() => document.getElementById("verifyCode").focus(), 50);
+    } catch (e) {
+      regMsg.textContent = e.message || "Registration failed";
+    } finally {
+      registerBtn.disabled = false;
+      registerBtn.textContent = "Send Verification Code";
+    }
+  }
+
+  registerBtn.addEventListener("click", submitRegister);
+  document.getElementById("regPass2").addEventListener("keydown", (e) => { if (e.key === "Enter") submitRegister(); });
+
+  // ── VERIFY ──
+  const verifyBtn = document.getElementById("verifyBtn");
+  const verifyMsg = document.getElementById("verifyMsg");
+
+  async function submitVerify() {
+    const code = document.getElementById("verifyCode").value.trim();
+    const email = document.getElementById("verifyCode").dataset.email || "";
+    verifyMsg.textContent = "";
+
+    if (code.length !== 6) { verifyMsg.textContent = "Enter the full 6-digit code."; return; }
+
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = "Verifying...";
+    try {
+      const res = await fetch(API_BASE + "/auth/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) throw new Error(data.error || "Verification failed");
+
+      // Success — show login with success message
+      document.getElementById("authVerify").style.display = "none";
+      document.getElementById("authLogin").style.display = "block";
+      document.getElementById("loginEmail").value = email;
+      document.getElementById("loginPass").value = "";
+      loginMsg.style.color = "#8aff8a";
+      loginMsg.textContent = "Account verified — log in to get started!";
+      setTimeout(() => document.getElementById("loginPass").focus(), 50);
+    } catch (e) {
+      verifyMsg.textContent = e.message || "Verification failed";
+    } finally {
+      verifyBtn.disabled = false;
+      verifyBtn.textContent = "Verify & Activate";
+    }
+  }
+
+  verifyBtn.addEventListener("click", submitVerify);
+  document.getElementById("verifyCode").addEventListener("keydown", (e) => { if (e.key === "Enter") submitVerify(); });
 }
 
 // ====== INTRO ANIMATION ======
