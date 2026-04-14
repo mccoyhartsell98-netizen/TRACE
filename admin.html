@@ -3227,14 +3227,18 @@ function getMachineAgeStatus(item){
 // ====== AUTH STATE ======
 const AUTH = {
   token: localStorage.getItem("trace_token") || null,
-  email: localStorage.getItem("trace_email") || ""
+  email: localStorage.getItem("trace_email") || "",
+  refreshToken: localStorage.getItem("trace_refresh_token") || null
 };
 
-function setAuth({ token, email }) {
+function setAuth({ token, email, refreshToken }) {
   AUTH.token = token || null;
   AUTH.email = email || "";
+  AUTH.refreshToken = refreshToken || localStorage.getItem("trace_refresh_token") || null;
   if (AUTH.token) localStorage.setItem("trace_token", AUTH.token);
   else localStorage.removeItem("trace_token");
+  if (AUTH.refreshToken) localStorage.setItem("trace_refresh_token", AUTH.refreshToken);
+  else localStorage.removeItem("trace_refresh_token");
   localStorage.setItem("trace_email", AUTH.email);
 }
 
@@ -3245,24 +3249,74 @@ function authHeaders(extra = {}) {
   };
 }
 
-async function apiFetch(path, opts = {}) {
+let _isRefreshing = false;
+let _refreshQueue = [];
+
+async function apiFetch(path, opts = {}, _retried = false) {
   const url = API_BASE + path;
   const headers = authHeaders({
     "Content-Type": "application/json",
     ...(opts.headers || {})
   });
   const res = await fetch(url, { ...opts, headers });
-  if (res.status === 401) {
+
+  if (res.status === 401 && !_retried) {
+    // Try silent refresh
+    const newToken = await silentRefresh();
+    if (newToken) {
+      return apiFetch(path, opts, true);
+    }
+    // Refresh failed — full logout
     localStorage.removeItem("trace_token");
     localStorage.removeItem("trace_email");
+    localStorage.removeItem("trace_refresh_token");
     sessionStorage.removeItem("trace_intro_seen");
     toast("Session expired — please log in again");
     setTimeout(() => location.reload(), 1500);
     throw new Error("Session expired");
   }
+
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
   return data;
+}
+
+async function silentRefresh() {
+  if (!AUTH.refreshToken) return null;
+
+  if (_isRefreshing) {
+    return new Promise((resolve) => { _refreshQueue.push(resolve); });
+  }
+
+  _isRefreshing = true;
+  try {
+    const res = await fetch(API_BASE + "/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken: AUTH.refreshToken })
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok && data.token) {
+      AUTH.token = data.token;
+      localStorage.setItem("trace_token", data.token);
+      _refreshQueue.forEach(cb => cb(data.token));
+      _refreshQueue = [];
+      console.log("✅ Token silently refreshed");
+      return data.token;
+    }
+
+    _refreshQueue.forEach(cb => cb(null));
+    _refreshQueue = [];
+    return null;
+  } catch (e) {
+    console.warn("Silent refresh failed:", e.message);
+    _refreshQueue.forEach(cb => cb(null));
+    _refreshQueue = [];
+    return null;
+  } finally {
+    _isRefreshing = false;
+  }
 }
 
 async function doLogin(email, password) {
@@ -3296,7 +3350,7 @@ function wireLoginUI() {
     try {
       const r = await doLogin(emailEl.value.trim(), passEl.value);
       if (!r || r.ok === false) throw new Error(r?.error || "Login failed");
-      setAuth({ token: r.token, email: r.user?.email || emailEl.value.trim() });
+      setAuth({ token: r.token, refreshToken: r.refreshToken, email: r.user?.email || emailEl.value.trim() });
       hideLogin();
       await startAfterLogin();
     } catch (e) {
@@ -4562,6 +4616,7 @@ function hideLoading() {
 document.getElementById("logoutBtn").addEventListener("click", () => {
   localStorage.removeItem("trace_token");
   localStorage.removeItem("trace_email");
+  localStorage.removeItem("trace_refresh_token");
   sessionStorage.removeItem("trace_intro_seen");
   location.reload();
 });
