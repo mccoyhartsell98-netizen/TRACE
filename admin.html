@@ -4463,8 +4463,8 @@ function renderLaneList(){
         ${window._isViewer ? '' : '<button class="ghost" data-send-queue="1" style="border-color:rgba(255,209,102,.35);color:rgba(255,230,140,.9);">⏸ Hold</button>'}
       </div>
     `;
-    div.querySelector("[data-move]").addEventListener("click", (e) => { e.stopPropagation(); openMoveOverlay(item.id); });
-div.querySelector("[data-send-queue]").addEventListener("click", async (e) => {
+     div.querySelector("[data-move]")?.addEventListener("click", (e) => { e.stopPropagation(); openMoveOverlay(item.id); });
+ div.querySelector("[data-send-queue]")?.addEventListener("click", async (e) => {
   e.stopPropagation();
   const qLocId = getQueueLocationId();
   if(!qLocId){ await uiAlert("Queue Not Ready", `QUEUE location missing in DB.`); return; }
@@ -4531,8 +4531,8 @@ const ageBadge = ageStatus === "expired"
     <button class="ghost" data-reset-timer="1" style="border-color:rgba(58,122,254,.35);color:rgba(180,205,255,.9);">↺ Reset Timer</button>
   </div>
 `;
-    div.querySelector("[data-move]").addEventListener("click", (e) => { e.stopPropagation(); openMoveOverlay(item.id); });
-div.querySelector("[data-send-queue]").addEventListener("click", async (e) => {
+    div.querySelector("[data-move]")?.addEventListener("click", (e) => { e.stopPropagation(); openMoveOverlay(item.id); });
+div.querySelector("[data-send-queue]")?.addEventListener("click", async (e) => {
   e.stopPropagation();
   const qLocId = getQueueLocationId();
   if(!qLocId){ await uiAlert("Queue Not Ready", `QUEUE location missing in DB.`); return; }
@@ -4582,7 +4582,7 @@ function renderGlobalSearch(){
       <div class="meta" style="margin-top:4px;">Notes: ${item.notes ? escapeHtml(item.notes) : "—"}</div>
       <div class="btnRow" style="margin-top:10px;"><button class="primary" data-move="1">Move</button></div>
     `;
-    div.querySelector('[data-move]').addEventListener("click", (e) => { e.stopPropagation(); openMoveOverlay(item.id); });
+      div.querySelector('[data-move]')?.addEventListener("click", (e) => { e.stopPropagation(); openMoveOverlay(item.id); });
     div.addEventListener("click", () => {
       if(item.machine) selectMachine(item.machine);
       else if(item.lane) selectLane(item.lane);
@@ -8431,23 +8431,7 @@ function generateLaneReport(){
   }
 }
 
-body.viewer-mode .btnRow { display: none !important; }
-    body.viewer-mode #addLocationBtn { display: none !important; }
-    body.viewer-mode #undoBtn { display: none !important; }
-    body.viewer-mode .queueActionRow { display: none !important; }
-    body.viewer-mode .queueStatusBar { display: none !important; }
-    body.viewer-mode #queueShortcutBtn { pointer-events: none; opacity: .3; }
-    body.viewer-mode #menuBtn { pointer-events: none; opacity: .3; }
-    body.viewer-mode #saveBtn { pointer-events: none; opacity: .3; }
-    body.viewer-mode #deleteBtn { pointer-events: none; opacity: .3; }
-    body.viewer-mode #moveBtn { pointer-events: none; opacity: .3; }
-    body.viewer-mode #queueJobBtn { pointer-events: none; opacity: .3; }
-    body.viewer-mode #chatFab { display: none !important; }
-    body.viewer-mode .formGrid input { pointer-events: none; opacity: .5; }
-    body.viewer-mode .formGrid select { pointer-events: none; opacity: .5; }
-    body.viewer-mode #statusTrigger { pointer-events: none; opacity: .5; }
-   body.viewer-mode .btnRow { pointer-events: none; opacity: .25; }
-   
+
   </style>
 </head>
 <body>
