@@ -47,6 +47,21 @@
       z-index: 0;
     }
 
+@keyframes starDrift {
+      0% { transform: translateY(0) rotate(0deg); }
+      100% { transform: translateY(-100vh) rotate(180deg); }
+    }
+
+    .bootParticle {
+      position: fixed;
+      width: 2px;
+      height: 2px;
+      border-radius: 50%;
+      background: rgba(58,122,254,.3);
+      pointer-events: none;
+      z-index: 99998;
+    }
+
     /* ── LOGIN ── */
     .loginWrap {
       position: fixed;
@@ -1184,6 +1199,20 @@ function runBootSequence() {
     const canvas = document.getElementById("globeCanvas");
     screen.style.display = "flex";
 
+ // Spawn background particles
+    for (let i = 0; i < 50; i++) {
+      const dot = document.createElement("div");
+      dot.className = "bootParticle";
+      dot.style.left = Math.random() * 100 + "vw";
+      dot.style.top = Math.random() * 100 + "vh";
+      dot.style.width = (Math.random() * 2 + 1) + "px";
+      dot.style.height = dot.style.width;
+      dot.style.opacity = Math.random() * 0.4 + 0.1;
+      dot.style.animation = `starDrift ${Math.random() * 20 + 15}s linear infinite`;
+      dot.style.animationDelay = `-${Math.random() * 20}s`;
+      screen.appendChild(dot);
+    }
+
     terminal.style.display = "none";
     startGlobe(canvas);
 
@@ -1215,6 +1244,19 @@ function startGlobe(canvas) {
   const R = 90;
   let angle = 0;
 
+  // Floating particles
+  const particles = [];
+  for (let i = 0; i < 60; i++) {
+    particles.push({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: (Math.random() - 0.5) * 0.3,
+      size: Math.random() * 1.5 + 0.5,
+      alpha: Math.random() * 0.3 + 0.05
+    });
+  }
+
   const nodes = [];
   for (let i = 0; i < 40; i++) {
     nodes.push({
@@ -1239,9 +1281,49 @@ function startGlobe(canvas) {
     return { x, y, z };
   }
 
+  let pulseR = R;
+  let pulseAlpha = 0.3;
+  let pulseGrow = 0;
+
   function draw() {
     ctx.clearRect(0, 0, W, H);
 
+ // Draw particles
+    particles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.x < 0) p.x = W;
+      if (p.x > W) p.x = 0;
+      if (p.y < 0) p.y = H;
+      if (p.y > H) p.y = 0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(58,122,254,${p.alpha})`;
+      ctx.fill();
+    });
+
+    // Pulsing ring
+    pulseGrow += 0.4;
+    if (pulseGrow > 40) { pulseGrow = 0; }
+    const pr = R + pulseGrow;
+    const pa = 0.3 * (1 - pulseGrow / 40);
+    ctx.beginPath();
+    ctx.arc(cx, cy, pr, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(58,122,254,${pa})`;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Second pulse offset
+    const pg2 = (pulseGrow + 20) % 40;
+    const pr2 = R + pg2;
+    const pa2 = 0.2 * (1 - pg2 / 40);
+    ctx.beginPath();
+    ctx.arc(cx, cy, pr2, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(58,122,254,${pa2})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Globe outline
     ctx.beginPath();
     ctx.arc(cx, cy, R, 0, Math.PI * 2);
     ctx.strokeStyle = "rgba(58,122,254,.15)";
@@ -1299,11 +1381,12 @@ function startGlobe(canvas) {
       if (p.z < 0) return;
       const alpha = p.z * 0.7 + 0.3;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, n.size, 0, Math.PI * 2);
+      const pulse = 1 + Math.sin(angle * 3 + n.lat * 5) * 0.3;
+      ctx.arc(p.x, p.y, n.size * pulse, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(58,122,254,${alpha})`;
       ctx.fill();
       ctx.beginPath();
-      ctx.arc(p.x, p.y, n.size + 3, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, n.size * pulse + 3, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(58,122,254,${alpha * 0.15})`;
       ctx.fill();
     });
