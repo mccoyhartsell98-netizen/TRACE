@@ -10,8 +10,7 @@
   <title>TRACE — Control Panel</title>
   <link rel="icon" type="image/png" href="favicon - Copy.png?v=1">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
-
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700;800&display=swap');
     :root {
       --bg: #060a10;
       --panel: rgba(12,16,24,.92);
@@ -31,7 +30,7 @@
 
     html, body {
       height: 100%;
-      font-family: var(--mono);
+      font-family: 'Inter', -apple-system, sans-serif;
       background: var(--bg);
       color: var(--text);
       overflow-x: hidden;
@@ -146,14 +145,20 @@
 
     .shell.show { display: block; }
 
-    .topBar {
+    topBar {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
       margin-bottom: 28px;
-      padding-bottom: 18px;
+      padding: 16px 0 18px;
       border-bottom: 1px solid var(--stroke);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(6,10,16,.9);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
     }
 
     .topLeft {
@@ -224,10 +229,15 @@
       background: var(--panel);
       border: 1px solid var(--stroke);
       border-radius: 14px;
-      padding: 18px 16px;
+      padding: 22px 16px;
       text-align: center;
       position: relative;
       overflow: hidden;
+      transition: border-color 200ms;
+    }
+
+    .statCard:hover {
+      border-color: rgba(58,122,254,.3);
     }
 
     .statCard::before {
@@ -242,10 +252,11 @@
     }
 
     .statNum {
-      font-size: 32px;
+      font-size: 36px;
       font-weight: 800;
       color: #fff;
       line-height: 1;
+      font-family: 'JetBrains Mono', monospace;
     }
 
     .statLabel {
@@ -273,11 +284,11 @@
     }
 
     .sectionTitle {
-      font-size: 11px;
-      letter-spacing: .25em;
+      font-size: 13px;
+      letter-spacing: .08em;
       text-transform: uppercase;
-      color: var(--blue);
-      font-weight: 800;
+      color: var(--text);
+      font-weight: 700;
     }
 
     .sectionBadge {
@@ -326,7 +337,7 @@
     }
 
     tr:last-child td { border-bottom: none; }
-    tr:hover td { background: rgba(58,122,254,.04); }
+    tr:hover td { background: rgba(58,122,254,.03); }
 
     .email { font-weight: 700; color: #fff; }
 
@@ -494,9 +505,58 @@
     .roleSelect:focus {
       border-color: var(--blue);
     }
+
+   .statNum, .sectionBadge, td.email, .emptyRow {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
   </style>
 </head>
 <body>
+
+<!-- BOOT SEQUENCE -->
+  <div id="bootScreen" style="
+    position:fixed;inset:0;z-index:99999;
+    background:#050810;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:0;
+  ">
+    <!-- Terminal -->
+    <div id="bootTerminal" style="
+      width:min(520px,90vw);
+      font-family:'JetBrains Mono',monospace;
+      font-size:12px;
+      color:rgba(58,122,254,.7);
+      line-height:1.8;
+      margin-bottom:24px;
+      min-height:180px;
+    "></div>
+
+    <!-- Logo + Globe -->
+    <div id="bootLogoWrap" style="
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:8px;
+      opacity:0;
+      transform:scale(.9);
+      transition:opacity 800ms ease, transform 800ms ease;
+    ">
+      <img src="./Offcial-Trace-Logo.png" style="height:80px;filter:drop-shadow(0 0 20px rgba(58,122,254,.35));"/>
+      <canvas id="globeCanvas" width="260" height="260" style="margin-top:-10px;"></canvas>
+      <div style="
+        font-family:'JetBrains Mono',monospace;
+        font-size:9px;
+        letter-spacing:.35em;
+        text-transform:uppercase;
+        color:rgba(58,122,254,.6);
+        margin-top:-4px;
+      ">NETWORK ONLINE</div>
+    </div>
+  </div>
 
   <!-- LOGIN -->
   <div class="loginWrap" id="loginWrap">
@@ -787,10 +847,12 @@ async function doLogin() {
     AUTH.email = d.user?.email || email;
     saveAuth();
 
-    document.getElementById("loginWrap").style.display = "none";
+      document.getElementById("loginWrap").style.display = "none";
+    await runBootSequence();
     document.getElementById("shell").classList.add("show");
     document.getElementById("userPill").textContent = AUTH.email;
     loadDashboard();
+rd();
   } catch (e) {
     msg.textContent = e.message || "Login failed";
   } finally {
@@ -1093,9 +1155,10 @@ setInterval(() => {
 loadAuth();
 if (AUTH.token) {
   // Verify the token is still valid and user is superadmin
-  apiFetch("/auth/me").then(d => {
+    apiFetch("/auth/me").then(async d => {
     if (d.ok && d.user?.role === "superadmin") {
       document.getElementById("loginWrap").style.display = "none";
+      await runBootSequence();
       document.getElementById("shell").classList.add("show");
       document.getElementById("userPill").textContent = AUTH.email;
       loadDashboard();
@@ -1107,6 +1170,188 @@ if (AUTH.token) {
     clearAuth();
   });
 }
+
+<script>
+// ── BOOT SEQUENCE ──
+function runBootSequence() {
+  return new Promise(resolve => {
+    const screen = document.getElementById("bootScreen");
+    const terminal = document.getElementById("bootTerminal");
+    const logoWrap = document.getElementById("bootLogoWrap");
+    const canvas = document.getElementById("globeCanvas");
+    screen.style.display = "flex";
+
+    const lines = [
+      { text: "> TRACE CONTROL v1.0", delay: 0 },
+      { text: "> Establishing secure connection...", delay: 300 },
+      { text: "> Auth token verified ✓", delay: 600 },
+      { text: "> Loading user database...", delay: 900 },
+      { text: "> Syncing inventory nodes...", delay: 1200 },
+      { text: "> Mapping location grid...", delay: 1500 },
+      { text: "> Kiosk endpoints connected ✓", delay: 1800 },
+      { text: "> API handshake complete ✓", delay: 2100 },
+      { text: "> SYSTEM READY", delay: 2500, color: "#3a7afe" },
+    ];
+
+    lines.forEach(l => {
+      setTimeout(() => {
+        const div = document.createElement("div");
+        div.textContent = l.text;
+        if (l.color) div.style.color = l.color;
+        if (l.text.includes("✓")) div.style.color = "#34d399";
+        if (l.text === "> SYSTEM READY") {
+          div.style.fontWeight = "800";
+          div.style.fontSize = "14px";
+        }
+        terminal.appendChild(div);
+        terminal.scrollTop = terminal.scrollHeight;
+      }, l.delay);
+    });
+
+    // Show logo + globe after terminal
+    setTimeout(() => {
+      terminal.style.transition = "opacity 400ms";
+      terminal.style.opacity = "0";
+      setTimeout(() => {
+        terminal.style.display = "none";
+        logoWrap.style.opacity = "1";
+        logoWrap.style.transform = "scale(1)";
+        startGlobe(canvas);
+      }, 400);
+    }, 3000);
+
+    // Fade out and resolve
+    setTimeout(() => {
+      screen.style.transition = "opacity 600ms ease";
+      screen.style.opacity = "0";
+      setTimeout(() => {
+        screen.style.display = "none";
+        resolve();
+      }, 600);
+    }, 5500);
+  });
+}
+
+function startGlobe(canvas) {
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width;
+  const H = canvas.height;
+  const cx = W / 2;
+  const cy = H / 2;
+  const R = 90;
+  let angle = 0;
+
+  // Generate random "nodes" on the globe
+  const nodes = [];
+  for (let i = 0; i < 40; i++) {
+    nodes.push({
+      lat: (Math.random() - 0.5) * Math.PI,
+      lng: Math.random() * Math.PI * 2,
+      size: Math.random() * 2 + 1
+    });
+  }
+
+  // Generate connection pairs
+  const connections = [];
+  for (let i = 0; i < 15; i++) {
+    const a = Math.floor(Math.random() * nodes.length);
+    let b = Math.floor(Math.random() * nodes.length);
+    if (b === a) b = (a + 1) % nodes.length;
+    connections.push([a, b]);
+  }
+
+  function project(lat, lng) {
+    const x = cx + R * Math.cos(lat) * Math.sin(lng + angle);
+    const y = cy - R * Math.sin(lat);
+    const z = Math.cos(lat) * Math.cos(lng + angle);
+    return { x, y, z };
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Globe outline
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(58,122,254,.15)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Latitude lines
+    for (let i = -2; i <= 2; i++) {
+      const lat = (i / 3) * Math.PI * 0.45;
+      ctx.beginPath();
+      for (let j = 0; j <= 60; j++) {
+        const lng = (j / 60) * Math.PI * 2;
+        const p = project(lat, lng);
+        if (p.z < 0) continue;
+        if (j === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      }
+      ctx.strokeStyle = "rgba(58,122,254,.08)";
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    }
+
+    // Longitude lines
+    for (let i = 0; i < 8; i++) {
+      const lng = (i / 8) * Math.PI * 2;
+      ctx.beginPath();
+      for (let j = 0; j <= 40; j++) {
+        const lat = ((j / 40) - 0.5) * Math.PI;
+        const p = project(lat, lng);
+        if (p.z < 0) continue;
+        if (j === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      }
+      ctx.strokeStyle = "rgba(58,122,254,.08)";
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    }
+
+    // Connections
+    connections.forEach(([ai, bi]) => {
+      const a = nodes[ai];
+      const b = nodes[bi];
+      const pa = project(a.lat, a.lng);
+      const pb = project(b.lat, b.lng);
+      if (pa.z < 0 && pb.z < 0) return;
+
+      const alpha = Math.min(pa.z, pb.z) * 0.5 + 0.1;
+      if (alpha <= 0) return;
+
+      ctx.beginPath();
+      ctx.moveTo(pa.x, pa.y);
+      ctx.lineTo(pb.x, pb.y);
+      ctx.strokeStyle = `rgba(58,122,254,${alpha * 0.4})`;
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+    });
+
+    // Nodes
+    nodes.forEach(n => {
+      const p = project(n.lat, n.lng);
+      if (p.z < 0) return;
+      const alpha = p.z * 0.7 + 0.3;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, n.size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(58,122,254,${alpha})`;
+      ctx.fill();
+
+      // Glow
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, n.size + 3, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(58,122,254,${alpha * 0.15})`;
+      ctx.fill();
+    });
+
+    angle += 0.008;
+    requestAnimationFrame(draw);
+  }
+
+  draw();
+}
+</script>
 </script>
 </body>
 </html>
