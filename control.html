@@ -183,7 +183,7 @@
     }
 
     .topLeft img {
-      height: 48px;
+      height: 65px;
       filter: drop-shadow(0 0 12px rgba(58,122,254,.2));
     }
 
@@ -296,6 +296,27 @@
       justify-content: space-between;
       gap: 12px;
       margin-bottom: 14px;
+      cursor: pointer;
+      user-select: none;
+      transition: opacity 150ms;
+    }
+
+    .sectionHead:hover { opacity: .8; }
+
+    .sectionToggle {
+      font-size: 14px;
+      color: var(--muted);
+      transition: transform 200ms ease;
+      margin-left: 6px;
+    }
+
+    .section.collapsed .sectionToggle {
+      transform: rotate(-90deg);
+    }
+
+    .section.collapsed .tbl,
+    .section.collapsed .statsGrid {
+      display: none;
     }
 
     .sectionTitle {
@@ -572,8 +593,16 @@
         color:rgba(58,122,254,.6);
         margin-top:-4px;
       ">NETWORK ONLINE</div>
+      <div id="bootWelcome" style="
+        margin-top:24px;
+        text-align:center;
+        opacity:0;
+        transition:opacity 1s ease;
+      ">
+        <div style="font-size:13px;color:rgba(180,205,255,.45);font-weight:500;font-family:'Inter',sans-serif;">Welcome back</div>
+        <div id="bootName" style="font-size:20px;font-weight:700;color:rgba(255,255,255,.9);margin-top:4px;font-family:'Inter',sans-serif;letter-spacing:.02em;"></div>
+      </div>
     </div>
-  </div>
 
   <!-- LOGIN -->
   <div class="loginWrap" id="loginWrap">
@@ -635,7 +664,10 @@
     <div class="section" id="pendingSection">
       <div class="sectionHead">
         <div class="sectionTitle">Pending Registrations</div>
-        <div class="sectionBadge" id="pendingBadge">0</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="sectionBadge" id="pendingBadge">0</div>
+          <span class="sectionToggle">▼</span>
+        </div>
       </div>
       <div class="tWrap">
         <table>
@@ -655,7 +687,10 @@
     <div class="section">
       <div class="sectionHead">
         <div class="sectionTitle">All Users</div>
-        <div class="sectionBadge" id="usersBadge">0</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="sectionBadge" id="usersBadge">0</div>
+          <span class="sectionToggle">▼</span>
+        </div>
       </div>
       <div class="tWrap">
         <table>
@@ -678,7 +713,10 @@
     <div class="section">
       <div class="sectionHead">
         <div class="sectionTitle">Recent Activity</div>
-        <div class="sectionBadge" id="activityBadge">0</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+          <div class="sectionBadge" id="kioskBadge">0</div>
+          <span class="sectionToggle">▼</span>
+        </div>
       </div>
       <div class="tWrap">
         <table>
@@ -1161,6 +1199,13 @@ function renderBreakdown(items) {
   document.getElementById("statInQueue").textContent = queue;
 }
 
+// ── COLLAPSIBLE SECTIONS ──
+document.querySelectorAll(".sectionHead").forEach(head => {
+  head.addEventListener("click", () => {
+    head.closest(".section").classList.toggle("collapsed");
+  });
+});
+
  // ── AUTO REFRESH ──
 setInterval(() => {
   if (AUTH.token) loadDashboard();
@@ -1212,11 +1257,14 @@ function runBootSequence() {
     terminal.style.display = "none";
     startGlobe(canvas);
 
-       // Show welcome name after 1 second
+        // Show welcome name after 1 second
+    const nameEl = document.getElementById("bootName");
+    const welcomeEl = document.getElementById("bootWelcome");
     const displayName = AUTH.email.split("@")[0].replace(".", " ").replace(/\b\w/g, c => c.toUpperCase());
+    if (nameEl) nameEl.textContent = displayName;
     setTimeout(() => {
-          toast("Welcome back, " + displayName, 3500);
-    }, 1000);
+      if (welcomeEl) welcomeEl.style.opacity = "1";
+    }, 800);
 
      setTimeout(() => {
       screen.style.transition = "opacity 600ms ease";
