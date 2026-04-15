@@ -852,7 +852,6 @@ async function doLogin() {
     document.getElementById("shell").classList.add("show");
     document.getElementById("userPill").textContent = AUTH.email;
     loadDashboard();
-rd();
   } catch (e) {
     msg.textContent = e.message || "Login failed";
   } finally {
@@ -1145,8 +1144,7 @@ function renderBreakdown(items) {
   document.getElementById("statInQueue").textContent = queue;
 }
 
- 
-// ── AUTO REFRESH ──
+ // ── AUTO REFRESH ──
 setInterval(() => {
   if (AUTH.token) loadDashboard();
 }, 30000);
@@ -1154,8 +1152,7 @@ setInterval(() => {
 // ── BOOT ──
 loadAuth();
 if (AUTH.token) {
-  // Verify the token is still valid and user is superadmin
-    apiFetch("/auth/me").then(async d => {
+  apiFetch("/auth/me").then(async d => {
     if (d.ok && d.user?.role === "superadmin") {
       document.getElementById("loginWrap").style.display = "none";
       await runBootSequence();
@@ -1170,7 +1167,7 @@ if (AUTH.token) {
     clearAuth();
   });
 }
-
+</script>
 <script>
 // ── BOOT SEQUENCE ──
 function runBootSequence() {
@@ -1208,7 +1205,6 @@ function runBootSequence() {
       }, l.delay);
     });
 
-    // Show logo + globe after terminal
     setTimeout(() => {
       terminal.style.transition = "opacity 400ms";
       terminal.style.opacity = "0";
@@ -1220,7 +1216,6 @@ function runBootSequence() {
       }, 400);
     }, 3000);
 
-    // Fade out and resolve
     setTimeout(() => {
       screen.style.transition = "opacity 600ms ease";
       screen.style.opacity = "0";
@@ -1241,7 +1236,6 @@ function startGlobe(canvas) {
   const R = 90;
   let angle = 0;
 
-  // Generate random "nodes" on the globe
   const nodes = [];
   for (let i = 0; i < 40; i++) {
     nodes.push({
@@ -1251,7 +1245,6 @@ function startGlobe(canvas) {
     });
   }
 
-  // Generate connection pairs
   const connections = [];
   for (let i = 0; i < 15; i++) {
     const a = Math.floor(Math.random() * nodes.length);
@@ -1270,14 +1263,12 @@ function startGlobe(canvas) {
   function draw() {
     ctx.clearRect(0, 0, W, H);
 
-    // Globe outline
     ctx.beginPath();
     ctx.arc(cx, cy, R, 0, Math.PI * 2);
     ctx.strokeStyle = "rgba(58,122,254,.15)";
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    // Latitude lines
     for (let i = -2; i <= 2; i++) {
       const lat = (i / 3) * Math.PI * 0.45;
       ctx.beginPath();
@@ -1293,7 +1284,6 @@ function startGlobe(canvas) {
       ctx.stroke();
     }
 
-    // Longitude lines
     for (let i = 0; i < 8; i++) {
       const lng = (i / 8) * Math.PI * 2;
       ctx.beginPath();
@@ -1309,17 +1299,14 @@ function startGlobe(canvas) {
       ctx.stroke();
     }
 
-    // Connections
     connections.forEach(([ai, bi]) => {
       const a = nodes[ai];
       const b = nodes[bi];
       const pa = project(a.lat, a.lng);
       const pb = project(b.lat, b.lng);
       if (pa.z < 0 && pb.z < 0) return;
-
       const alpha = Math.min(pa.z, pb.z) * 0.5 + 0.1;
       if (alpha <= 0) return;
-
       ctx.beginPath();
       ctx.moveTo(pa.x, pa.y);
       ctx.lineTo(pb.x, pb.y);
@@ -1328,7 +1315,6 @@ function startGlobe(canvas) {
       ctx.stroke();
     });
 
-    // Nodes
     nodes.forEach(n => {
       const p = project(n.lat, n.lng);
       if (p.z < 0) return;
@@ -1337,8 +1323,6 @@ function startGlobe(canvas) {
       ctx.arc(p.x, p.y, n.size, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(58,122,254,${alpha})`;
       ctx.fill();
-
-      // Glow
       ctx.beginPath();
       ctx.arc(p.x, p.y, n.size + 3, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(58,122,254,${alpha * 0.15})`;
@@ -1351,7 +1335,6 @@ function startGlobe(canvas) {
 
   draw();
 }
-</script>
 </script>
 </body>
 </html>
