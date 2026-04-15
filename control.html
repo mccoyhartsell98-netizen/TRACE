@@ -160,7 +160,7 @@
 
     .shell.show { display: block; }
 
-    topBar {
+    .topBar {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -236,8 +236,8 @@
     .statsGrid {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      gap: 12px;
-      margin-bottom: 28px;
+      gap: 10px;
+      margin-bottom: 22px;
     }
 
     .statCard {
@@ -287,7 +287,7 @@
 
     /* ── SECTION ── */
     .section {
-      margin-bottom: 28px;
+      margin-bottom: 22px;
     }
 
     .sectionHead {
@@ -299,11 +299,11 @@
     }
 
     .sectionTitle {
-      font-size: 13px;
-      letter-spacing: .08em;
+      font-size: 12px;
+      letter-spacing: .12em;
       text-transform: uppercase;
-      color: var(--text);
-      font-weight: 700;
+      color: var(--blue);
+      font-weight: 800;
     }
 
     .sectionBadge {
@@ -345,7 +345,7 @@
     }
 
     td {
-      padding: 14px 14px;
+      padding: 12px 14px;
       font-size: 13px;
       border-bottom: 1px solid rgba(58,122,254,.08);
       vertical-align: middle;
@@ -468,22 +468,29 @@
     /* ── TOAST ── */
     .toast {
       position: fixed;
-      bottom: 24px;
+      top: 24px;
       left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      padding: 12px 24px;
-      border-radius: 12px;
-      border: 1px solid var(--stroke);
-      background: rgba(12,16,24,.95);
-      backdrop-filter: blur(10px);
+      transform: translateX(-50%) translateY(-20px);
+      padding: 14px 28px;
+      border-radius: 14px;
+      border: 1px solid rgba(58,122,254,.25);
+      background: rgba(10,14,22,.95);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       color: #fff;
-      font-family: var(--mono);
+      font-family: 'Inter', sans-serif;
       font-weight: 700;
-      font-size: 13px;
+      font-size: 14px;
       z-index: 99999;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 200ms, transform 200ms;
+      transition: opacity 300ms ease, transform 300ms ease;
+      box-shadow: 0 12px 40px rgba(0,0,0,.5);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
     }
 
     .toast.show {
@@ -567,17 +574,6 @@
       ">NETWORK ONLINE</div>
     </div>
   </div>
-
-  <div id="bootWelcome" style="
-        margin-top:20px;
-        font-family:'Inter',sans-serif;
-        text-align:center;
-        opacity:0;
-        transition:opacity 800ms ease;
-      ">
-        <div style="font-size:14px;color:rgba(180,205,255,.5);font-weight:500;">Welcome back</div>
-        <div id="bootName" style="font-size:22px;font-weight:800;color:#fff;margin-top:4px;"></div>
-      </div>
 
   <!-- LOGIN -->
   <div class="loginWrap" id="loginWrap">
@@ -753,12 +749,12 @@ const API = "https://api.traceinventory.org";
 let AUTH = { token: null, refreshToken: null, email: "" };
 
 // ── TOAST ──
-function toast(msg) {
+function toast(msg, duration) {
   const t = document.getElementById("toast");
   t.textContent = msg;
   t.classList.add("show");
   clearTimeout(window._tt);
-  window._tt = setTimeout(() => t.classList.remove("show"), 2800);
+  window._tt = setTimeout(() => t.classList.remove("show"), duration || 2800);
 }
 
 // ── AUTH ──
@@ -1216,12 +1212,10 @@ function runBootSequence() {
     terminal.style.display = "none";
     startGlobe(canvas);
 
-    // Show welcome name after 1 second
-    const nameEl = document.getElementById("bootName");
-    const welcomeEl = document.getElementById("bootWelcome");
-    if (nameEl) nameEl.textContent = AUTH.email.split("@")[0].replace(".", " ").replace(/\b\w/g, c => c.toUpperCase());
+       // Show welcome name after 1 second
+    const displayName = AUTH.email.split("@")[0].replace(".", " ").replace(/\b\w/g, c => c.toUpperCase());
     setTimeout(() => {
-      if (welcomeEl) welcomeEl.style.opacity = "1";
+          toast("Welcome back, " + displayName, 3500);
     }, 1000);
 
      setTimeout(() => {
