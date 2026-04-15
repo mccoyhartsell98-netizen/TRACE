@@ -4194,6 +4194,19 @@ function applyScanParams(){
 
 // ====== FORM UI (admin always unlocked) ======
 function updateFormUI(){
+  if (window._isViewer) {
+    els.saveBtn.disabled = true;
+    els.deleteBtn.disabled = true;
+    document.getElementById("moveBtn").disabled = true;
+    els.queueJobBtn.disabled = true;
+    els.job.disabled = true;
+    els.mo.disabled = true;
+    els.qty.disabled = true;
+    els.notes.disabled = true;
+    els.updatedBy.disabled = true;
+    document.getElementById("addLocationBtn").style.display = "none";
+    return;
+  }
   els.deleteBtn.disabled = !selectedId;
   els.job.disabled = !!selectedId;
   document.getElementById("moveBtn").disabled = !selectedId;
@@ -4445,8 +4458,8 @@ function renderLaneList(){
 <div class="meta" style="margin-top:4px;">Notes: ${item.notes ? escapeHtml(item.notes) : "—"}</div>
       <div class="meta" style="margin-top:4px;">${by}${at}</div>
       <div class="btnRow" style="margin-top:10px;">
-        <button class="primary" data-move="1">Move</button>
-        <button class="ghost" data-send-queue="1" style="border-color:rgba(255,209,102,.35);color:rgba(255,230,140,.9);">⏸ Hold</button>
+        ${window._isViewer ? '' : '<button class="primary" data-move="1">Move</button>'}
+        ${window._isViewer ? '' : '<button class="ghost" data-send-queue="1" style="border-color:rgba(255,209,102,.35);color:rgba(255,230,140,.9);">⏸ Hold</button>'}
       </div>
     `;
     div.querySelector("[data-move]").addEventListener("click", (e) => { e.stopPropagation(); openMoveOverlay(item.id); });
@@ -4992,15 +5005,12 @@ window.initApp = async function initApp() {
   // Check if viewer — disable editing
     try {
       const me = await apiGet("/auth/me");
-      if (me.ok && me.user?.role === "viewer") {
-        document.getElementById("saveBtn").disabled = true;
-        document.getElementById("deleteBtn").disabled = true;
-        document.getElementById("moveBtn").disabled = true;
-        document.getElementById("queueJobBtn").disabled = true;
-        document.getElementById("addLocationBtn").style.display = "none";
-        toast("View-only mode — contact admin for edit access");
-      }
-    } catch(e) {}
+      window._isViewer = (me.ok && me.user?.role === "viewer");
+    } catch(e) { window._isViewer = false; }
+
+if (window._isViewer) {
+      toast("View-only mode — contact admin for edit access");
+    }
     buildStatusPills();
     buildLaneButtons();
     buildMachineButtons();
