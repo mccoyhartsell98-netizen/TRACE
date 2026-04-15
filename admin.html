@@ -8432,12 +8432,21 @@ function generateLaneReport(){
 }
 
 body.viewer-mode .btnRow { display: none !important; }
-    body.viewer-mode #queueShortcutBtn { display: none !important; }
     body.viewer-mode #addLocationBtn { display: none !important; }
-    body.viewer-mode #menuBtn { display: none !important; }
     body.viewer-mode #undoBtn { display: none !important; }
     body.viewer-mode .queueActionRow { display: none !important; }
     body.viewer-mode .queueStatusBar { display: none !important; }
+    body.viewer-mode #queueShortcutBtn { pointer-events: none; opacity: .3; }
+    body.viewer-mode #menuBtn { pointer-events: none; opacity: .3; }
+    body.viewer-mode #saveBtn { pointer-events: none; opacity: .3; }
+    body.viewer-mode #deleteBtn { pointer-events: none; opacity: .3; }
+    body.viewer-mode #moveBtn { pointer-events: none; opacity: .3; }
+    body.viewer-mode #queueJobBtn { pointer-events: none; opacity: .3; }
+    body.viewer-mode #chatFab { display: none !important; }
+    body.viewer-mode .formGrid input { pointer-events: none; opacity: .5; }
+    body.viewer-mode .formGrid select { pointer-events: none; opacity: .5; }
+    body.viewer-mode #statusTrigger { pointer-events: none; opacity: .5; }
+   body.viewer-mode .btnRow { pointer-events: none; opacity: .25; }
    
   </style>
 </head>
