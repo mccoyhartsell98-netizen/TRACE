@@ -410,6 +410,12 @@
       color: rgba(180,205,255,.8);
     }
 
+.roleBadge.viewer {
+      background: rgba(140,165,210,.08);
+      border: 1px solid rgba(140,165,210,.2);
+      color: rgba(140,165,210,.8);
+    }
+
     .activeDot {
       display: inline-block;
       width: 8px;
@@ -1000,7 +1006,7 @@ function renderUsers(users) {
         try {
           await apiFetch("/admin/users/" + u.user_id, {
             method: "PUT",
-            body: JSON.stringify({ is_active: true, role: "admin" })
+            body: JSON.stringify({ is_active: true, role: "viewer" })
           });
           toast("Approved — " + u.email);
           loadDashboard();
@@ -1048,6 +1054,7 @@ function renderUsers(users) {
         ${isSelf
           ? `<span class="roleBadge ${u.role}">${u.role}</span>`
           : `<select class="roleSelect" data-role-uid="${u.user_id}">
+                  <option value="viewer" ${u.role === "viewer" ? "selected" : ""}>viewer</option>
               <option value="admin" ${u.role === "admin" ? "selected" : ""}>admin</option>
               <option value="machine" ${u.role === "machine" ? "selected" : ""}>machine</option>
               <option value="forklift" ${u.role === "forklift" ? "selected" : ""}>forklift</option>
