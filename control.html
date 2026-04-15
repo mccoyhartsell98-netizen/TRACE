@@ -597,6 +597,28 @@
       </div>
     </div>
 
+  <!-- KIOSK USERS -->
+    <div class="section">
+      <div class="sectionHead">
+        <div class="sectionTitle">Kiosk Users</div>
+        <div class="sectionBadge" id="kioskBadge">0</div>
+      </div>
+      <div class="tWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Name</th>
+              <th>Badge ID</th>
+              <th>Role</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody id="kioskBody"></tbody>
+        </table>
+      </div>
+    </div>
+
   </div>
 
   <!-- TOAST -->
@@ -743,12 +765,12 @@ document.getElementById("logoutBtn").addEventListener("click", () => {
 // ── LOAD DASHBOARD ──
 async function loadDashboard() {
   try {
-    const [stats, usersData] = await Promise.all([
+    const [stats, usersData, kioskData] = await Promise.all([
       apiFetch("/admin/stats"),
-      apiFetch("/admin/users")
+      apiFetch("/admin/users"),
+      apiFetch("/kiosk-users")
     ]);
 
-    // Stats
     if (stats.ok) {
       document.getElementById("statItems").textContent = stats.stats.total_items;
       document.getElementById("statLocations").textContent = stats.stats.total_locations;
@@ -757,10 +779,12 @@ async function loadDashboard() {
       document.getElementById("statMoves").textContent = stats.stats.moves_today;
     }
 
-    // Users
     if (usersData.ok) {
       renderUsers(usersData.users);
     }
+
+    const kioskUsers = Array.isArray(kioskData) ? kioskData : (kioskData.users || kioskData.rows || []);
+    renderKioskUsers(kioskUsers);
   } catch (e) {
     toast("Failed to load dashboard: " + e.message);
   }
@@ -813,6 +837,37 @@ function renderUsers(users) {
       pendingBody.appendChild(tr);
     });
   }
+
+function renderKioskUsers(users) {
+  const body = document.getElementById("kioskBody");
+  document.getElementById("kioskBadge").textContent = String(users.length);
+  body.innerHTML = "";
+
+  if (users.length === 0) {
+    body.innerHTML = '<tr><td colspan="5" class="emptyRow">No kiosk users.</td></tr>';
+    return;
+  }
+
+  const roleColors = {
+    driver: "forklift",
+    supervisor: "admin",
+    admin: "admin",
+    operator: "machine"
+  };
+
+  users.forEach(u => {
+    const tr = document.createElement("tr");
+    const isActive = u.is_active !== false;
+    tr.innerHTML = `
+      <td><span class="activeDot ${isActive ? "yes" : "no"}"></span>${isActive ? "Active" : "Inactive"}</td>
+      <td class="email">${esc(u.name)}</td>
+      <td style="color:var(--muted);font-weight:700;">${esc(u.badge_id || u.badge || "—")}</td>
+      <td><span class="roleBadge ${roleColors[u.role] || "forklift"}">${esc(u.role)}</span></td>
+      <td>${fmtDate(u.created_at)}</td>
+    `;
+    body.appendChild(tr);
+  });
+}
 
   // Highlight pending section if any
   const pendingSection = document.getElementById("pendingSection");
@@ -923,7 +978,7 @@ function renderUsers(users) {
     usersBody.appendChild(tr);
   });
 }
-
+ 
 // ── AUTO REFRESH ──
 setInterval(() => {
   if (AUTH.token) loadDashboard();
