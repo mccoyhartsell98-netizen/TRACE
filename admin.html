@@ -4989,6 +4989,18 @@ document.addEventListener("keydown", (e) => {
 // ====== INIT ======
 window.initApp = async function initApp() {
   try {
+  // Check if viewer — disable editing
+    try {
+      const me = await apiGet("/auth/me");
+      if (me.ok && me.user?.role === "viewer") {
+        document.getElementById("saveBtn").disabled = true;
+        document.getElementById("deleteBtn").disabled = true;
+        document.getElementById("moveBtn").disabled = true;
+        document.getElementById("queueJobBtn").disabled = true;
+        document.getElementById("addLocationBtn").style.display = "none";
+        toast("View-only mode — contact admin for edit access");
+      }
+    } catch(e) {}
     buildStatusPills();
     buildLaneButtons();
     buildMachineButtons();
