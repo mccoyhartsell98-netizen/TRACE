@@ -4194,7 +4194,7 @@ function applyScanParams(){
 
 // ====== FORM UI (admin always unlocked) ======
 function updateFormUI(){
-  if (window._isViewer) {
+ if (window._isViewer) {
     els.saveBtn.disabled = true;
     els.deleteBtn.disabled = true;
     document.getElementById("moveBtn").disabled = true;
@@ -4204,7 +4204,8 @@ function updateFormUI(){
     els.qty.disabled = true;
     els.notes.disabled = true;
     els.updatedBy.disabled = true;
-    document.getElementById("addLocationBtn").style.display = "none";
+    const statusTrigger = document.getElementById("statusTrigger");
+    if (statusTrigger) statusTrigger.style.pointerEvents = "none";
     return;
   }
   els.deleteBtn.disabled = !selectedId;
@@ -5007,8 +5008,8 @@ window.initApp = async function initApp() {
       const me = await apiGet("/auth/me");
       window._isViewer = (me.ok && me.user?.role === "viewer");
     } catch(e) { window._isViewer = false; }
-
-if (window._isViewer) {
+  if (window._isViewer) {
+      document.body.classList.add("viewer-mode");
       toast("View-only mode — contact admin for edit access");
     }
     buildStatusPills();
@@ -8429,6 +8430,14 @@ function generateLaneReport(){
     margin: 0.45in;
   }
 }
+
+body.viewer-mode .btnRow { display: none !important; }
+    body.viewer-mode #queueShortcutBtn { display: none !important; }
+    body.viewer-mode #addLocationBtn { display: none !important; }
+    body.viewer-mode #menuBtn { display: none !important; }
+    body.viewer-mode #undoBtn { display: none !important; }
+    body.viewer-mode .queueActionRow { display: none !important; }
+    body.viewer-mode .queueStatusBar { display: none !important; }
    
   </style>
 </head>
