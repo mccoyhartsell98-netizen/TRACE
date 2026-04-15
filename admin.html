@@ -3527,8 +3527,8 @@ function wireLoginUI() {
       document.getElementById("authLogin").style.display = "block";
       document.getElementById("loginEmail").value = email;
       document.getElementById("loginPass").value = "";
-      loginMsg.style.color = "#8aff8a";
-      loginMsg.textContent = "Account verified — log in to get started!";
+      loginMsg.style.color = "#fbbf24";
+      loginMsg.textContent = "Account verified — pending admin approval. You'll get an email once approved!";
       setTimeout(() => document.getElementById("loginPass").focus(), 50);
     } catch (e) {
       verifyMsg.textContent = e.message || "Verification failed";
