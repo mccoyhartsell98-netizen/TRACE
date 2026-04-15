@@ -838,37 +838,6 @@ function renderUsers(users) {
     });
   }
 
-function renderKioskUsers(users) {
-  const body = document.getElementById("kioskBody");
-  document.getElementById("kioskBadge").textContent = String(users.length);
-  body.innerHTML = "";
-
-  if (users.length === 0) {
-    body.innerHTML = '<tr><td colspan="5" class="emptyRow">No kiosk users.</td></tr>';
-    return;
-  }
-
-  const roleColors = {
-    driver: "forklift",
-    supervisor: "admin",
-    admin: "admin",
-    operator: "machine"
-  };
-
-  users.forEach(u => {
-    const tr = document.createElement("tr");
-    const isActive = u.is_active !== false;
-    tr.innerHTML = `
-      <td><span class="activeDot ${isActive ? "yes" : "no"}"></span>${isActive ? "Active" : "Inactive"}</td>
-      <td class="email">${esc(u.name)}</td>
-      <td style="color:var(--muted);font-weight:700;">${esc(u.badge_id || u.badge || "—")}</td>
-      <td><span class="roleBadge ${roleColors[u.role] || "forklift"}">${esc(u.role)}</span></td>
-      <td>${fmtDate(u.created_at)}</td>
-    `;
-    body.appendChild(tr);
-  });
-}
-
   // Highlight pending section if any
   const pendingSection = document.getElementById("pendingSection");
   if (pending.length > 0) {
@@ -978,6 +947,38 @@ function renderKioskUsers(users) {
     usersBody.appendChild(tr);
   });
 }
+
+function renderKioskUsers(users) {
+  const body = document.getElementById("kioskBody");
+  document.getElementById("kioskBadge").textContent = String(users.length);
+  body.innerHTML = "";
+
+  if (users.length === 0) {
+    body.innerHTML = '<tr><td colspan="5" class="emptyRow">No kiosk users.</td></tr>';
+    return;
+  }
+
+  const roleColors = {
+    driver: "forklift",
+    supervisor: "admin",
+    admin: "admin",
+    operator: "machine"
+  };
+
+  users.forEach(u => {
+    const tr = document.createElement("tr");
+    const isActive = u.is_active !== false;
+    tr.innerHTML = `
+      <td><span class="activeDot ${isActive ? "yes" : "no"}"></span>${isActive ? "Active" : "Inactive"}</td>
+      <td class="email">${esc(u.name)}</td>
+      <td style="color:var(--muted);font-weight:700;">${esc(u.badge_id || u.badge || "—")}</td>
+      <td><span class="roleBadge ${roleColors[u.role] || "forklift"}">${esc(u.role)}</span></td>
+      <td>${fmtDate(u.created_at)}</td>
+    `;
+    body.appendChild(tr);
+  });
+}
+
  
 // ── AUTO REFRESH ──
 setInterval(() => {
