@@ -597,6 +597,49 @@
       </div>
     </div>
 
+<!-- RECENT ACTIVITY -->
+    <div class="section">
+      <div class="sectionHead">
+        <div class="sectionTitle">Recent Activity</div>
+        <div class="sectionBadge" id="activityBadge">0</div>
+      </div>
+      <div class="tWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Job</th>
+              <th>From</th>
+              <th>To</th>
+              <th>By</th>
+            </tr>
+          </thead>
+          <tbody id="activityBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- INVENTORY BREAKDOWN -->
+    <div class="section">
+      <div class="sectionHead">
+        <div class="sectionTitle">Inventory Breakdown</div>
+      </div>
+      <div class="statsGrid" style="grid-template-columns:repeat(3,1fr);">
+        <div class="statCard">
+          <div class="statNum" id="statInLanes">—</div>
+          <div class="statLabel">In Lanes</div>
+        </div>
+        <div class="statCard">
+          <div class="statNum" id="statOnMachines">—</div>
+          <div class="statLabel">On Machines</div>
+        </div>
+        <div class="statCard">
+          <div class="statNum" id="statInQueue">—</div>
+          <div class="statLabel">In Queue</div>
+        </div>
+      </div>
+    </div>
+
   <!-- KIOSK USERS -->
     <div class="section">
       <div class="sectionHead">
@@ -765,10 +808,12 @@ document.getElementById("logoutBtn").addEventListener("click", () => {
 // ── LOAD DASHBOARD ──
 async function loadDashboard() {
   try {
-    const [stats, usersData, kioskData] = await Promise.all([
+    const [stats, usersData, kioskData, movesData, itemsData] = await Promise.all([
       apiFetch("/admin/stats"),
       apiFetch("/admin/users"),
-      apiFetch("/kiosk-users")
+      apiFetch("/kiosk-users"),
+      apiFetch("/admin/recent-moves"),
+      apiFetch("/items")
     ]);
 
     if (stats.ok) {
@@ -785,6 +830,14 @@ async function loadDashboard() {
 
     const kioskUsers = Array.isArray(kioskData) ? kioskData : (kioskData.users || kioskData.rows || []);
     renderKioskUsers(kioskUsers);
+
+    if (movesData.ok) {
+      renderRecentActivity(movesData.moves);
+    }
+
+    // Inventory breakdown
+    const items = Array.isArray(itemsData) ? itemsData : (itemsData.items || itemsData.rows || []);
+    renderBreakdown(items);
   } catch (e) {
     toast("Failed to load dashboard: " + e.message);
   }
@@ -977,6 +1030,57 @@ function renderKioskUsers(users) {
     `;
     body.appendChild(tr);
   });
+}
+
+function renderRecentActivity(moves) {
+  const body = document.getElementById("activityBody");
+  document.getElementById("activityBadge").textContent = String(moves.length);
+  body.innerHTML = "";
+
+  if (moves.length === 0) {
+    body.innerHTML = '<tr><td colspan="5" class="emptyRow">No recent moves.</td></tr>';
+    return;
+  }
+
+  moves.forEach(m => {
+    const from = m.from_machine || (m.from_lane ? "Lane " + m.from_lane : "—");
+    const to = m.to_machine || (m.to_lane ? "Lane " + m.to_lane : "—");
+    const job = m.job_number || "—";
+    const by = m.moved_by || "—";
+    const ago = timeAgo(m.moved_at);
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td style="color:var(--muted);font-size:12px;">${esc(ago)}</td>
+      <td class="email">${esc(job)}${m.mo ? ' <span style="color:var(--muted);font-size:11px;">(' + esc(m.mo) + ')</span>' : ''}</td>
+      <td style="color:var(--bad);font-weight:700;">${esc(from)}</td>
+      <td style="color:var(--good);font-weight:700;">${esc(to)}</td>
+      <td style="color:var(--muted);">${esc(by)}</td>
+    `;
+    body.appendChild(tr);
+  });
+}
+
+function timeAgo(ts) {
+  if (!ts) return "—";
+  const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
+  if (diff < 60) return diff + "s ago";
+  if (diff < 3600) return Math.floor(diff / 60) + "m ago";
+  if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
+  return Math.floor(diff / 86400) + "d ago";
+}
+
+function renderBreakdown(items) {
+  let lanes = 0, machines = 0, queue = 0;
+  items.forEach(item => {
+    const mach = String(item.machine || "").trim().toUpperCase();
+    if (mach === "QUEUE") queue++;
+    else if (mach) machines++;
+    else if (item.lane) lanes++;
+  });
+  document.getElementById("statInLanes").textContent = lanes;
+  document.getElementById("statOnMachines").textContent = machines;
+  document.getElementById("statInQueue").textContent = queue;
 }
 
  
