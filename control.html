@@ -958,6 +958,15 @@ async function loadDashboard() {
     // Inventory breakdown
     const items = Array.isArray(itemsData) ? itemsData : (itemsData.items || itemsData.rows || []);
     renderBreakdown(items);
+ // Wire collapsible sections
+    document.querySelectorAll(".sectionHead").forEach(head => {
+      if (!head.dataset.wired) {
+        head.dataset.wired = "1";
+        head.addEventListener("click", () => {
+          head.closest(".section").classList.toggle("collapsed");
+        });
+      }
+    });
   } catch (e) {
     toast("Failed to load dashboard: " + e.message);
   }
@@ -1202,13 +1211,6 @@ function renderBreakdown(items) {
   document.getElementById("statOnMachines").textContent = machines;
   document.getElementById("statInQueue").textContent = queue;
 }
-
-// ── COLLAPSIBLE SECTIONS ──
-document.querySelectorAll(".sectionHead").forEach(head => {
-  head.addEventListener("click", () => {
-    head.closest(".section").classList.toggle("collapsed");
-  });
-});
 
  // ── AUTO REFRESH ──
 setInterval(() => {
