@@ -494,27 +494,6 @@
     .roleSelect:focus {
       border-color: var(--blue);
     }
-
-    /* ── SCANLINE EFFECT ── */
-    .shell::after {
-      content: "";
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, rgba(58,122,254,.4), transparent);
-      animation: scanline 4s ease-in-out infinite;
-      pointer-events: none;
-      z-index: 9999;
-    }
-
-    @keyframes scanline {
-      0% { top: 0; opacity: 0; }
-      10% { opacity: 1; }
-      90% { opacity: 1; }
-      100% { top: 100vh; opacity: 0; }
-    }
   </style>
 </head>
 <body>
