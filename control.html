@@ -515,14 +515,12 @@
 <body>
 
 <!-- BOOT SEQUENCE -->
-  <div id="bootScreen" style="
+     <div id="bootScreen" style="
     position:fixed;inset:0;z-index:99999;
     background:#050810;
     display:none;
-    flex-direction:column;
     align-items:center;
     justify-content:center;
-    gap:0;
   ">
     <!-- Terminal -->
     <div id="bootTerminal" style="
@@ -540,14 +538,7 @@
       display:flex;
       flex-direction:column;
       align-items:center;
-      justify-content:center;
       gap:8px;
-      opacity:1;
-      transform:scale(1);
-      position:absolute;
-      top:50%;
-      left:50%;
-      transform:translate(-50%,-50%);
     ">
       <img src="./Offcial-Trace-Logo.png" style="height:140px;filter:drop-shadow(0 0 24px rgba(58,122,254,.4));"/>
       <canvas id="globeCanvas" width="260" height="260" style="margin-top:-10px;"></canvas>
@@ -561,6 +552,17 @@
       ">NETWORK ONLINE</div>
     </div>
   </div>
+
+  <div id="bootWelcome" style="
+        margin-top:20px;
+        font-family:'Inter',sans-serif;
+        text-align:center;
+        opacity:0;
+        transition:opacity 800ms ease;
+      ">
+        <div style="font-size:14px;color:rgba(180,205,255,.5);font-weight:500;">Welcome back</div>
+        <div id="bootName" style="font-size:22px;font-weight:800;color:#fff;margin-top:4px;"></div>
+      </div>
 
   <!-- LOGIN -->
   <div class="loginWrap" id="loginWrap">
@@ -1182,10 +1184,16 @@ function runBootSequence() {
     const canvas = document.getElementById("globeCanvas");
     screen.style.display = "flex";
 
-  terminal.style.display = "none";
-    logoWrap.style.opacity = "1";
-    logoWrap.style.transform = "scale(1)";
+    terminal.style.display = "none";
     startGlobe(canvas);
+
+    // Show welcome name after 1 second
+    const nameEl = document.getElementById("bootName");
+    const welcomeEl = document.getElementById("bootWelcome");
+    if (nameEl) nameEl.textContent = AUTH.email.split("@")[0].replace(".", " ").replace(/\b\w/g, c => c.toUpperCase());
+    setTimeout(() => {
+      if (welcomeEl) welcomeEl.style.opacity = "1";
+    }, 1000);
 
      setTimeout(() => {
       screen.style.transition = "opacity 600ms ease";
