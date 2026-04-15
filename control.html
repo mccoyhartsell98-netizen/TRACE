@@ -1183,7 +1183,7 @@ function runBootSequence() {
     logoWrap.style.transform = "scale(1)";
     startGlobe(canvas);
 
-    setTimeout(() => {
+     setTimeout(() => {
       screen.style.transition = "opacity 600ms ease";
       screen.style.opacity = "0";
       setTimeout(() => {
@@ -1191,6 +1191,8 @@ function runBootSequence() {
         resolve();
       }, 600);
     }, 3000);
+  });
+}
 
 function startGlobe(canvas) {
   const ctx = canvas.getContext("2d");
