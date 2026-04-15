@@ -1,0 +1,973 @@
+<!--
+  TRACE CONTROL PANEL — SUPERADMIN
+  © 2026 Mccoy Hartsell — All rights reserved.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TRACE — Control Panel</title>
+  <link rel="icon" type="image/png" href="favicon - Copy.png?v=1">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
+
+    :root {
+      --bg: #060a10;
+      --panel: rgba(12,16,24,.92);
+      --panel2: rgba(18,24,38,.88);
+      --text: #eaf2ff;
+      --muted: rgba(180,205,255,.65);
+      --stroke: rgba(58,122,254,.18);
+      --blue: #3a7afe;
+      --blue-glow: rgba(58,122,254,.35);
+      --good: #4ade80;
+      --bad: #f87171;
+      --warn: #fbbf24;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: var(--mono);
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 20% 0%, rgba(58,122,254,.08), transparent 50%),
+        radial-gradient(ellipse at 80% 100%, rgba(58,122,254,.05), transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── LOGIN ── */
+    .loginWrap {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(4,6,10,.96);
+      z-index: 10000;
+    }
+
+    .loginBox {
+      width: min(420px, 92vw);
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      border-radius: 16px;
+      padding: 32px 24px;
+      box-shadow: 0 24px 80px rgba(0,0,0,.6);
+    }
+
+    .loginBox h1 {
+      font-size: 13px;
+      letter-spacing: .25em;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 4px;
+    }
+
+    .loginBox .sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+
+    .loginBox label {
+      display: block;
+      font-size: 10px;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+      margin-top: 14px;
+    }
+
+    .loginBox input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--stroke);
+      background: rgba(6,10,18,.8);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 14px;
+      outline: none;
+    }
+
+    .loginBox input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(58,122,254,.15);
+    }
+
+    .loginBox button {
+      width: 100%;
+      margin-top: 20px;
+      padding: 12px;
+      border: 1px solid rgba(58,122,254,.5);
+      border-radius: 10px;
+      background: rgba(58,122,254,.2);
+      color: #fff;
+      font-family: var(--mono);
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: .1em;
+      cursor: pointer;
+    }
+
+    .loginBox button:hover { background: rgba(58,122,254,.3); }
+
+    .loginMsg {
+      margin-top: 12px;
+      font-size: 12px;
+      text-align: center;
+      color: var(--bad);
+      min-height: 18px;
+    }
+
+    /* ── LAYOUT ── */
+    .shell {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 20px;
+      display: none;
+    }
+
+    .shell.show { display: block; }
+
+    .topBar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 28px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--stroke);
+    }
+
+    .topLeft {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .topLeft img {
+      height: 48px;
+      filter: drop-shadow(0 0 12px rgba(58,122,254,.2));
+    }
+
+    .topBrand h1 {
+      font-size: 11px;
+      letter-spacing: .3em;
+      text-transform: uppercase;
+      color: var(--blue);
+      line-height: 1;
+    }
+
+    .topBrand .sub {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: .15em;
+      margin-top: 3px;
+    }
+
+    .topRight {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .topRight .userPill {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(58,122,254,.08);
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(180,205,255,.8);
+    }
+
+    .logoutBtn {
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(248,113,113,.3);
+      background: rgba(248,113,113,.08);
+      color: var(--bad);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .logoutBtn:hover { background: rgba(248,113,113,.16); }
+
+    /* ── STATS ROW ── */
+    .statsGrid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .statCard {
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      border-radius: 14px;
+      padding: 18px 16px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .statCard::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--blue), transparent);
+      opacity: .6;
+    }
+
+    .statNum {
+      font-size: 32px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .statLabel {
+      font-size: 9px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .statCard.pending .statNum { color: var(--warn); }
+    .statCard.moves .statNum { color: var(--good); }
+
+    /* ── SECTION ── */
+    .section {
+      margin-bottom: 28px;
+    }
+
+    .sectionHead {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .sectionTitle {
+      font-size: 11px;
+      letter-spacing: .25em;
+      text-transform: uppercase;
+      color: var(--blue);
+      font-weight: 800;
+    }
+
+    .sectionBadge {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(58,122,254,.08);
+      font-size: 11px;
+      font-weight: 800;
+      color: rgba(180,205,255,.8);
+    }
+
+    /* ── USER TABLE ── */
+    .tWrap {
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead tr {
+      background: rgba(58,122,254,.06);
+    }
+
+    th {
+      padding: 12px 14px;
+      text-align: left;
+      font-size: 9px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 800;
+      border-bottom: 1px solid var(--stroke);
+    }
+
+    td {
+      padding: 14px 14px;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(58,122,254,.08);
+      vertical-align: middle;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(58,122,254,.04); }
+
+    .email { font-weight: 700; color: #fff; }
+
+    .roleBadge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .06em;
+    }
+
+    .roleBadge.superadmin {
+      background: rgba(58,122,254,.15);
+      border: 1px solid rgba(58,122,254,.35);
+      color: rgba(140,180,255,.95);
+    }
+
+    .roleBadge.admin {
+      background: rgba(74,222,128,.1);
+      border: 1px solid rgba(74,222,128,.3);
+      color: rgba(74,222,128,.95);
+    }
+
+    .roleBadge.machine {
+      background: rgba(251,191,36,.1);
+      border: 1px solid rgba(251,191,36,.3);
+      color: rgba(251,191,36,.95);
+    }
+
+    .roleBadge.forklift {
+      background: rgba(180,205,255,.08);
+      border: 1px solid rgba(180,205,255,.2);
+      color: rgba(180,205,255,.8);
+    }
+
+    .activeDot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+
+    .activeDot.yes {
+      background: var(--good);
+      box-shadow: 0 0 8px rgba(74,222,128,.4);
+    }
+
+    .activeDot.no {
+      background: var(--bad);
+      box-shadow: 0 0 8px rgba(248,113,113,.4);
+    }
+
+    .activeDot.pending {
+      background: var(--warn);
+      box-shadow: 0 0 8px rgba(251,191,36,.4);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: .6; transform: scale(.9); }
+      50% { opacity: 1; transform: scale(1.15); }
+    }
+
+    .actionBtn {
+      padding: 5px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--stroke);
+      background: rgba(58,122,254,.1);
+      color: rgba(180,205,255,.9);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-right: 6px;
+    }
+
+    .actionBtn:hover { background: rgba(58,122,254,.2); }
+
+    .actionBtn.approve {
+      border-color: rgba(74,222,128,.35);
+      background: rgba(74,222,128,.1);
+      color: var(--good);
+    }
+
+    .actionBtn.approve:hover { background: rgba(74,222,128,.2); }
+
+    .actionBtn.deny {
+      border-color: rgba(248,113,113,.3);
+      background: rgba(248,113,113,.08);
+      color: var(--bad);
+    }
+
+    .actionBtn.deny:hover { background: rgba(248,113,113,.16); }
+
+    .actionBtn.delete {
+      border-color: rgba(248,113,113,.3);
+      background: rgba(248,113,113,.08);
+      color: var(--bad);
+    }
+
+    .actionBtn.delete:hover { background: rgba(248,113,113,.16); }
+
+    .emptyRow {
+      padding: 32px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      padding: 12px 24px;
+      border-radius: 12px;
+      border: 1px solid var(--stroke);
+      background: rgba(12,16,24,.95);
+      backdrop-filter: blur(10px);
+      color: #fff;
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 13px;
+      z-index: 99999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 200ms, transform 200ms;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 800px) {
+      .statsGrid { grid-template-columns: repeat(3, 1fr); }
+      table { font-size: 12px; }
+      th, td { padding: 10px 10px; }
+    }
+
+    @media (max-width: 600px) {
+      .statsGrid { grid-template-columns: repeat(2, 1fr); }
+      .topBar { flex-direction: column; align-items: flex-start; }
+    }
+
+    /* ── ROLE SELECT ── */
+    .roleSelect {
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--stroke);
+      background: rgba(6,10,18,.8);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .roleSelect:focus {
+      border-color: var(--blue);
+    }
+
+    /* ── SCANLINE EFFECT ── */
+    .shell::after {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(58,122,254,.4), transparent);
+      animation: scanline 4s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    @keyframes scanline {
+      0% { top: 0; opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { top: 100vh; opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LOGIN -->
+  <div class="loginWrap" id="loginWrap">
+    <div class="loginBox">
+      <h1>TRACE CONTROL</h1>
+      <div class="sub">Superadmin Access Only</div>
+      <label>Email</label>
+      <input id="loginEmail" type="email" placeholder="superadmin@company.com" autocomplete="username"/>
+      <label>Password</label>
+      <input id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password"/>
+      <button id="loginBtn">AUTHENTICATE</button>
+      <div class="loginMsg" id="loginMsg"></div>
+    </div>
+  </div>
+
+  <!-- MAIN SHELL -->
+  <div class="shell" id="shell">
+
+    <!-- TOP BAR -->
+    <div class="topBar">
+      <div class="topLeft">
+        <img src="./Offcial-Trace-Logo.png" alt="TRACE"/>
+        <div class="topBrand">
+          <h1>Control Panel</h1>
+          <div class="sub">System Administration</div>
+        </div>
+      </div>
+      <div class="topRight">
+        <div class="userPill" id="userPill">superadmin</div>
+        <button class="logoutBtn" id="logoutBtn">LOGOUT</button>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="statsGrid" id="statsGrid">
+      <div class="statCard">
+        <div class="statNum" id="statItems">—</div>
+        <div class="statLabel">Total Items</div>
+      </div>
+      <div class="statCard">
+        <div class="statNum" id="statLocations">—</div>
+        <div class="statLabel">Locations</div>
+      </div>
+      <div class="statCard">
+        <div class="statNum" id="statUsers">—</div>
+        <div class="statLabel">Users</div>
+      </div>
+      <div class="statCard pending">
+        <div class="statNum" id="statPending">—</div>
+        <div class="statLabel">Pending Approval</div>
+      </div>
+      <div class="statCard moves">
+        <div class="statNum" id="statMoves">—</div>
+        <div class="statLabel">Moves Today</div>
+      </div>
+    </div>
+
+    <!-- PENDING APPROVALS -->
+    <div class="section" id="pendingSection">
+      <div class="sectionHead">
+        <div class="sectionTitle">Pending Registrations</div>
+        <div class="sectionBadge" id="pendingBadge">0</div>
+      </div>
+      <div class="tWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Registered</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="pendingBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ALL USERS -->
+    <div class="section">
+      <div class="sectionHead">
+        <div class="sectionTitle">All Users</div>
+        <div class="sectionBadge" id="usersBadge">0</div>
+      </div>
+      <div class="tWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Last Login</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="usersBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+<script>
+const API = "https://api.traceinventory.org";
+let AUTH = { token: null, refreshToken: null, email: "" };
+
+// ── TOAST ──
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(window._tt);
+  window._tt = setTimeout(() => t.classList.remove("show"), 2800);
+}
+
+// ── AUTH ──
+function saveAuth() {
+  if (AUTH.token) localStorage.setItem("trace_ctrl_token", AUTH.token);
+  else localStorage.removeItem("trace_ctrl_token");
+  if (AUTH.refreshToken) localStorage.setItem("trace_ctrl_refresh", AUTH.refreshToken);
+  else localStorage.removeItem("trace_ctrl_refresh");
+  localStorage.setItem("trace_ctrl_email", AUTH.email);
+}
+
+function loadAuth() {
+  AUTH.token = localStorage.getItem("trace_ctrl_token") || null;
+  AUTH.refreshToken = localStorage.getItem("trace_ctrl_refresh") || null;
+  AUTH.email = localStorage.getItem("trace_ctrl_email") || "";
+}
+
+function clearAuth() {
+  AUTH = { token: null, refreshToken: null, email: "" };
+  localStorage.removeItem("trace_ctrl_token");
+  localStorage.removeItem("trace_ctrl_refresh");
+  localStorage.removeItem("trace_ctrl_email");
+}
+
+async function apiFetch(path, opts = {}, retried = false) {
+  const res = await fetch(API + path, {
+    ...opts,
+    headers: {
+      "Content-Type": "application/json",
+      ...(AUTH.token ? { "Authorization": "Bearer " + AUTH.token } : {}),
+      ...(opts.headers || {})
+    }
+  });
+
+  if (res.status === 401 && !retried && AUTH.refreshToken) {
+    const r = await fetch(API + "/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken: AUTH.refreshToken })
+    });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok && d.token) {
+      AUTH.token = d.token;
+      saveAuth();
+      return apiFetch(path, opts, true);
+    }
+    clearAuth();
+    location.reload();
+    throw new Error("Session expired");
+  }
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "HTTP " + res.status);
+  return data;
+}
+
+// ── FORMAT ──
+function fmtDate(ts) {
+  if (!ts) return "—";
+  const d = new Date(ts);
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function fmtTime(ts) {
+  if (!ts) return "Never";
+  const d = new Date(ts);
+  return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+function esc(s) {
+  return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+// ── LOGIN ──
+document.getElementById("loginBtn").addEventListener("click", doLogin);
+document.getElementById("loginPass").addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
+
+async function doLogin() {
+  const email = document.getElementById("loginEmail").value.trim();
+  const pass = document.getElementById("loginPass").value;
+  const msg = document.getElementById("loginMsg");
+  msg.textContent = "";
+
+  if (!email || !pass) { msg.textContent = "Email and password required."; return; }
+
+  const btn = document.getElementById("loginBtn");
+  btn.disabled = true;
+  btn.textContent = "AUTHENTICATING...";
+
+  try {
+    const r = await fetch(API + "/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.ok) throw new Error(d.error || "Login failed");
+
+    if (d.user?.role !== "superadmin") {
+      msg.textContent = "Access denied — superadmin only.";
+      msg.style.color = "var(--bad)";
+      return;
+    }
+
+    AUTH.token = d.token;
+    AUTH.refreshToken = d.refreshToken;
+    AUTH.email = d.user?.email || email;
+    saveAuth();
+
+    document.getElementById("loginWrap").style.display = "none";
+    document.getElementById("shell").classList.add("show");
+    document.getElementById("userPill").textContent = AUTH.email;
+    loadDashboard();
+  } catch (e) {
+    msg.textContent = e.message || "Login failed";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "AUTHENTICATE";
+  }
+}
+
+// ── LOGOUT ──
+document.getElementById("logoutBtn").addEventListener("click", () => {
+  clearAuth();
+  location.reload();
+});
+
+// ── LOAD DASHBOARD ──
+async function loadDashboard() {
+  try {
+    const [stats, usersData] = await Promise.all([
+      apiFetch("/admin/stats"),
+      apiFetch("/admin/users")
+    ]);
+
+    // Stats
+    if (stats.ok) {
+      document.getElementById("statItems").textContent = stats.stats.total_items;
+      document.getElementById("statLocations").textContent = stats.stats.total_locations;
+      document.getElementById("statUsers").textContent = stats.stats.total_users;
+      document.getElementById("statPending").textContent = stats.stats.pending_approvals;
+      document.getElementById("statMoves").textContent = stats.stats.moves_today;
+    }
+
+    // Users
+    if (usersData.ok) {
+      renderUsers(usersData.users);
+    }
+  } catch (e) {
+    toast("Failed to load dashboard: " + e.message);
+  }
+}
+
+// ── RENDER USERS ──
+function renderUsers(users) {
+  const pending = users.filter(u => !u.is_active);
+  const all = users;
+
+  // Pending
+  const pendingBody = document.getElementById("pendingBody");
+  document.getElementById("pendingBadge").textContent = String(pending.length);
+  pendingBody.innerHTML = "";
+
+  if (pending.length === 0) {
+    pendingBody.innerHTML = '<tr><td colspan="3" class="emptyRow">No pending registrations.</td></tr>';
+  } else {
+    pending.forEach(u => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="email">${esc(u.email)}</td>
+        <td>${fmtDate(u.created_at)}</td>
+        <td>
+          <button class="actionBtn approve" data-approve="${u.user_id}">Approve</button>
+          <button class="actionBtn deny" data-deny="${u.user_id}">Deny</button>
+        </td>
+      `;
+
+      tr.querySelector("[data-approve]").addEventListener("click", async () => {
+        try {
+          await apiFetch("/admin/users/" + u.user_id, {
+            method: "PUT",
+            body: JSON.stringify({ is_active: true, role: "admin" })
+          });
+          toast("Approved — " + u.email);
+          loadDashboard();
+        } catch (e) { toast("Failed: " + e.message); }
+      });
+
+      tr.querySelector("[data-deny]").addEventListener("click", async () => {
+        if (!confirm("Delete registration for " + u.email + "?")) return;
+        try {
+          await apiFetch("/admin/users/" + u.user_id, { method: "DELETE" });
+          toast("Denied — registration removed");
+          loadDashboard();
+        } catch (e) { toast("Failed: " + e.message); }
+      });
+
+      pendingBody.appendChild(tr);
+    });
+  }
+
+  // Highlight pending section if any
+  const pendingSection = document.getElementById("pendingSection");
+  if (pending.length > 0) {
+    pendingSection.style.borderLeft = "3px solid var(--warn)";
+    pendingSection.style.paddingLeft = "12px";
+  } else {
+    pendingSection.style.borderLeft = "none";
+    pendingSection.style.paddingLeft = "0";
+  }
+
+  // All users
+  const usersBody = document.getElementById("usersBody");
+  document.getElementById("usersBadge").textContent = String(all.length);
+  usersBody.innerHTML = "";
+
+  all.forEach(u => {
+    const isSelf = u.email === AUTH.email;
+    const statusClass = u.is_active ? "yes" : (u.verification_code ? "pending" : "no");
+    const statusText = u.is_active ? "Active" : (u.verification_code ? "Pending" : "Inactive");
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><span class="activeDot ${statusClass}"></span>${statusText}</td>
+      <td class="email">${esc(u.email)}${isSelf ? ' <span style="color:var(--blue);font-size:10px;">(you)</span>' : ""}</td>
+      <td>
+        ${isSelf
+          ? `<span class="roleBadge ${u.role}">${u.role}</span>`
+          : `<select class="roleSelect" data-role-uid="${u.user_id}">
+              <option value="admin" ${u.role === "admin" ? "selected" : ""}>admin</option>
+              <option value="machine" ${u.role === "machine" ? "selected" : ""}>machine</option>
+              <option value="forklift" ${u.role === "forklift" ? "selected" : ""}>forklift</option>
+              <option value="superadmin" ${u.role === "superadmin" ? "selected" : ""}>superadmin</option>
+            </select>`
+        }
+      </td>
+      <td>${fmtTime(u.last_login)}</td>
+      <td>${fmtDate(u.created_at)}</td>
+      <td>
+        ${isSelf ? '<span style="color:var(--muted);font-size:11px;">—</span>' : `
+          ${u.is_active
+            ? `<button class="actionBtn deny" data-deactivate="${u.user_id}">Deactivate</button>`
+            : `<button class="actionBtn approve" data-activate="${u.user_id}">Activate</button>`
+          }
+          <button class="actionBtn delete" data-delete="${u.user_id}">Delete</button>
+        `}
+      </td>
+    `;
+
+    // Role change
+    const roleSelect = tr.querySelector("[data-role-uid]");
+    if (roleSelect) {
+      roleSelect.addEventListener("change", async (e) => {
+        try {
+          await apiFetch("/admin/users/" + u.user_id, {
+            method: "PUT",
+            body: JSON.stringify({ role: e.target.value })
+          });
+          toast("Role updated → " + e.target.value);
+          loadDashboard();
+        } catch (err) { toast("Failed: " + err.message); }
+      });
+    }
+
+    // Activate
+    const activateBtn = tr.querySelector("[data-activate]");
+    if (activateBtn) {
+      activateBtn.addEventListener("click", async () => {
+        try {
+          await apiFetch("/admin/users/" + u.user_id, {
+            method: "PUT",
+            body: JSON.stringify({ is_active: true })
+          });
+          toast("Activated — " + u.email);
+          loadDashboard();
+        } catch (e) { toast("Failed: " + e.message); }
+      });
+    }
+
+    // Deactivate
+    const deactivateBtn = tr.querySelector("[data-deactivate]");
+    if (deactivateBtn) {
+      deactivateBtn.addEventListener("click", async () => {
+        try {
+          await apiFetch("/admin/users/" + u.user_id, {
+            method: "PUT",
+            body: JSON.stringify({ is_active: false })
+          });
+          toast("Deactivated — " + u.email);
+          loadDashboard();
+        } catch (e) { toast("Failed: " + e.message); }
+      });
+    }
+
+    // Delete
+    const deleteBtn = tr.querySelector("[data-delete]");
+    if (deleteBtn) {
+      deleteBtn.addEventListener("click", async () => {
+        if (!confirm("Permanently delete " + u.email + "? This cannot be undone.")) return;
+        try {
+          await apiFetch("/admin/users/" + u.user_id, { method: "DELETE" });
+          toast("Deleted — " + u.email);
+          loadDashboard();
+        } catch (e) { toast("Failed: " + e.message); }
+      });
+    }
+
+    usersBody.appendChild(tr);
+  });
+}
+
+// ── AUTO REFRESH ──
+setInterval(() => {
+  if (AUTH.token) loadDashboard();
+}, 30000);
+
+// ── BOOT ──
+loadAuth();
+if (AUTH.token) {
+  // Verify the token is still valid and user is superadmin
+  apiFetch("/auth/me").then(d => {
+    if (d.ok && d.user?.role === "superadmin") {
+      document.getElementById("loginWrap").style.display = "none";
+      document.getElementById("shell").classList.add("show");
+      document.getElementById("userPill").textContent = AUTH.email;
+      loadDashboard();
+    } else {
+      clearAuth();
+      document.getElementById("loginMsg").textContent = "Session expired or not superadmin.";
+    }
+  }).catch(() => {
+    clearAuth();
+  });
+}
+</script>
+</body>
+</html>
