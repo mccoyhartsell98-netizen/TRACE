@@ -1147,19 +1147,15 @@ function renderKioskUsers(users) {
     operator: "machine"
   };
 
-  users.forEach(u => {
-    const tr = document.createElement("tr");
-    const isActive = u.is_active !== false;
-    tr.innerHTML = `
-      <td><span class="activeDot ${isActive ? "yes" : "no"}"></span>${isActive ? "Active" : "Inactive"}</td>
-      <td class="email">${esc(u.name)}</td>
-      <td style="color:var(--muted);font-weight:700;">${esc(u.badge_id || u.badge || "—")}</td>
-      <td><span class="roleBadge ${roleColors[u.role] || "forklift"}">${esc(u.role)}</span></td>
-      <td>${fmtDate(u.created_at)}</td>
-    `;
-    body.appendChild(tr);
+ const roleOrder = { admin: 0, supervisor: 1, operator: 2, driver: 3 };
+  const sorted = [...users].sort((a, b) => {
+    const ra = roleOrder[a.role] ?? 99;
+    const rb = roleOrder[b.role] ?? 99;
+    if (ra !== rb) return ra - rb;
+    return (a.name || "").localeCompare(b.name || "");
   });
-}
+
+  sorted.forEach(u => {
 
 function renderRecentActivity(moves) {
   const body = document.getElementById("activityBody");
