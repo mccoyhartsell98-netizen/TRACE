@@ -637,10 +637,7 @@ async function doMove(label, destId){
       toast(e.message||"Move failed",true);
     }
   }
-    toast(e.message||"Move failed",true);
-  }
-}
-
+} 
 async function put(id,body,token){
   const r=await fetch(`${API}/items/${id}`,{method:"PUT",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify(body)});
   if(r.status===401){
