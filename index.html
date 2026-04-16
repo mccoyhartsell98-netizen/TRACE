@@ -398,6 +398,9 @@ async function enterHub(user){
   await loadInventory();
   buildKioskLaneButtons();
 
+ // Sync any offline moves
+  await syncOfflineQueue();
+
   // ── keep inventory fresh — poll every 20s ──
   if(window._kioskPoll) clearInterval(window._kioskPoll);
   window._kioskPoll = setInterval(async () => {
@@ -569,6 +572,20 @@ async function doMove(label, destId){
     const body={location_id:destId, updated_by:by};
     if(takingQty!==null) body.qty=takingQty;
 
+    if (!isOnline) {
+      // Queue for later
+      queueOfflineMove(item.id, destId, by, takingQty);
+      // Optimistically update local state
+      if(takingQty!==null){
+        const remaining=item.qty-takingQty;
+        toast(`${takingQty} of ${item.job} → ${label} (queued offline)`);
+      } else {
+        toast(`Job ${item.job} → ${label} (queued offline)`);
+      }
+      takingQty=null;
+      return;
+    }
+
     const r=await fetch(`${API}/items/${item.id}/move`,{
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
@@ -590,8 +607,7 @@ async function doMove(label, destId){
 
     if(takingQty!==null){
       const remaining=item.qty-takingQty;
-      toast(`${takingQty} of ${item.job} \u2192 ${label} \u2022 ${remaining} remaining`);
-      // Non-blocking email notify
+      toast(`${takingQty} of ${item.job} → ${label} • ${remaining} remaining`);
       fetch(`${API}/notify/partial-pick`,{
         method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({job:item.job,mo:item.mo,taken:takingQty,remaining,destination:label,driver:by})
@@ -608,6 +624,19 @@ async function doMove(label, destId){
     if(fresh.length) setActive(fresh[0]);
 
   }catch(e){
+    if (e.message === "Failed to fetch" || e.message.includes("NetworkError")) {
+      // Connection lost mid-move — queue it
+      isOnline = false;
+      $("pillStatus").textContent = "OFFLINE";
+      $("pillStatus").style.background = "rgba(248,113,113,.15)";
+      $("pillStatus").style.color = "#f87171";
+      $("pillStatus").style.borderColor = "rgba(248,113,113,.3)";
+      queueOfflineMove(item.id, destId, by, takingQty);
+      takingQty=null;
+    } else {
+      toast(e.message||"Move failed",true);
+    }
+  }
     toast(e.message||"Move failed",true);
   }
 }
@@ -795,13 +824,152 @@ function showLaneView(laneNum){
 
 $("laneViewClose").onclick = () => $("laneView").classList.add("hide");
 
+// ── OFFLINE QUEUE SYSTEM ──
+const OFFLINE_QUEUE_KEY = "trace_offline_queue";
+let isOnline = true;
+
+function getOfflineQueue() {
+  try { return JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || "[]"); }
+  catch(e) { return []; }
+}
+
+function saveOfflineQueue(queue) {
+  localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+}
+
+function queueOfflineMove(itemId, locationId, movedBy, qty) {
+  const queue = getOfflineQueue();
+  queue.push({
+    itemId,
+    locationId,
+    movedBy,
+    qty,
+    timestamp: new Date().toISOString(),
+    id: Date.now() + "_" + Math.random().toString(36).slice(2)
+  });
+  saveOfflineQueue(queue);
+  updateOfflineBadge();
+  toast("Move queued — will sync when back online");
+}
+
+function updateOfflineBadge() {
+  const queue = getOfflineQueue();
+  let badge = document.getElementById("offlineBadge");
+  if (!badge) {
+    badge = document.createElement("div");
+    badge.id = "offlineBadge";
+    badge.style.cssText = "position:fixed;top:12px;right:12px;padding:6px 12px;border-radius:999px;font-size:11px;font-weight:900;z-index:9999;display:none;";
+    document.body.appendChild(badge);
+  }
+  if (queue.length > 0) {
+    badge.textContent = queue.length + " pending move" + (queue.length > 1 ? "s" : "");
+    badge.style.display = "block";
+    badge.style.background = "rgba(251,191,36,.15)";
+    badge.style.border = "1px solid rgba(251,191,36,.4)";
+    badge.style.color = "#fbbf24";
+  } else {
+    badge.style.display = "none";
+  }
+}
+
+async function syncOfflineQueue() {
+  const queue = getOfflineQueue();
+  if (queue.length === 0) return;
+
+  const {token} = auth();
+  if (!token) return;
+
+  let synced = 0;
+  let failed = [];
+
+  for (const move of queue) {
+    try {
+      const body = { location_id: move.locationId, updated_by: move.movedBy };
+      if (move.qty !== null && move.qty !== undefined) body.qty = move.qty;
+
+      const r = await fetch(`${API}/items/${move.itemId}/move`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+        body: JSON.stringify(body)
+      });
+
+      if (r.ok) {
+        synced++;
+      } else if (r.status === 401) {
+        // Token expired — stop syncing, need re-auth
+        failed.push(move);
+        break;
+      } else {
+        failed.push(move);
+      }
+    } catch(e) {
+      // Still offline
+      failed.push(move);
+      break;
+    }
+  }
+
+  saveOfflineQueue(failed);
+  updateOfflineBadge();
+
+  if (synced > 0) {
+    toast(`${synced} move${synced > 1 ? "s" : ""} synced successfully`);
+    await loadLocations();
+    await loadInventory();
+    buildKioskLaneButtons();
+    if (activeItem) {
+      const fresh = findJob(activeItem.job);
+      if (fresh.length === 1) setActive(fresh[0]);
+    }
+  }
+
+  if (failed.length > 0 && synced > 0) {
+    toast(`${failed.length} move${failed.length > 1 ? "s" : ""} still pending`, true);
+  }
+}
+
+async function checkConnection() {
+  try {
+    const r = await fetch(`${API}/health`, { cache: "no-store" });
+    if (r.ok && !isOnline) {
+      // Just came back online
+      isOnline = true;
+      $("pillStatus").textContent = "UNLOCKED";
+      $("pillStatus").style.cssText = "";
+      toast("Connection restored — syncing...");
+      await syncOfflineQueue();
+    }
+    isOnline = true;
+  } catch(e) {
+    if (isOnline) {
+      isOnline = false;
+      $("pillStatus").textContent = "OFFLINE";
+      $("pillStatus").style.background = "rgba(248,113,113,.15)";
+      $("pillStatus").style.color = "#f87171";
+      $("pillStatus").style.borderColor = "rgba(248,113,113,.3)";
+    }
+  }
+}
+
+// Check connection every 10 seconds
+setInterval(checkConnection, 10000);
+
 // ── Boot ────────────────────────────────────────────────────────────────────
 (async function boot(){
   renderPin();
+  updateOfflineBadge();
   try{
     const r=await fetch(`${API}/health`,{cache:"no-store"});
     $("pillStatus").textContent="LOCKED";
-  }catch(e){$("pillStatus").textContent="LOCKED";}
+    isOnline = true;
+  }catch(e){
+    isOnline = false;
+    $("pillStatus").textContent="OFFLINE";
+    $("pillStatus").style.background="rgba(248,113,113,.15)";
+    $("pillStatus").style.color="#f87171";
+    $("pillStatus").style.borderColor="rgba(248,113,113,.3)";
+    $("pinMsg").textContent="No network — check WiFi";
+  }
   const {token,user}=auth();
   if(token&&user) enterHub(user);
 })();
