@@ -762,15 +762,50 @@
       </div>
     </div>
 
-  <!-- KIOSK USERS -->
+   <!-- KIOSK USERS -->
     <div class="section">
       <div class="sectionHead">
         <div class="sectionTitle">Kiosk Users</div>
-          <div style="display:flex;align-items:center;gap:8px;">
+        <div style="display:flex;align-items:center;gap:8px;">
           <div class="sectionBadge" id="kioskBadge">0</div>
           <span class="sectionToggle">▼</span>
         </div>
       </div>
+
+      <!-- Create/Edit Form -->
+      <div class="tWrap" style="padding:18px;margin-bottom:12px;" id="kioskFormWrap">
+        <div style="font-size:11px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--blue);margin-bottom:14px;" id="kioskFormTitle">Create Kiosk Account</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Full Name *</div>
+            <input id="kName" class="fieldInput" type="text" placeholder="e.g. John Smith" style="padding:10px 12px;font-size:13px;border-radius:8px;border:1px solid var(--stroke);background:rgba(6,10,18,.8);color:var(--text);width:100%;font-family:var(--mono);outline:none;"/>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Badge ID *</div>
+            <input id="kBadge" class="fieldInput" type="text" placeholder="e.g. FD-01" style="padding:10px 12px;font-size:13px;border-radius:8px;border:1px solid var(--stroke);background:rgba(6,10,18,.8);color:var(--text);width:100%;font-family:var(--mono);outline:none;"/>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Role *</div>
+            <select id="kRole" style="padding:10px 12px;font-size:13px;border-radius:8px;border:1px solid var(--stroke);background:rgba(6,10,18,.8);color:var(--text);width:100%;font-family:var(--mono);outline:none;">
+              <option value="driver">Driver</option>
+              <option value="operator">Operator</option>
+              <option value="supervisor">Supervisor</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">4-Digit PIN *</div>
+            <input id="kPin" type="password" maxlength="4" placeholder="••••" style="padding:10px 12px;font-size:13px;border-radius:8px;border:1px solid var(--stroke);background:rgba(6,10,18,.8);color:var(--text);width:100%;font-family:var(--mono);outline:none;letter-spacing:6px;text-align:center;" onfocus="this.type='text'" onblur="this.type='password'"/>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:14px;">
+          <button class="actionBtn approve" id="kioskSaveBtn" style="padding:8px 20px;">Save</button>
+          <button class="actionBtn" id="kioskCancelBtn" style="padding:8px 16px;display:none;">Cancel</button>
+        </div>
+        <div id="kioskFormMsg" style="font-size:12px;margin-top:8px;min-height:18px;color:var(--muted);"></div>
+      </div>
+
+      <!-- Table -->
       <div class="tWrap">
         <table>
           <thead>
@@ -780,14 +815,13 @@
               <th>Badge ID</th>
               <th>Role</th>
               <th>Created</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="kioskBody"></tbody>
         </table>
       </div>
     </div>
-
-  </div>
 
   <!-- TOAST -->
   <div class="toast" id="toast"></div>
@@ -1143,7 +1177,7 @@ function renderKioskUsers(users) {
   body.innerHTML = "";
 
   if (users.length === 0) {
-    body.innerHTML = '<tr><td colspan="5" class="emptyRow">No kiosk users.</td></tr>';
+    body.innerHTML = '<tr><td colspan="6" class="emptyRow">No kiosk users.</td></tr>';
     return;
   }
 
@@ -1165,15 +1199,94 @@ function renderKioskUsers(users) {
   sorted.forEach(u => {
     const tr = document.createElement("tr");
     const isActive = u.is_active !== false;
+    const uid = u.id || u.kiosk_user_id;
     tr.innerHTML = `
       <td><span class="activeDot ${isActive ? "yes" : "no"}"></span>${isActive ? "Active" : "Inactive"}</td>
       <td class="email">${esc(u.name)}</td>
       <td style="color:var(--muted);font-weight:700;">${esc(u.badge_id || u.badge || "—")}</td>
       <td><span class="roleBadge ${roleColors[u.role] || "forklift"}">${esc(u.role)}</span></td>
       <td>${fmtDate(u.created_at)}</td>
+      <td>
+        <button class="actionBtn" data-edit-kiosk="${uid}">Edit</button>
+        <button class="actionBtn deny" data-delete-kiosk="${uid}">Delete</button>
+      </td>
     `;
+
+    tr.querySelector("[data-edit-kiosk]")?.addEventListener("click", () => {
+      window._editingKioskId = uid;
+      document.getElementById("kName").value = u.name || "";
+      document.getElementById("kBadge").value = u.badge_id || u.badge || "";
+      document.getElementById("kRole").value = u.role || "driver";
+      document.getElementById("kPin").value = "";
+      document.getElementById("kioskFormTitle").textContent = "Edit: " + (u.name || "");
+      document.getElementById("kioskCancelBtn").style.display = "inline-block";
+      document.getElementById("kioskFormMsg").textContent = "Leave PIN blank to keep current PIN.";
+      document.getElementById("kioskFormMsg").style.color = "var(--warn)";
+      document.getElementById("kioskFormWrap").scrollIntoView({ behavior: "smooth" });
+    });
+
+    tr.querySelector("[data-delete-kiosk]")?.addEventListener("click", async () => {
+      if (!confirm("Delete " + (u.name || "this user") + "? This cannot be undone.")) return;
+      try {
+        await apiFetch("/kiosk-users/" + uid, { method: "DELETE" });
+        toast("Deleted — " + (u.name || ""));
+        loadDashboard();
+      } catch (e) { toast("Failed: " + e.message); }
+    });
+
     body.appendChild(tr);
   });
+}
+
+// ── KIOSK USER CRUD ──
+window._editingKioskId = null;
+
+document.getElementById("kioskSaveBtn").addEventListener("click", async () => {
+  const name = document.getElementById("kName").value.trim();
+  const badge = document.getElementById("kBadge").value.trim();
+  const role = document.getElementById("kRole").value;
+  const pin = document.getElementById("kPin").value.trim();
+  const msg = document.getElementById("kioskFormMsg");
+
+  if (!name) { msg.textContent = "Name is required."; msg.style.color = "var(--bad)"; return; }
+  if (!badge) { msg.textContent = "Badge ID is required."; msg.style.color = "var(--bad)"; return; }
+  if (!window._editingKioskId && pin.length !== 4) { msg.textContent = "PIN must be 4 digits."; msg.style.color = "var(--bad)"; return; }
+  if (window._editingKioskId && pin.length > 0 && pin.length !== 4) { msg.textContent = "PIN must be 4 digits."; msg.style.color = "var(--bad)"; return; }
+
+  const btn = document.getElementById("kioskSaveBtn");
+  btn.disabled = true;
+
+  try {
+    if (window._editingKioskId) {
+      const body = { name, badge_id: badge, role };
+      if (pin.length === 4) body.pin = pin;
+      await apiFetch("/kiosk-users/" + window._editingKioskId, { method: "PUT", body: JSON.stringify(body) });
+      toast("Updated — " + name);
+    } else {
+      await apiFetch("/kiosk-users", { method: "POST", body: JSON.stringify({ name, badge_id: badge, role, pin }) });
+      toast("Created — " + name);
+    }
+    resetKioskForm();
+    loadDashboard();
+  } catch (e) {
+    msg.textContent = e.message || "Save failed";
+    msg.style.color = "var(--bad)";
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("kioskCancelBtn").addEventListener("click", resetKioskForm);
+
+function resetKioskForm() {
+  window._editingKioskId = null;
+  document.getElementById("kName").value = "";
+  document.getElementById("kBadge").value = "";
+  document.getElementById("kRole").value = "driver";
+  document.getElementById("kPin").value = "";
+  document.getElementById("kioskFormTitle").textContent = "Create Kiosk Account";
+  document.getElementById("kioskCancelBtn").style.display = "none";
+  document.getElementById("kioskFormMsg").textContent = "";
 }
 
 function renderRecentActivity(moves) {
