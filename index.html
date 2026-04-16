@@ -966,8 +966,10 @@ async function checkConnection() {
     if (r.ok && !isOnline) {
       // Just came back online
       isOnline = true;
-      $("pillStatus").textContent = "UNLOCKED";
-      $("pillStatus").style.cssText = "";
+      $("pillStatus").textContent = "ONLINE";
+      $("pillStatus").style.background="rgba(74,222,128,.12)";
+      $("pillStatus").style.color="#4ade80";
+      $("pillStatus").style.borderColor="rgba(74,222,128,.3)";
       toast("Connection restored — syncing...");
       await syncOfflineQueue();
     }
@@ -1011,7 +1013,11 @@ setInterval(checkConnection, 10000);
   updateOfflineBadge();
   try{
     const r=await fetch(`${API}/health`,{cache:"no-store"});
-    $("pillStatus").textContent="LOCKED";
+    $("pillStatus").textContent="ONLINE";
+    $("pillStatus").style.background="rgba(74,222,128,.12)";
+    $("pillStatus").style.color="#4ade80";
+    $("pillStatus").style.borderColor="rgba(74,222,128,.3)";
+    isOnline = true;
     isOnline = true;
   }catch(e){
     isOnline = false;
