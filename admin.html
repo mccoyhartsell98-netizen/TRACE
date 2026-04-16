@@ -2604,7 +2604,6 @@ body.viewer-mode button:not(#logoutBtn):not(.tabBtn):not(.laneBtn) {
   <button class="ghost" id="openAuditBtn">Inventory Audit</button>
   <button class="ghost" id="openLaneQrBtn">Generate Lane QR</button>
   <div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#6C86A8;padding:4px 2px;margin-top:8px;border-bottom:1px solid rgba(42,127,255,0.15);margin-bottom:4px;">Administration</div>
-  <button class="ghost" id="openUsersBtn" style="display:none;">User Management</button>
   <button class="ghost" id="openStatusesBtn">Status Options</button>
   <button class="ghost" id="exportReportBtn">Export Lane Report</button>
   <button class="ghost" id="exportSummaryBtn">Export Summary Report</button>
@@ -5035,10 +5034,6 @@ window.initApp = async function initApp() {
     try {
       const me = await apiGet("/auth/me");
       window._isViewer = (me.ok && me.user?.role === "viewer");
-      window._isSuperadmin = (me.ok && me.user?.role === "superadmin");
-      if (window._isSuperadmin) {
-        document.getElementById("openUsersBtn").style.display = "";
-      }
     } catch(e) { window._isViewer = false; window._isSuperadmin = false; }
   if (window._isViewer) {
       document.body.classList.add("viewer-mode");
