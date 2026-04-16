@@ -6156,15 +6156,6 @@ document.getElementById("saveUserBtn").addEventListener("click", saveUser);
 document.getElementById("cancelUserEditBtn").addEventListener("click", cancelUserEdit);
 document.getElementById("userSearch").addEventListener("input", renderUsersPage);
 
-// Wire page navigation
-document.getElementById("usersPageBack").addEventListener("click", () => hidePage("usersPage"));
-document.getElementById("openUsersBtn").addEventListener("click", async () => {
-  closeSideMenu();
-  showPage("usersPage");
-  await loadUsers();
-  renderUsersPage();
-});
-
 const openQrBtn = document.getElementById("openQrBtn");
 if(openQrBtn){
   openQrBtn.addEventListener("click", () => {
