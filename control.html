@@ -398,6 +398,12 @@
       color: rgba(74,222,128,.95);
     }
 
+  .roleBadge.supervisor {
+      background: rgba(168,130,255,.1);
+      border: 1px solid rgba(168,130,255,.3);
+      color: rgba(168,130,255,.95);
+    }
+
     .roleBadge.machine {
       background: rgba(251,191,36,.1);
       border: 1px solid rgba(251,191,36,.3);
@@ -1240,7 +1246,7 @@ function renderKioskUsers(users) {
 
   const roleColors = {
     driver: "forklift",
-    supervisor: "admin",
+    supervisor: "supervisor",
     admin: "admin",
     operator: "machine"
   };
