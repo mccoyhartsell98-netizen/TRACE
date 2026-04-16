@@ -852,6 +852,27 @@
   <!-- TOAST -->
   <div class="toast" id="toast"></div>
 
+<script>
+const API = "https://api.traceinventory.org";
+let AUTH = { token: null, refreshToken: null, email: "" };
+
+// ── TOAST ──
+function toast(msg, duration) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(window._tt);
+  window._tt = setTimeout(() => t.classList.remove("show"), duration || 2800);
+}
+
+function toast(msg, duration) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(window._tt);
+  window._tt = setTimeout(() => t.classList.remove("show"), duration || 2800);
+}
+
 function traceConfirm(title, msg, yesText) {
   return new Promise(resolve => {
     const overlay = document.getElementById("confirmOverlay");
@@ -873,19 +894,6 @@ function traceConfirm(title, msg, yesText) {
     no.addEventListener("click", () => { cleanup(); resolve(false); }, { once: true });
     overlay.addEventListener("click", (e) => { if (e.target === overlay) { cleanup(); resolve(false); } }, { once: true });
   });
-}
-
-<script>
-const API = "https://api.traceinventory.org";
-let AUTH = { token: null, refreshToken: null, email: "" };
-
-// ── TOAST ──
-function toast(msg, duration) {
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.classList.add("show");
-  clearTimeout(window._tt);
-  window._tt = setTimeout(() => t.classList.remove("show"), duration || 2800);
 }
 
 // ── AUTH ──
