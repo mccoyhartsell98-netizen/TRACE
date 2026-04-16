@@ -823,8 +823,57 @@
       </div>
     </div>
 
+<!-- CONFIRM DIALOG -->
+  <div id="confirmOverlay" style="
+    position:fixed;inset:0;z-index:100000;
+    background:rgba(4,6,10,.85);
+    backdrop-filter:blur(8px);
+    display:none;
+    align-items:center;
+    justify-content:center;
+  ">
+    <div style="
+      width:min(400px,90vw);
+      background:var(--panel);
+      border:1px solid var(--stroke);
+      border-radius:16px;
+      padding:28px 24px;
+      box-shadow:0 24px 80px rgba(0,0,0,.6);
+    ">
+      <div id="confirmTitle" style="font-size:16px;font-weight:800;color:#fff;margin-bottom:8px;"></div>
+      <div id="confirmMsg" style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.5;"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button id="confirmNo" class="actionBtn" style="padding:10px 20px;">Cancel</button>
+        <button id="confirmYes" class="actionBtn deny" style="padding:10px 20px;font-weight:800;"></button>
+      </div>
+    </div>
+  </div>
+
   <!-- TOAST -->
   <div class="toast" id="toast"></div>
+
+function traceConfirm(title, msg, yesText) {
+  return new Promise(resolve => {
+    const overlay = document.getElementById("confirmOverlay");
+    document.getElementById("confirmTitle").textContent = title;
+    document.getElementById("confirmMsg").textContent = msg;
+    document.getElementById("confirmYes").textContent = yesText || "Delete";
+    overlay.style.display = "flex";
+
+    const yes = document.getElementById("confirmYes");
+    const no = document.getElementById("confirmNo");
+
+    function cleanup() {
+      overlay.style.display = "none";
+      yes.replaceWith(yes.cloneNode(true));
+      no.replaceWith(no.cloneNode(true));
+    }
+
+    yes.addEventListener("click", () => { cleanup(); resolve(true); }, { once: true });
+    no.addEventListener("click", () => { cleanup(); resolve(false); }, { once: true });
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) { cleanup(); resolve(false); } }, { once: true });
+  });
+}
 
 <script>
 const API = "https://api.traceinventory.org";
@@ -1048,7 +1097,7 @@ function renderUsers(users) {
       });
 
       tr.querySelector("[data-deny]").addEventListener("click", async () => {
-        if (!confirm("Delete registration for " + u.email + "?")) return;
+        if (!await traceConfirm("Deny Registration", "Delete registration for " + u.email + "?", "Deny")) return;
         try {
           await apiFetch("/admin/users/" + u.user_id, { method: "DELETE" });
           toast("Denied — registration removed");
@@ -1158,7 +1207,7 @@ function renderUsers(users) {
     const deleteBtn = tr.querySelector("[data-delete]");
     if (deleteBtn) {
       deleteBtn.addEventListener("click", async () => {
-        if (!confirm("Permanently delete " + u.email + "? This cannot be undone.")) return;
+        if (!await traceConfirm("Delete User", "Permanently delete " + u.email + "? This cannot be undone.", "Delete")) return;
         try {
           await apiFetch("/admin/users/" + u.user_id, { method: "DELETE" });
           toast("Deleted — " + u.email);
@@ -1226,7 +1275,7 @@ function renderKioskUsers(users) {
     });
 
     tr.querySelector("[data-delete-kiosk]")?.addEventListener("click", async () => {
-      if (!confirm("Delete " + (u.name || "this user") + "? This cannot be undone.")) return;
+      if (!await traceConfirm("Delete Kiosk User", "Delete " + (u.name || "this user") + "? This cannot be undone.", "Delete")) return;
       try {
         await apiFetch("/kiosk-users/" + uid, { method: "DELETE" });
         toast("Deleted — " + (u.name || ""));
