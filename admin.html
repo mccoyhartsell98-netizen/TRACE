@@ -3568,7 +3568,9 @@ function wireLoginUI() {
   verifyBtn.addEventListener("click", submitVerify);
   document.getElementById("verifyCode").addEventListener("keydown", (e) => { if (e.key === "Enter") submitVerify(); });
 // ── FORGOT PASSWORD (show after failed login) ──
-  document.getElementById("showForgotBtn").addEventListener("click", () => {
+    document.getElementById("showForgotBtn").addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     document.getElementById("authLogin").style.display = "none";
     document.getElementById("authForgot").style.display = "block";
     document.getElementById("forgotEmail").value = emailEl.value || "";
