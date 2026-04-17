@@ -3368,10 +3368,12 @@ async function apiFetch(path, opts = {}, _retried = false) {
     localStorage.removeItem("trace_email");
     localStorage.removeItem("trace_refresh_token");
     sessionStorage.removeItem("trace_intro_seen");
-    toast("Session expired — please log in again");
-    setTimeout(() => location.reload(), 1500);
+    const loginVisible = document.getElementById("loginOverlay")?.style.display !== "none";
+    if (!loginVisible) {
+      toast("Session expired — please log in again");
+      setTimeout(() => location.reload(), 1500);
+    }
     throw new Error("Session expired");
-  }
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
@@ -9062,14 +9064,117 @@ function generateSummaryReport(){
 // ── FORGOT PASSWORD MANUAL WIRE ──
 document.addEventListener("DOMContentLoaded", () => {
   const showForgotBtn = document.getElementById("showForgotBtn");
+  const forgotBtn = document.getElementById("forgotBtn");
+  const resetBtn = document.getElementById("resetBtn");
+  const backToLoginFromForgot = document.getElementById("backToLoginFromForgot");
+  const backToForgot = document.getElementById("backToForgot");
+
+  function hideAll() {
+    document.getElementById("authLogin").style.display = "none";
+    document.getElementById("authRegister").style.display = "none";
+    document.getElementById("authVerify").style.display = "none";
+    document.getElementById("authForgot").style.display = "none";
+    document.getElementById("authReset").style.display = "none";
+  }
+
   if (showForgotBtn) {
     showForgotBtn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      document.getElementById("authLogin").style.display = "none";
+      hideAll();
       document.getElementById("authForgot").style.display = "block";
       document.getElementById("forgotEmail").value = document.getElementById("loginEmail")?.value || "";
       document.getElementById("forgotMsg").textContent = "";
+    });
+  }
+
+  if (backToLoginFromForgot) {
+    backToLoginFromForgot.addEventListener("click", (e) => {
+      e.preventDefault();
+      hideAll();
+      document.getElementById("authLogin").style.display = "block";
+    });
+  }
+
+  if (backToForgot) {
+    backToForgot.addEventListener("click", (e) => {
+      e.preventDefault();
+      hideAll();
+      document.getElementById("authForgot").style.display = "block";
+    });
+  }
+
+  if (forgotBtn) {
+    forgotBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("forgotEmail").value.trim();
+      const msg = document.getElementById("forgotMsg");
+      msg.textContent = "";
+      if (!email || !email.includes("@")) { msg.textContent = "Enter a valid email."; return; }
+
+      forgotBtn.disabled = true;
+      forgotBtn.textContent = "Sending code...";
+      try {
+        await fetch(API_BASE + "/auth/forgot", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email })
+        });
+        hideAll();
+        document.getElementById("authReset").style.display = "block";
+        document.getElementById("resetInfo").textContent = "If " + email + " has an account, a code was sent";
+        document.getElementById("resetCode").value = "";
+        document.getElementById("resetNewPass").value = "";
+        document.getElementById("resetMsg").textContent = "";
+        document.getElementById("resetCode").dataset.email = email;
+        setTimeout(() => document.getElementById("resetCode").focus(), 50);
+      } catch (err) {
+        msg.textContent = err.message || "Failed to send code";
+      } finally {
+        forgotBtn.disabled = false;
+        forgotBtn.textContent = "Send Reset Code";
+      }
+    });
+  }
+
+  if (resetBtn) {
+    resetBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const code = document.getElementById("resetCode").value.trim();
+      const email = document.getElementById("resetCode").dataset.email || "";
+      const newPass = document.getElementById("resetNewPass").value;
+      const msg = document.getElementById("resetMsg");
+      msg.textContent = "";
+
+      if (code.length !== 6) { msg.textContent = "Enter the full 6-digit code."; return; }
+      if (newPass.length < 6) { msg.textContent = "Password must be at least 6 characters."; return; }
+ 
+      resetBtn.disabled = true;
+      resetBtn.textContent = "Resetting...";
+      try {
+        const res = await fetch(API_BASE + "/auth/reset-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, code, password: newPass })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.ok === false) throw new Error(data.error || "Reset failed");
+
+        hideAll();
+        document.getElementById("authLogin").style.display = "block";
+        document.getElementById("loginEmail").value = email;
+        document.getElementById("loginPass").value = "";
+        const loginMsg = document.getElementById("loginMsg");
+        loginMsg.style.color = "#8aff8a";
+        loginMsg.textContent = "Password reset — log in with your new password!";
+        document.getElementById("forgotLink").style.display = "none";
+        setTimeout(() => document.getElementById("loginPass").focus(), 50);
+      } catch (err) {
+        msg.textContent = err.message || "Reset failed";
+      } finally {
+        resetBtn.disabled = false;
+        resetBtn.textContent = "Reset Password";
+      }
     });
   }
 });
