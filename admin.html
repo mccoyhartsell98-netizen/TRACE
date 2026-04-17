@@ -9059,6 +9059,21 @@ function generateSummaryReport(){
   win.document.close();
 }
 
+// ── FORGOT PASSWORD MANUAL WIRE ──
+document.addEventListener("DOMContentLoaded", () => {
+  const showForgotBtn = document.getElementById("showForgotBtn");
+  if (showForgotBtn) {
+    showForgotBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      document.getElementById("authLogin").style.display = "none";
+      document.getElementById("authForgot").style.display = "block";
+      document.getElementById("forgotEmail").value = document.getElementById("loginEmail")?.value || "";
+      document.getElementById("forgotMsg").textContent = "";
+    });
+  }
+});
+
 </script>
 </body>
 </html>
