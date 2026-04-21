@@ -3297,8 +3297,8 @@ const API_BASE = "https://api.traceinventory.org";
 const MACHINES = ["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane"];
 
 // ====== MACHINE EXPIRY SYSTEM ======
-const MACHINE_EXPIRY_DAYS = 3;
-const MACHINE_WARN_DAYS = 2;
+const MACHINE_EXPIRY_DAYS = 30;
+const MACHINE_WARN_DAYS = 29;
 const EXPIRY_TS_KEY = "trace_machine_timestamps_v1";
 
 function getMachineTimestamps(){ try{ return JSON.parse(localStorage.getItem(EXPIRY_TS_KEY)||"{}"); }catch(e){ return {}; } }
