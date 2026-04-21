@@ -1030,6 +1030,109 @@ setInterval(checkConnection, 10000);
   const {token,user}=auth();
   if(token&&user) enterHub(user);
 })();
+
+// ══════════════════════════════════════════════════════════════════════════
+//   AUTO-LOGOUT — 90s inactivity, 5s warning countdown
+// ══════════════════════════════════════════════════════════════════════════
+(function () {
+  const IDLE_MS = 90 * 1000;   // 90 seconds total before logout
+  const WARN_MS = 5 * 1000;    // last 5 seconds show warning
+  let idleTimer = null;
+  let countdownInterval = null;
+
+  // Build warning overlay once
+  const warnOverlay = document.createElement("div");
+  warnOverlay.id = "autoLogoutOverlay";
+  warnOverlay.className = "overlay hide";
+  warnOverlay.innerHTML = `
+    <div class="obox" style="border-color:rgba(248,113,113,.4);text-align:center;">
+      <div class="otitle" style="color:#f87171;letter-spacing:.12em;text-transform:uppercase;">Session Timeout</div>
+      <div class="osub" style="margin-bottom:8px;">Logging out due to inactivity</div>
+      <div id="autoLogoutCount" style="font-family:monospace;font-size:56px;font-weight:900;color:#f87171;margin:8px 0 18px;">5</div>
+      <button class="btn" id="stayLoggedInBtn" style="background:rgba(42,127,255,.18);border-color:rgba(42,127,255,.4);">
+        TAP TO STAY LOGGED IN
+      </button>
+    </div>
+  `;
+  document.body.appendChild(warnOverlay);
+
+  const countEl = document.getElementById("autoLogoutCount");
+  const stayBtn = document.getElementById("stayLoggedInBtn");
+
+  // Only run auto-logout when the hub view is visible (i.e., logged in)
+  function isHubActive() {
+    const hub = document.getElementById("viewHub");
+    return hub && !hub.classList.contains("hide");
+  }
+
+  function clearAll() {
+    clearTimeout(idleTimer);
+    clearInterval(countdownInterval);
+    idleTimer = null;
+    countdownInterval = null;
+  }
+
+  function hideWarning() {
+    warnOverlay.classList.add("hide");
+  }
+
+  function triggerLogout() {
+    clearAll();
+    hideWarning();
+    // Use the existing logout button — keeps behavior consistent
+    const btn = document.getElementById("hubLogout");
+    if (btn) btn.click();
+  }
+
+  function showWarning() {
+    if (!isHubActive()) return;
+    let remaining = 5;
+    countEl.textContent = remaining;
+    warnOverlay.classList.remove("hide");
+    countdownInterval = setInterval(() => {
+      remaining--;
+      countEl.textContent = remaining;
+      if (remaining <= 0) triggerLogout();
+    }, 1000);
+  }
+
+  function resetIdle() {
+    // If hub isn't showing, don't track — user is on PIN screen
+    if (!isHubActive()) {
+      clearAll();
+      hideWarning();
+      return;
+    }
+    // During the warning countdown, generic activity should NOT cancel logout.
+    // User must deliberately tap the "TAP TO STAY LOGGED IN" button.
+    if (!warnOverlay.classList.contains("hide")) return;
+    clearAll();
+    idleTimer = setTimeout(showWarning, IDLE_MS - WARN_MS);
+  }
+
+  // "Stay logged in" button — deliberate action to cancel logout
+  stayBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    clearAll();
+    hideWarning();
+    resetIdle();
+  });
+
+  // Activity events that reset the timer
+  ["touchstart", "click", "keydown", "scroll"].forEach(evt => {
+    document.addEventListener(evt, resetIdle, { passive: true, capture: true });
+  });
+
+  // Poll every 2 sec to detect login/logout state changes and start/stop timer
+  setInterval(() => {
+    if (isHubActive() && !idleTimer && warnOverlay.classList.contains("hide")) {
+      resetIdle();
+    } else if (!isHubActive()) {
+      clearAll();
+      hideWarning();
+    }
+  }, 2000);
+})();
 </script>
 </body>
 </html>
