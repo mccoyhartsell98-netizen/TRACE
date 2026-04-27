@@ -120,10 +120,9 @@
             <button class="btn" data-d="0">0</button>
             <button class="btn sec" id="pinClear">C</button>
           </div>
-          <div class="g2">
-            <button class="btn" id="pinSubmit">UNLOCK</button>
-            <button class="btn sec" id="pinAdmin">Admin Login</button>
-          </div>
+          <div>
+  <button class="btn" id="pinSubmit" style="margin-top:10px">UNLOCK</button>
+</div>
           <div id="pinMsg" style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0;min-height:20px;"></div>
         </div>
 
@@ -297,7 +296,6 @@ $("pinPad").addEventListener("click",e=>{
 });
 $("pinBack").onclick  =()=>{ pinBuf=pinBuf.slice(0,-1); renderPin(); };
 $("pinClear").onclick =()=>{ pinBuf=""; renderPin(); };
-$("pinAdmin").onclick =()=>location.href=ADMIN;
 
 $("pinSubmit").onclick=async()=>{
   if(pinAttempts >= PIN_MAX_ATTEMPTS){
