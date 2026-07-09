@@ -276,6 +276,9 @@ const PIN_MAX_ATTEMPTS = 5;
 
 const scannedJob = (new URLSearchParams(location.search).get("job") || "").trim().toUpperCase();
 const scannedLane = (new URLSearchParams(location.search).get("lane") || "").trim();
+if (scannedJob || scannedLane) {
+  history.replaceState(null, "", location.pathname);
+}
 
 // ── toast ──────────────────────────────────────────────────────────────────
 function toast(msg, err=false) {
