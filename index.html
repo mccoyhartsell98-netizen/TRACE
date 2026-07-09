@@ -455,10 +455,17 @@ async function enterHub(user){
     showLaneView(scannedLane);
   }
   if(scannedJob){
-    const m=findJob(scannedJob);
-    if(!m.length){$("jobLine").textContent=`Job #${scannedJob} not found`;$("jobStatus").textContent="NOT FOUND";}
-    else if(m.length===1) setActive(m[0]);
-    else showWhich(m,picked=>setActive(picked));
+    const all=findJob(scannedJob);
+    const lanesOnly=all.filter(x=>!x.machine);
+    if(!all.length){
+      $("jobLine").textContent=`Job #${scannedJob} not found`;
+      $("jobStatus").textContent="NOT FOUND";
+    } else if(!lanesOnly.length){
+      $("jobLine").innerHTML=`<span style="color:#ffd166;font-weight:700;">Job ${scannedJob} is on ${all.map(x=>"Machine "+x.machine).join(", ")}</span>`;
+      $("jobStatus").textContent="ON MACHINE";
+    } else {
+      showWhich(lanesOnly, picked=>setActive(picked));
+    }
   } else {
     $("jobLine").textContent="No job loaded";
   }
@@ -733,26 +740,20 @@ $("btnSearchCancel").onclick=()=>$("ovSearch").classList.add("hide");
 $("btnDoSearch").onclick=()=>{
   const q=$("searchInput").value.trim();
   if(!q){$("searchMsg").textContent="Enter a job number or MO.";return;}
-  const m=findJob(q);
-if(!m.length){$("searchMsg").textContent="Not found in TRACE.";$("searchResult").classList.add("hide");return;}
-
-// Multiple matches — show the which-pallet picker then load result
-if(m.length>1){
+  const all=findJob(q);
+  const lanesOnly=all.filter(x=>!x.machine);
+  if(!all.length){$("searchMsg").textContent="Not found in TRACE.";$("searchResult").classList.add("hide");return;}
+  if(!lanesOnly.length){
+    $("searchMsg").textContent=`Job is on ${all.map(x=>"Machine "+x.machine).join(", ")}`;
+    $("searchResult").classList.add("hide");
+    return;
+  }
   $("ovSearch").classList.add("hide");
-  showWhich(m, picked=>{
+  showWhich(lanesOnly, picked=>{
     setActive(picked);
     toast("Job loaded");
   });
-  return;
-}
-
-pendingSearch=m[0];
-$("searchMsg").textContent="";
-const loc=m[0].machine?`Machine ${m[0].machine}`:(m[0].lane||"No location");
-$("srTitle").textContent=`Job ${m[0].job} \u2022 MO ${m[0].mo||"-"} \u2022 QTY ${m[0].qty}`;
-$("srSub").innerHTML=`<span style="color:#6dbf8a;font-size:13px;">Location: ${loc}</span>`;
-$("searchResult").classList.remove("hide");
-};  // ← closes btnDoSearch.onclick
+};
 
 $("btnLoadSearchJob").onclick=()=>{
   if(!pendingSearch) return;
