@@ -461,15 +461,13 @@ async function enterHub(user){
   }
   if(scannedJob){
     const all=findJob(scannedJob);
-    const lanesOnly=all.filter(x=>!x.machine);
     if(!all.length){
       $("jobLine").textContent=`Job #${scannedJob} not found`;
       $("jobStatus").textContent="NOT FOUND";
-    } else if(!lanesOnly.length){
-      $("jobLine").innerHTML=`<span style="color:#ffd166;font-weight:700;">Job ${scannedJob} is on ${all.map(x=>"Machine "+x.machine).join(", ")}</span>`;
-      $("jobStatus").textContent="ON MACHINE";
+    } else if(all.length===1){
+      setActive(all[0]);
     } else {
-      showWhich(lanesOnly, picked=>setActive(picked));
+      showWhich(all, picked=>setActive(picked));
     }
   } else {
     $("jobLine").textContent="No job loaded";
