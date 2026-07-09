@@ -407,7 +407,9 @@ async function loadInventory(){
         lane: loc?.laneNum ? `Lane ${loc.laneNum}` : "",
         machine: loc?.machName || "",
         location_id: lid,
-        notes: it.notes || ""
+        notes: it.notes || "",
+        updated_by: it.updated_by || "",
+        updated_at: it.updated_at || ""
       };
     }).filter(x => x.job && x.status.toLowerCase() !== "deleted");
   } catch(e) {
@@ -478,7 +480,14 @@ function setActive(item){
   activeItem=item;
   const loc=item.machine?`Machine ${item.machine}`:(item.lane||"No location");
   const moStr = item.mo ? `MO ${item.mo} &bull; ` : `<span style="color:#ff7f7f;font-size:12px;">MO missing</span><span style="color:#eaf2ff;"> &bull; </span>`;
-  $("jobLine").innerHTML=`<span style="color:#eaf2ff;font-weight:700;">Job ${item.job} &bull; </span>${moStr}<span style="color:#eaf2ff;font-weight:700;">QTY ${item.qty}</span><br><span style="color:#6dbf8a;font-size:15px;">Location: ${loc}</span>`;
+  let movedLine = "";
+  if(item.updated_at){
+    const d = new Date(item.updated_at);
+    const timeStr = d.toLocaleString([], {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"});
+    const who = item.updated_by ? ` by ${item.updated_by}` : "";
+    movedLine = `<br><span style="color:rgba(234,242,255,.55);font-size:12px;">Last moved${who} • ${timeStr}</span>`;
+  }
+  $("jobLine").innerHTML=`<span style="color:#eaf2ff;font-weight:700;">Job ${item.job} &bull; </span>${moStr}<span style="color:#eaf2ff;font-weight:700;">QTY ${item.qty}</span><br><span style="color:#6dbf8a;font-size:15px;">Location: ${loc}</span>${movedLine}`;
   $("jobStatus").textContent=item.status||"active";
   const statusColors={
     "Printed":"#1a3a1a;color:#7fff7f",
@@ -663,8 +672,10 @@ async function doMove(label, destId){
     await loadLocations();
     await loadInventory();
     buildKioskLaneButtons();
-    const fresh=findJob(item.job);
-    if(fresh.length) setActive(fresh[0]);
+    activeItem=null;
+    $("jobLine").textContent="No job loaded";
+    $("jobStatus").textContent="—";
+    $("jobStatus").style.cssText="";
 
   }catch(e){
     if (e.message === "Failed to fetch" || e.message.includes("NetworkError")) {
@@ -927,10 +938,11 @@ async function syncOfflineQueue() {
         body: JSON.stringify(body)
       });
 
-      if (r.ok) {
+      const d = await r.json().catch(()=>({}));
+
+      if (r.ok && d.ok !== false) {
         synced++;
       } else if (r.status === 401) {
-        // Token expired — stop syncing, need re-auth
         failed.push(move);
         break;
       } else {
