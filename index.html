@@ -659,7 +659,7 @@ async function doMove(label, destId){
       const remaining=item.qty-takingQty;
       toast(`${takingQty} of ${item.job} → ${label} • ${remaining} remaining`);
       fetch(`${API}/notify/partial-pick`,{
-        method:"POST",headers:{"Content-Type":"application/json"},
+        method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
         body:JSON.stringify({job:item.job,mo:item.mo,taken:takingQty,remaining,destination:label,driver:by})
       }).catch(()=>{});
     } else {
