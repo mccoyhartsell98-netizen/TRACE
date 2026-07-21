@@ -3067,6 +3067,7 @@ body.viewer-mode button:not(#logoutBtn):not(.tabBtn):not(.laneBtn) {
     <div class="card" style="margin-bottom:14px;">
       <div style="display:flex;gap:10px;">
         <input id="newStatusInput" type="text" placeholder="New status (e.g. On Press)">
+        <select id="newStatusMeaning" style="padding:14px;font-size:14px;border-radius:10px;border:1px solid var(--stroke);background:var(--panel2);color:var(--text);outline:none;width:auto;"><option value="extra">Extra</option><option value="queued">Queued</option><option value="in_progress">In Progress</option><option value="done">Done</option></select>
         <button class="primary" id="addStatusBtn" style="width:auto;white-space:nowrap;">Add</button>
       </div>
       <div id="statusMsg" style="margin-top:8px;font-size:13px;color:var(--muted);min-height:18px;"></div>
@@ -7476,7 +7477,7 @@ let _statusOptionsCache = [];
 async function loadStatusesFromApi(){
   try {
     const data = await apiGet("/status-options");
-    _statusOptionsCache = (data.statuses || []).map(s => ({ id: s.status_id, label: s.label }));
+    _statusOptionsCache = (data.statuses || []).map(s => ({ id: s.status_id, label: s.label, meaning: s.meaning || "extra" }));
   } catch(e) {
     console.warn("Failed to load status options from API:", e.message);
   }
@@ -7505,7 +7506,7 @@ function renderStatusesPage(){
     div.style.alignItems = "center";
     div.style.justifyContent = "space-between";
     div.innerHTML = `
-      <div style="font-weight:900;font-size:15px;">${escapeHtml(s.label)}</div>
+      <div style="font-weight:900;font-size:15px;">${escapeHtml(s.label)} <span style="margin-left:8px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:800;background:rgba(58,122,254,.14);border:1px solid rgba(58,122,254,.3);color:rgba(180,205,255,.9);">${escapeHtml(s.meaning || "extra")}</span></div>
       <button class="danger" style="width:auto;padding:6px 12px;font-size:12px;" data-id="${s.id}">Remove</button>
     `;
     div.querySelector("[data-id]").addEventListener("click", async () => {
@@ -7595,7 +7596,7 @@ document.getElementById("addStatusBtn").addEventListener("click", async () => {
     msg.textContent = `"${val}" already exists.`; return;
   }
   try {
-    await apiPost("/status-options", { label: val });
+    await apiPost("/status-options", { label: val, meaning: document.getElementById("newStatusMeaning")?.value || "extra" });
     await loadStatusesFromApi();
     input.value = "";
     msg.textContent = "";
