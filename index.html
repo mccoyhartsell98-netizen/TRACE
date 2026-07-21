@@ -238,11 +238,6 @@
       <button class="btn sec" id="btnSearchCancel">Cancel</button>
     </div>
     <div id="searchMsg" style="font-size:12px;color:var(--muted);padding:8px 0;min-height:20px;"></div>
-    <div id="searchResult" class="hide" style="border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:4px">
-      <div style="font-weight:900" id="srTitle">—</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:4px" id="srSub">—</div>
-      <button class="btn" id="btnLoadSearchJob" style="margin-top:12px">LOAD THIS JOB</button>
-    </div>
   </div>
 </div>
 
@@ -270,7 +265,6 @@ let inventory  = [];
 let locByLane  = new Map();  // "Lane 5" → id
 let locByMach  = new Map();  // "S8"     → id
 let pinBuf     = "";
-let pendingSearch = null;
 let pinAttempts = 0;
 const PIN_MAX_ATTEMPTS = 5;
 
@@ -418,6 +412,18 @@ async function loadInventory(){
   }
 }
 
+// Pull status options from the DB so kiosk matches admin (cached in localStorage for offline)
+async function loadStatusesFromApi(){
+  try{
+    const r = await fetch(`${API}/status-options`, {cache:"no-store", headers:{"Authorization":"Bearer "+localStorage.getItem("tt")}});
+    if(!r.ok) return;
+    const d = await r.json();
+    if(d.ok && Array.isArray(d.statuses) && d.statuses.length){
+      localStorage.setItem(STATUSES_KEY, JSON.stringify(d.statuses.map(s => s.label)));
+    }
+  }catch(e){ /* offline — getStatuses() falls back to last cached list */ }
+}
+
 function findJob(q){
   const s=String(q).trim().toUpperCase();
   return inventory.filter(x=>x.job===s||x.mo===s);
@@ -434,7 +440,9 @@ async function enterHub(user){
   $("jobLine").textContent="Loading…";
   await loadLocations();
   await loadInventory();
+  await loadStatusesFromApi();
   buildKioskLaneButtons();
+  buildKioskMachineButtons();
 
  // Sync any offline moves
   await syncOfflineQueue();
@@ -445,6 +453,7 @@ async function enterHub(user){
     await loadLocations();
     await loadInventory();
     buildKioskLaneButtons();
+    buildKioskMachineButtons();
     if(activeItem){
       const fresh = findJob(activeItem.job);
       if(fresh.length === 1) setActive(fresh[0]);
@@ -498,8 +507,20 @@ function setActive(item){
   $("jobStatus").style.cssText=`background:${sc.split(";")[0]};${sc.split(";")[1]};border-color:transparent;`;
 }
 
+// Close every overlay + clear the loaded job — used by logout (manual AND auto-logout)
+function closeAllOverlays(){
+  ["ovPartial","ovDest","ovWhich","ovSearch","ovStatus","laneView"].forEach(id=>{
+    const el=$(id); if(el) el.classList.add("hide");
+  });
+  const qa=$("qtyArea"); if(qa) qa.classList.add("hide");
+}
+
 $("hubLogout").onclick=()=>{
   clearAuth();activeItem=null;takingQty=null;
+  closeAllOverlays();
+  $("jobLine").textContent="No job loaded";
+  $("jobStatus").textContent="—";
+  $("jobStatus").style.cssText="";
   if(window._kioskPoll) clearInterval(window._kioskPoll);
   window._kioskPoll=null;
   $("viewHub").classList.add("hide");$("viewPin").classList.remove("hide");
@@ -567,7 +588,7 @@ $("backFromLanes").onclick   =()=>{$("destLanes").classList.add("hide");$("destT
 $("backFromMachines").onclick=()=>{$("destMachines").classList.add("hide");$("destType").classList.remove("hide");};
 $("btnCancelDest").onclick   =()=>{closeDest();takingQty=null;};
 
-// Build lane buttons 1-12
+// Build lane buttons — dynamic from DB
 function buildKioskLaneButtons(){
   const g=$("laneGrid");
   g.innerHTML="";
@@ -602,13 +623,24 @@ function buildKioskLaneButtons(){
   });
  }
 
-// Build machine buttons
-["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane"].forEach(m=>{
-  const b=document.createElement("button");
-  b.className="sbtn";b.textContent=m;
-  b.onclick=()=>doMove(m, locByMach.get(m));
-  $("machGrid").appendChild(b);
-});
+// Build machine buttons — dynamic from DB (mirrors lanes; new/renamed machines show automatically)
+function buildKioskMachineButtons(){
+  const g=$("machGrid");
+  g.innerHTML="";
+  const sorted = locations
+    .filter(l=>l.machName && l.machName.toUpperCase()!=="QUEUE")
+    .sort((a,b)=>a.machName.localeCompare(b.machName));
+  if(sorted.length===0){
+    g.innerHTML=`<div style="color:var(--muted);font-size:13px;grid-column:1/-1;">No machines found.</div>`;
+    return;
+  }
+  sorted.forEach(l=>{
+    const b=document.createElement("button");
+    b.className="sbtn";b.textContent=l.machName;
+    b.onclick=()=>doMove(l.machName, locByMach.get(l.machName));
+    g.appendChild(b);
+  });
+}
 
 // ── The actual API calls ────────────────────────────────────────────────────
 async function doMove(label, destId){
@@ -623,16 +655,13 @@ async function doMove(label, destId){
     if(takingQty!==null) body.qty=takingQty;
 
     if (!isOnline) {
-      // Queue for later
+      // Queue for later — clear the job so it can't be queued twice
       queueOfflineMove(item.id, destId, by, takingQty);
-      // Optimistically update local state
-      if(takingQty!==null){
-        const remaining=item.qty-takingQty;
-        toast(`${takingQty} of ${item.job} → ${label} (queued offline)`);
-      } else {
-        toast(`Job ${item.job} → ${label} (queued offline)`);
-      }
       takingQty=null;
+      activeItem=null;
+      $("jobLine").textContent="No job loaded";
+      $("jobStatus").textContent="—";
+      $("jobStatus").style.cssText="";
       return;
     }
 
@@ -646,6 +675,7 @@ async function doMove(label, destId){
       toast("Session expired — please log in again",true);
       setTimeout(()=>{
         activeItem=null;takingQty=null;
+        closeAllOverlays();
         $("viewHub").classList.add("hide");
         $("viewPin").classList.remove("hide");
         $("pillStatus").textContent="LOCKED";
@@ -670,6 +700,7 @@ async function doMove(label, destId){
     await loadLocations();
     await loadInventory();
     buildKioskLaneButtons();
+    buildKioskMachineButtons();
     activeItem=null;
     $("jobLine").textContent="No job loaded";
     $("jobStatus").textContent="—";
@@ -677,7 +708,7 @@ async function doMove(label, destId){
 
   }catch(e){
     if (e.message === "Failed to fetch" || e.message.includes("NetworkError")) {
-      // Connection lost mid-move — queue it
+      // Connection lost mid-move — queue it and clear the job (prevents double-queue)
       isOnline = false;
       $("pillStatus").textContent = "OFFLINE";
       $("pillStatus").style.background = "rgba(248,113,113,.15)";
@@ -685,6 +716,10 @@ async function doMove(label, destId){
       $("pillStatus").style.borderColor = "rgba(248,113,113,.3)";
       queueOfflineMove(item.id, destId, by, takingQty);
       takingQty=null;
+      activeItem=null;
+      $("jobLine").textContent="No job loaded";
+      $("jobStatus").textContent="—";
+      $("jobStatus").style.cssText="";
     } else {
       toast(e.message||"Move failed",true);
     }
@@ -697,6 +732,7 @@ async function put(id,body,token){
     toast("Session expired — please log in again",true);
     setTimeout(()=>{
       activeItem=null;takingQty=null;
+      closeAllOverlays();
       $("viewHub").classList.add("hide");
       $("viewPin").classList.remove("hide");
       $("pillStatus").textContent="LOCKED";
@@ -714,6 +750,7 @@ async function post(body,token){
     toast("Session expired — please log in again",true);
     setTimeout(()=>{
       activeItem=null;takingQty=null;
+      closeAllOverlays();
       $("viewHub").classList.add("hide");
       $("viewPin").classList.remove("hide");
       $("pillStatus").textContent="LOCKED";
@@ -743,7 +780,6 @@ function showWhich(matches, onPick){
 // ── Search ──────────────────────────────────────────────────────────────────
 function openSearch(){
   $("searchInput").value="";$("searchMsg").textContent="";
-  $("searchResult").classList.add("hide");pendingSearch=null;
   $("ovSearch").classList.remove("hide");
   setTimeout(()=>$("searchInput").focus(),50);
 }
@@ -754,10 +790,9 @@ $("btnDoSearch").onclick=()=>{
   if(!q){$("searchMsg").textContent="Enter a job number or MO.";return;}
   const all=findJob(q);
   const lanesOnly=all.filter(x=>!x.machine);
-  if(!all.length){$("searchMsg").textContent="Not found in TRACE.";$("searchResult").classList.add("hide");return;}
+  if(!all.length){$("searchMsg").textContent="Not found in TRACE.";return;}
   if(!lanesOnly.length){
     $("searchMsg").textContent=`Job is on ${all.map(x=>"Machine "+x.machine).join(", ")}`;
-    $("searchResult").classList.add("hide");
     return;
   }
   $("ovSearch").classList.add("hide");
@@ -765,13 +800,6 @@ $("btnDoSearch").onclick=()=>{
     setActive(picked);
     toast("Job loaded");
   });
-};
-
-$("btnLoadSearchJob").onclick=()=>{
-  if(!pendingSearch) return;
-  setActive(pendingSearch);
-  $("ovSearch").classList.add("hide");
-  toast("Job loaded");
 };
 
 
@@ -961,6 +989,7 @@ async function syncOfflineQueue() {
     await loadLocations();
     await loadInventory();
     buildKioskLaneButtons();
+    buildKioskMachineButtons();
     if (activeItem) {
       const fresh = findJob(activeItem.job);
       if (fresh.length === 1) setActive(fresh[0]);
@@ -999,6 +1028,7 @@ async function checkConnection() {
 
 // ── OFFLINE PIN CACHE ──
 const PIN_CACHE_KEY = "trace_pin_cache";
+const PIN_CACHE_MAX_AGE_MS = 12 * 3600000; // 12h — matches kiosk token lifetime
 
 function cachePinLogin(pin, user, token) {
   const cached = getPinCache();
@@ -1012,8 +1042,11 @@ function getPinCache() {
 }
 
 function offlinePinLogin(pin) {
-  const cached = getPinCache();
-  return cached[pin] || null;
+  const cached = getPinCache()[pin];
+  if (!cached) return null;
+  // Reject stale entries — a cached token older than 12h is expired and every queued move would 401
+  if (Date.now() - new Date(cached.cachedAt).getTime() > PIN_CACHE_MAX_AGE_MS) return null;
+  return cached;
 }
 
 // Check connection every 10 seconds
@@ -1029,7 +1062,6 @@ setInterval(checkConnection, 10000);
     $("pillStatus").style.background="rgba(74,222,128,.12)";
     $("pillStatus").style.color="#4ade80";
     $("pillStatus").style.borderColor="rgba(74,222,128,.3)";
-    isOnline = true;
     isOnline = true;
   }catch(e){
     isOnline = false;
@@ -1091,7 +1123,7 @@ setInterval(checkConnection, 10000);
   function triggerLogout() {
     clearAll();
     hideWarning();
-    // Use the existing logout button — keeps behavior consistent
+    // Use the existing logout button — it closes all overlays and wipes the loaded job
     const btn = document.getElementById("hubLogout");
     if (btn) btn.click();
   }
