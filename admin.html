@@ -1595,7 +1595,7 @@ button:hover::before {
   inset:0;
   background:
     linear-gradient(rgba(15,17,21,0.55), rgba(15,17,21,0.55)),
-    url("759c4386-0d9e-4dd1-9589-07ef1c92643b.png");
+    url("assets/759c4386-0d9e-4dd1-9589-07ef1c92643b.png");
   background-size:cover;
   background-position:center;
   background-repeat:no-repeat;
@@ -3297,8 +3297,8 @@ const API_BASE = "https://api.traceinventory.org";
 const MACHINES = ["S8","S9","S61","S62","S63","500","Multi Fold","LCI","Six Lane"];
 
 // ====== MACHINE EXPIRY SYSTEM ======
-const MACHINE_EXPIRY_DAYS = 30;
-const MACHINE_WARN_DAYS = 29;
+const MACHINE_EXPIRY_DAYS = 3;
+const MACHINE_WARN_DAYS = 2;
 const EXPIRY_TS_KEY = "trace_machine_timestamps_v1";
 
 function getMachineTimestamps(){ try{ return JSON.parse(localStorage.getItem(EXPIRY_TS_KEY)||"{}"); }catch(e){ return {}; } }
@@ -6209,7 +6209,7 @@ document.getElementById("downloadQrBtn").addEventListener("click", () => {
 
   const logo = new Image();
   logo.crossOrigin = "anonymous";
-  logo.src = "./Offcial-Trace-Logo.png";
+  logo.src = "./assets/Offcial-Trace-Logo.png";
   logo.onload = () => {
     const tmp = document.createElement("canvas");
     tmp.width = logo.naturalWidth;
@@ -7430,7 +7430,7 @@ document.getElementById("downloadLaneQrBtn").addEventListener("click", () => {
 
   const logo = new Image();
   logo.crossOrigin = "anonymous";
-  logo.src = "./Offcial-Trace-Logo.png";
+  logo.src = "./assets/Offcial-Trace-Logo.png";
   logo.onload = () => {
     const tmp = document.createElement("canvas");
     tmp.width = logo.naturalWidth;
@@ -7691,7 +7691,7 @@ document.getElementById("generatePalletLabelsBtn").addEventListener("click", asy
   btn.textContent = "Generating...";
 
   try {
-    const logoB64 = await loadImageAsBase64("./Offcial-Trace-Logo.png");
+    const logoB64 = await loadImageAsBase64("./assets/Offcial-Trace-Logo.png");
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation:"portrait", unit:"pt", format:[612, 1008] });
@@ -7936,7 +7936,7 @@ function generateLaneReport(){
     minute: "2-digit"
   });
 
-  const TRACE_LOGO = "./Offcial-Trace-Logo.png";
+  const TRACE_LOGO = "./assets/Offcial-Trace-Logo.png";
 
   // Group items by lane
   const laneMap = new Map();
@@ -8512,7 +8512,7 @@ function generateSummaryReport(){
     weekday: "long", year: "numeric", month: "long", day: "numeric"
   });
   const timeStr = now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-  const TRACE_LOGO = "./Offcial-Trace-Logo.png";
+  const TRACE_LOGO = "./assets/Offcial-Trace-Logo.png";
 
   // Get ALL items (lanes + machines + queue)
   const allItems = inventory.filter(x => !x.machine).sort((a, b) => {
