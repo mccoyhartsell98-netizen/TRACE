@@ -3892,7 +3892,7 @@ function loadQueueOrder() {
 
 async function syncQueueOrderFromApi() {
   try {
-    const r = await fetch(API_BASE + "/queue-order", { cache: "no-store" });
+    const r = await fetch(API_BASE + "/queue-order", { cache: "no-store", headers: authHeaders() });
     const d = await r.json();
     if (d.ok && Array.isArray(d.order) && d.order.length) {
       localStorage.setItem(QUEUE_ORDER_KEY, JSON.stringify(d.order));
