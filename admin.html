@@ -2663,8 +2663,9 @@ body.viewer-mode button:not(#logoutBtn):not(.tabBtn):not(.laneBtn) {
           <h2>Trace Details</h2>
           <div class="scroll">
             <div class="formGrid">
-              <div class="full">
-                <input id="mo" type="text" placeholder="MO # (numbers / letters / hyphen allowed)">
+              <div class="full" style="position:relative;">
+                <input id="mo" type="text" placeholder="MO # (numbers / letters / hyphen allowed)" autocomplete="off">
+                <div id="moDropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:9999;background:rgba(22,26,34,.98);border:1px solid rgba(58,122,254,.35);border-radius:10px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.6);max-height:260px;overflow-y:auto;"></div>
               </div>
               <div class="full">
                 <input id="job" type="text" placeholder="Item # (numbers / letters / hyphen allowed)" required>
@@ -4085,6 +4086,81 @@ if(!qLocId){
   showMoveNotif(job, `✅ Successfully added to Queue`);
   toast(`✅ ${job} added to Queue`);
 }
+// ====== MO AUTOCOMPLETE (factory facade via /mo-lookup proxy) ======
+let _moDebounce = null;
+let _moAbort = null;
+
+function hideMoDropdown(){
+  const dd = document.getElementById("moDropdown");
+  if(dd) dd.style.display = "none";
+}
+
+async function fetchMoSuggestions(q){
+  if(_moAbort) _moAbort.abort();
+  _moAbort = new AbortController();
+  try{
+    const d = await apiFetch(`/mo-lookup?q=${encodeURIComponent(q)}`, { method:"GET", signal:_moAbort.signal });
+    return d.mos || [];
+  }catch(e){
+    if(e.name === "AbortError") return null;
+    return { error: e.message };
+  }
+}
+
+function renderMoDropdown(results){
+  const dd = document.getElementById("moDropdown");
+  if(!dd) return;
+  dd.innerHTML = "";
+  if(results && results.error){
+    dd.innerHTML = `<div style="padding:12px 14px;font-size:13px;color:rgba(255,209,102,.85);">${escapeHtml(results.error)}</div>`;
+    dd.style.display = "block";
+    return;
+  }
+  if(!results || results.length === 0){
+    dd.innerHTML = `<div style="padding:12px 14px;font-size:13px;color:rgba(255,255,255,.4);">No open MOs match</div>`;
+    dd.style.display = "block";
+    return;
+  }
+  results.slice(0, 12).forEach(m => {
+    const row = document.createElement("div");
+    row.style.cssText = "padding:12px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);";
+    row.innerHTML = `
+      <div style="font-weight:900;font-size:14px;color:#fff;">${escapeHtml(m.mo || "")} <span style="color:rgba(140,170,255,.8);font-weight:700;">&bull; ${escapeHtml(m.job || "")}</span></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:3px;">${escapeHtml(m.description || "")} ${m.planned_qty ? `&bull; Planned: ${escapeHtml(String(m.planned_qty))} ${escapeHtml(m.uom || "")}` : ""}</div>
+    `;
+    row.addEventListener("mouseenter", () => row.style.background = "rgba(58,122,254,.18)");
+    row.addEventListener("mouseleave", () => row.style.background = "transparent");
+    row.addEventListener("click", () => {
+      els.mo.value = cleanJob(m.mo || "");
+      if(m.job) els.job.value = cleanJob(m.job);
+      if(m.planned_qty) els.qty.value = String(m.planned_qty);
+      if(m.description && els.notes && !els.notes.value) els.notes.value = String(m.description).slice(0, 120);
+      hideMoDropdown();
+      els.qty?.focus();
+    });
+    dd.appendChild(row);
+  });
+  dd.style.display = "block";
+}
+
+(function wireMoAutocomplete(){
+  const moInput = document.getElementById("mo");
+  if(!moInput) return;
+  moInput.addEventListener("input", () => {
+    const q = moInput.value.trim();
+    clearTimeout(_moDebounce);
+    if(q.length < 2){ hideMoDropdown(); return; }
+    _moDebounce = setTimeout(async () => {
+      const results = await fetchMoSuggestions(q);
+      if(results !== null) renderMoDropdown(results);
+    }, 300);
+  });
+  moInput.addEventListener("keydown", (e) => { if(e.key === "Escape") hideMoDropdown(); });
+  document.addEventListener("click", (e) => {
+    if(!e.target.closest("#mo") && !e.target.closest("#moDropdown")) hideMoDropdown();
+  });
+})();
+
 // ====== SCAN POPUP ======
 let scannedItemId = null;
 
