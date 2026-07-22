@@ -356,10 +356,31 @@ $("pinSubmit").onclick=async()=>{
 function auth(){return{token:localStorage.getItem("tt"),user:JSON.parse(localStorage.getItem("tu")||"null")};}
 function clearAuth(){localStorage.removeItem("tt");localStorage.removeItem("tu");}
 
+function handleExpiredSession(){
+  if(window._sessionExpiredHandled) return;
+  window._sessionExpiredHandled = true;
+  clearAuth();
+  toast("Session expired — please log in again", true);
+  setTimeout(()=>{
+    window._sessionExpiredHandled = false;
+    activeItem=null;takingQty=null;
+    closeAllOverlays();
+    if(window._kioskPoll) clearInterval(window._kioskPoll);
+    window._kioskPoll=null;
+    $("viewHub").classList.add("hide");
+    $("viewPin").classList.remove("hide");
+    $("pillStatus").textContent="LOCKED";
+    $("jobLine").textContent="No job loaded";
+    $("jobStatus").textContent="—";
+    $("jobStatus").style.cssText="";
+  },1200);
+}
+
 // ── data ───────────────────────────────────────────────────────────────────
 async function loadLocations(){
   try{
     const r = await fetch(`${API}/locations`, {cache:"no-store", headers:{"Authorization":"Bearer "+localStorage.getItem("tt")}});
+    if(r.status===401){ handleExpiredSession(); return; }
     if(!r.ok) throw new Error(`HTTP ${r.status}`);
     const d = await r.json();
     const raw = Array.isArray(d) ? d : (d.locations || d.rows || []);
@@ -382,6 +403,7 @@ async function loadLocations(){
 async function loadInventory(){
   try{
     const r = await fetch(`${API}/items`, {cache:"no-store", headers:{"Authorization":"Bearer "+localStorage.getItem("tt")}});
+    if(r.status===401){ handleExpiredSession(); return; }
     if(!r.ok) throw new Error(`HTTP ${r.status}`);
     const d = await r.json();
     const raw = Array.isArray(d) ? d : (d.items || d.rows || []);
