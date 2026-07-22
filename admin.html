@@ -4074,7 +4074,8 @@ if(!qLocId){
     updated_by: (els.updatedBy?.value || "").trim().slice(0, 10),
   };
   try{
-    await apiPost(`/items`, newPayload);
+    const created = await apiPost(`/items`, newPayload);
+    if(created?.warning) showMoveNotif(newPayload.job_number || "", `⚠️ ${created.warning}`);
   }catch(e){
     await uiAlert("Queue Failed", e.message || "Could not add job to queue.");
     return;
@@ -4756,8 +4757,9 @@ async function upsertItem(){
 
 
   try{
-    if(selectedId) await apiPut(`/items/${selectedId}`, payload);
-    else await apiPost(`/items`, payload);
+    let saveResp = null;
+    if(selectedId) saveResp = await apiPut(`/items/${selectedId}`, payload);
+    else saveResp = await apiPost(`/items`, payload);
     await loadLocations();
     await loadInventory();
     renderLaneList();
@@ -4765,12 +4767,13 @@ async function upsertItem(){
     renderGlobalSearch();
     clearForm();
     const dest = selectedLocation.type === "lane" ? selectedLocation.value : `Machine: ${selectedLocation.value}`;
-    showMoveNotif(jobRaw, `✅ Successfully added to ${dest}`);
+    showMoveNotif(jobRaw, saveResp?.warning ? `⚠️ ${saveResp.warning}` : `✅ Successfully added to ${dest}`);
   }catch(err){
     console.error("SAVE FAILED", err);
     let msg = "Save failed. ";
     if (err.message.includes("Failed to fetch")) msg += "Network connection lost.";
     else if (err.message.includes("401")) msg += "Session expired. Please log in again.";
+    else if (err.message.includes("MO is required")) msg = err.message;
     else if (err.message.includes("400")) msg += "Invalid data. Check required fields.";
     else if (err.message.includes("500")) msg += "Server error. Try again in a moment.";
     else msg += err.message || "Unknown error.";
