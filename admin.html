@@ -4118,10 +4118,14 @@ function renderMoDropdown(results){
     return;
   }
   if(!results || results.length === 0){
-    dd.innerHTML = `<div style="padding:12px 14px;font-size:13px;color:rgba(255,255,255,.4);">No open MOs match</div>`;
+    dd.innerHTML = `<div style="padding:12px 14px;font-size:13px;color:rgba(255,255,255,.4);">No match in factory (test data) — type the MO and job manually</div>`;
     dd.style.display = "block";
     return;
   }
+  const banner = document.createElement("div");
+  banner.style.cssText = "padding:8px 14px;font-size:11px;font-weight:800;color:rgba(255,209,102,.9);background:rgba(255,209,102,.08);border-bottom:1px solid rgba(255,209,102,.25);";
+  banner.textContent = "⚠️ Factory test data — typing MO/job manually is fine";
+  dd.appendChild(banner);
   results.slice(0, 12).forEach(m => {
     const row = document.createElement("div");
     row.style.cssText = "padding:12px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);";
