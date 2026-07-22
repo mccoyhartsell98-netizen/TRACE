@@ -4132,7 +4132,7 @@ function renderMoDropdown(results){
     row.addEventListener("mouseenter", () => row.style.background = "rgba(58,122,254,.18)");
     row.addEventListener("mouseleave", () => row.style.background = "transparent");
     row.addEventListener("click", () => {
-      els.mo.value = cleanJob(m.mo || "");
+      els.mo.value = cleanJob(String(m.mo || "").replace(/^MO-?/i, ""));
       if(m.job) els.job.value = cleanJob(m.job);
       if(m.planned_qty) els.qty.value = String(m.planned_qty);
       if(m.description && els.notes && !els.notes.value) els.notes.value = String(m.description).slice(0, 120);
