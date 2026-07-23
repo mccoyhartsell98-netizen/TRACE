@@ -4137,7 +4137,7 @@ function renderMoDropdown(results){
     row.addEventListener("mouseleave", () => row.style.background = "transparent");
     row.addEventListener("click", () => {
       els.mo.value = cleanJob(String(m.mo || "").replace(/^MO-?/i, ""));
-      if(m.job) els.job.value = cleanJob(m.job);
+      if(m.job) els.job.value = cleanJob(String(m.job).replace(/^PPB-?/i, ""));
       if(m.planned_qty) els.qty.value = String(m.planned_qty);
       if(m.description && els.notes && !els.notes.value) els.notes.value = String(m.description).slice(0, 120);
       hideMoDropdown();
