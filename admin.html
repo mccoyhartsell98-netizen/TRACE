@@ -7749,6 +7749,17 @@ function updatePalletBreakdown(){
   }
 }
 
+// Shrink font size until text fits maxWidth (keeps labels on the page)
+function fitFontSize(doc, text, maxWidth, startSize, minSize){
+  let size = startSize;
+  doc.setFontSize(size);
+  while (doc.getTextWidth(text) > maxWidth && size > minSize){
+    size -= 2;
+    doc.setFontSize(size);
+  }
+  return size;
+}
+
 // Generate PDF
 document.getElementById("generatePalletLabelsBtn").addEventListener("click", async () => {
   const jobNum    = cleanJob(document.getElementById("plJob").value);
@@ -7843,10 +7854,10 @@ document.getElementById("generatePalletLabelsBtn").addEventListener("click", asy
       }
       y += boxLineH + 48;
 
-      // Job Number
+      // Job Number — auto-shrinks so long jobs never run off the page
       doc.setFont("helvetica","bold");
-      doc.setFontSize(130);
       doc.setTextColor(0);
+      fitFontSize(doc, jobNum, W - innerMargin * 2, 130, 72);
       doc.text(jobNum, innerMargin, y + 88);
       y += 155;
 
