@@ -448,7 +448,14 @@ async function loadStatusesFromApi(){
 
 function findJob(q){
   const s=String(q).trim().toUpperCase();
-  return inventory.filter(x=>x.job===s||x.mo===s);
+  if(!s) return [];
+  // Exact matches first
+  const exact = inventory.filter(x=>x.job===s||x.mo===s);
+  if(exact.length) return exact;
+  // Fall back to partial (starts-with preferred, then contains)
+  const starts = inventory.filter(x=>x.job.startsWith(s)||x.mo.startsWith(s));
+  if(starts.length) return starts;
+  return inventory.filter(x=>x.job.includes(s)||x.mo.includes(s));
 }
 
 // ── hub ────────────────────────────────────────────────────────────────────
