@@ -134,6 +134,11 @@
     padding:18px 0; border:1px solid var(--line); background:var(--panel); color:var(--text); outline:none;
     font-family:ui-monospace,Menlo,Consolas,monospace; font-variant-numeric:tabular-nums;}
   .pin-input:focus{border-color:var(--green-line); outline:none;}
+  .pin-go{display:block; width:100%; margin-top:12px; font-size:16px; font-weight:800;
+    letter-spacing:.1em; text-transform:uppercase; min-height:56px; padding:14px; border:none;
+    background:var(--green); color:#06280e; cursor:pointer;}
+  .pin-go:hover{background:#9dff9d;}
+  .pin-go:active{background:#74e874;}
   .pin-error{color:var(--red); font-size:14px; min-height:20px; margin-top:16px; font-weight:600;}
 
   /* ===== issue overlay ===== */
@@ -208,7 +213,8 @@
   <img src="assets/trace-logo.png" alt="TRACE" class="pin-logo">
   <h1 id="pinMachine">Operator</h1>
   <div class="sub">Enter the floor PIN</div>
-  <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" class="pin-input" id="pinInput" placeholder="Enter code">
+  <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" class="pin-input" id="pinInput" placeholder="Enter code">
+  <button class="pin-go" id="pinGo" onclick="goPin()">Enter</button>
   <div class="pin-error" id="pinError"></div>
   <div class="pin-foot">TRACE · Production Floor Tracking</div>
 </div>
@@ -338,13 +344,18 @@ async function api(path, opts = {}){
 
 /* ---------- PIN ---------- */
 $("pinInput").addEventListener("input", function(){
-  this.value = this.value.replace(/\D/g, "").slice(0, 6);
+  this.value = this.value.replace(/\D/g, "").slice(0, 4);
   $("pinError").textContent = "";
-  if (this.value.length === 6) { pin = this.value; submitPin(); }
+  if (this.value.length === 4) { pin = this.value; submitPin(); }
 });
 $("pinInput").addEventListener("keydown", function(e){
-  if (e.key === "Enter" && this.value.length >= 4) { pin = this.value; submitPin(); }
+  if (e.key === "Enter" && this.value.length === 4) { pin = this.value; submitPin(); }
 });
+function goPin(){
+  const v = $("pinInput").value;
+  if (v.length === 4) { pin = v; submitPin(); }
+  else { $("pinError").textContent = "Code is 4 digits"; $("pinInput").focus(); }
+}
 
 async function submitPin(){
   try {
