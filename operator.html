@@ -17,6 +17,23 @@
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; border-radius:0;}
   html,body{margin:0; padding:0; background:var(--bg); color:var(--text);
     font-family:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; min-height:100vh;}
+  body{background:
+    radial-gradient(1000px 520px at 75% -12%, rgba(79,195,247,.07), transparent 62%),
+    radial-gradient(800px 460px at -8% 105%, rgba(138,255,138,.05), transparent 60%),
+    var(--bg);}
+  body::before{content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      linear-gradient(115deg, transparent 30%, rgba(79,195,247,.055) 30%, rgba(79,195,247,.055) 44%, transparent 44%),
+      linear-gradient(115deg, transparent 48%, rgba(138,255,138,.04) 48%, rgba(138,255,138,.04) 55%, transparent 55%),
+      linear-gradient(115deg, transparent 58%, rgba(232,237,242,.025) 58%, rgba(232,237,242,.025) 60%, transparent 60%),
+      repeating-linear-gradient(115deg, rgba(35,42,52,.5) 0 1px, transparent 1px 14px);
+    -webkit-mask-image:radial-gradient(140% 110% at 85% 10%, #000 0%, transparent 75%);
+    mask-image:radial-gradient(140% 110% at 85% 10%, #000 0%, transparent 75%);}
+  body::after{content:""; position:fixed; z-index:0; pointer-events:none;
+    width:640px; height:640px; left:-260px; bottom:-220px;
+    border:1px solid rgba(138,255,138,.09); border-radius:50%;
+    box-shadow:0 0 0 70px rgba(138,255,138,.028), 0 0 0 170px rgba(79,195,247,.022), 0 0 0 300px rgba(232,237,242,.012);}
+  .pin-screen, .wrap, .overlay, .toast{position:relative; z-index:1;}
   .mono{font-family:ui-monospace,"Cascadia Mono","JetBrains Mono",Menlo,Consolas,monospace; font-variant-numeric:tabular-nums;}
   a{color:var(--blue);} a:hover{color:var(--text);}
   button{font-family:inherit;}
@@ -105,11 +122,14 @@
     text-transform:uppercase; color:var(--faint); flex-wrap:wrap; gap:8px;}
 
   /* ===== PIN screen ===== */
-  .pin-screen{max-width:360px; margin:10vh auto 0; padding:0 24px;}
-  .pin-logo{width:220px; max-width:80%; filter:brightness(1.55) saturate(1.1); margin-bottom:20px; display:block;}
+  .pin-screen{max-width:400px; margin:9vh auto 0; padding:36px 32px 28px; text-align:center;
+    background:rgba(18,22,28,.88); border:1px solid var(--line); border-top:2px solid var(--green-line);
+    backdrop-filter:blur(4px);}
+  .pin-logo{width:230px; max-width:82%; filter:brightness(1.55) saturate(1.1); margin:0 auto 22px; display:block;}
   .pin-screen h1{font-size:14px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; margin:0 0 4px; color:var(--text);}
   .pin-screen .sub{color:var(--faint); font-size:13px; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
     margin-bottom:24px; padding-bottom:16px; border-bottom:2px solid var(--line);}
+  .pin-foot{margin-top:20px; font-size:11px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--faint);}
   .pin-input{width:100%; font-size:28px; font-weight:700; text-align:center; letter-spacing:.18em; text-indent:.18em;
     padding:18px 0; border:1px solid var(--line); background:var(--panel); color:var(--text); outline:none;
     font-family:ui-monospace,Menlo,Consolas,monospace; font-variant-numeric:tabular-nums;}
@@ -133,6 +153,8 @@
     font-family:ui-monospace,Menlo,Consolas,monospace; font-variant-numeric:tabular-nums;}
   .qty-input:focus{border-color:var(--green-line); outline:none;}
   .modal.finish-modal .modal-actions{border-top-color:var(--green-line);}
+  .modal .handoff{flex:0 0 auto; background:rgba(79,195,247,.10); color:var(--blue); border-left:2px solid var(--green-line);}
+  .modal .handoff:hover{background:rgba(79,195,247,.18);}
   .modal.finish-modal .confirm{background:var(--green); color:#06280e; border-left-color:var(--green-line);}
   .modal.finish-modal .confirm:hover{background:#9dff9d;}
   .modal.finish-modal .confirm:active{background:#74e874;}
@@ -171,13 +193,14 @@
     .job-info .jr-title{font-size:16px;}
     button.start{flex:1 1 100%; justify-content:space-between; min-height:48px; padding:0 16px;}
     .job-row .start.locked{display:none;}
-    .pin-screen{margin-top:7vh;}
+    .pin-screen{margin:6vh 16px 0; padding:28px 20px 22px;}
     .pin-input{font-size:30px; padding:16px 0;}
     footer{font-size:11px;}
   }
 </style>
 </head>
 <body>
+
 
 
 <!-- ============ PIN LOGIN ============ -->
@@ -187,6 +210,7 @@
   <div class="sub">Enter the floor PIN</div>
   <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" class="pin-input" id="pinInput" placeholder="Enter code">
   <div class="pin-error" id="pinError"></div>
+  <div class="pin-foot">TRACE · Production Floor Tracking</div>
 </div>
 
 <!-- ============ MAIN ============ -->
@@ -258,11 +282,12 @@
   <div class="modal finish-modal">
     <div class="modal-head">
       <h2>✓ Finish job</h2>
-      <p id="finishMeta">How many did you run?</p>
+      <p id="finishMeta">How many did you run? Finish ends the job. Hand off keeps it in queue for the next shift.</p>
     </div>
     <input type="number" inputmode="numeric" min="0" class="qty-input" id="finishQty" placeholder="Qty ran">
     <div class="modal-actions">
       <button class="cancel" onclick="closeFinish()">Cancel</button>
+      <button class="handoff" onclick="submitHandoff()">Hand off shift</button>
       <button class="confirm" onclick="submitFinish()">Finish</button>
     </div>
   </div>
@@ -478,6 +503,25 @@ async function submitFinish(){
     closeFinish();
     const secs = data.run?.duration_seconds ?? 0;
     toast("✓ Finished " + qty.toLocaleString() + " in " + fmtDuration(secs));
+    await loadJobs();
+  } catch (e) {
+    closeFinish();
+    toast("⚠ " + e.message);
+    loadJobs();
+  }
+}
+
+async function submitHandoff(){
+  if (!state.running) { closeFinish(); return; }
+  const qty = parseInt($("finishQty").value, 10);
+  if (isNaN(qty) || qty < 0) { $("finishQty").focus(); return; }
+  try {
+    await api("/runs/handoff", {
+      method: "POST",
+      body: JSON.stringify({ run_id: state.running.run_id, actual_qty: qty })
+    });
+    closeFinish();
+    toast("⇄ Handed off · " + qty.toLocaleString() + " boxes credited to Shift " + (state.shift ?? ""));
     await loadJobs();
   } catch (e) {
     closeFinish();
