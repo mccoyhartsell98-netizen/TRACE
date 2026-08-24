@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>TRACE · Operator</title>
+<style>
+  :root{
+    --bg:#0b0e12; --panel:#12161c; --panel2:#171c24; --line:#232a34;
+    --text:#e8edf2; --dim:#8a94a3; --faint:#5a6472;
+    --green:#8aff8a; --green-dim:rgba(138,255,138,.12); --green-line:rgba(138,255,138,.35);
+    --amber:#ffd166; --amber-dim:rgba(255,209,102,.12); --amber-line:rgba(255,209,102,.35);
+    --blue:#4fc3f7; --red:#ff6b6b;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--text);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; min-height:100vh;}
+  .mono{font-family:ui-monospace,"Cascadia Mono","JetBrains Mono",Menlo,Consolas,monospace; font-variant-numeric:tabular-nums;}
+
+  .wrap{max-width:760px; margin:0 auto; padding:16px 16px 40px;}
+
+  /* ===== header ===== */
+  header{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0 18px;}
+  .machine-id{display:flex; align-items:baseline; gap:10px;}
+  .machine-id h1{margin:0; font-size:26px; font-weight:800; letter-spacing:.5px;}
+  .machine-id .sub{font-size:13px; color:var(--dim);}
+  .badges{display:flex; gap:8px; align-items:center;}
+  .badge{font-size:13px; font-weight:700; padding:6px 12px; border-radius:999px; white-space:nowrap;}
+  .badge.shift{background:rgba(79,195,247,.12); color:var(--blue); border:1px solid rgba(79,195,247,.35);}
+  .badge.op{background:var(--panel2); color:var(--dim); border:1px solid var(--line);}
+  .badge.op button{background:none; border:none; color:var(--faint); font-size:12px; margin-left:6px; cursor:pointer; padding:0;}
+
+  /* ===== running card ===== */
+  .section-label{font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); margin:18px 0 10px;}
+  .running-card{background:var(--panel); border:2px solid var(--green-line); border-radius:16px; padding:18px;}
+  .running-top{display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap;}
+  .running-job{font-size:20px; font-weight:800;}
+  .running-meta{font-size:14px; color:var(--dim); margin-top:6px; line-height:1.5;}
+  .timer{font-size:52px; font-weight:700; color:var(--green); line-height:1; text-align:right;}
+  .timer-sub{font-size:12px; color:var(--faint); text-align:right; margin-top:6px;}
+  .running-actions{display:flex; gap:10px; margin-top:18px;}
+  button.big{flex:1; font-size:18px; font-weight:800; padding:18px 16px; border-radius:14px; border:none; cursor:pointer;}
+  button.finish{background:var(--green); color:#06280e;}
+  button.finish:active{transform:scale(.98);}
+  button.issue{flex:0 0 auto; background:var(--amber-dim); color:var(--amber); border:1px solid var(--amber-line);}
+  button.issue:active{transform:scale(.98);}
+
+  /* ===== idle card ===== */
+  .idle-card{background:var(--panel); border:1px dashed var(--line); border-radius:16px; padding:22px; text-align:center; color:var(--dim); font-size:15px;}
+
+  /* ===== queue list ===== */
+  .job-row{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 16px;
+    display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px;}
+  .job-row.next{border-color:var(--green-line);}
+  .job-info .jr-title{font-size:16px; font-weight:800;}
+  .job-info .jr-title .mo{color:var(--blue); font-weight:700;}
+  .job-info .jr-meta{font-size:13px; color:var(--dim); margin-top:4px; line-height:1.45;}
+  .job-info .jr-notes{font-size:13px; color:var(--faint); margin-top:2px;}
+  .rank-chip{flex:0 0 auto; font-size:12px; font-weight:800; color:var(--faint); border:1px solid var(--line);
+    border-radius:8px; padding:4px 8px; margin-right:4px;}
+  button.start{flex:0 0 auto; font-size:16px; font-weight:800; padding:14px 22px; border-radius:12px;
+    border:1px solid var(--green-line); background:var(--green-dim); color:var(--green); cursor:pointer;}
+  button.start:active{transform:scale(.98);}
+  button.start.locked{opacity:.35; border-color:var(--line); background:var(--panel2); color:var(--dim); cursor:not-allowed;}
+
+  footer{margin-top:22px; padding-top:14px; border-top:1px solid var(--line); display:flex;
+    justify-content:space-between; font-size:13px; color:var(--faint); flex-wrap:wrap; gap:8px;}
+
+  /* ===== PIN screen ===== */
+  .pin-screen{max-width:340px; margin:8vh auto 0; text-align:center;}
+  .pin-screen h1{font-size:22px; font-weight:800; margin:0 0 4px;}
+  .pin-screen .sub{color:var(--dim); font-size:14px; margin-bottom:26px;}
+  .pin-dots{display:flex; justify-content:center; gap:14px; margin-bottom:26px;}
+  .dot{width:16px; height:16px; border-radius:50%; border:2px solid var(--line); background:transparent;}
+  .dot.filled{background:var(--green); border-color:var(--green);}
+  .pad{display:grid; grid-template-columns:repeat(3,1fr); gap:12px;}
+  .pad button{font-size:24px; font-weight:700; padding:20px 0; border-radius:14px; border:1px solid var(--line);
+    background:var(--panel); color:var(--text); cursor:pointer;}
+  .pad button:active{background:var(--panel2); transform:scale(.97);}
+  .pad button.util{font-size:15px; color:var(--dim);}
+  .pin-error{color:var(--red); font-size:14px; min-height:20px; margin-top:16px; font-weight:600;}
+
+  /* ===== issue overlay ===== */
+  .overlay{position:fixed; inset:0; background:rgba(0,0,0,.7); display:none; align-items:center; justify-content:center; padding:20px; z-index:50;}
+  .overlay.show{display:flex;}
+  .modal{background:var(--panel); border:1px solid var(--amber-line); border-radius:16px; padding:20px; max-width:420px; width:100%;}
+  .modal h2{margin:0 0 6px; font-size:18px; color:var(--amber);}
+  .modal p{margin:0 0 14px; font-size:14px; color:var(--dim);}
+  .modal textarea{width:100%; min-height:90px; background:var(--panel2); border:1px solid var(--line); border-radius:10px;
+    color:var(--text); font-size:15px; padding:12px; resize:vertical; font-family:inherit;}
+  .modal .modal-actions{display:flex; gap:10px; margin-top:14px;}
+  .modal button{flex:1; font-size:16px; font-weight:700; padding:14px; border-radius:12px; cursor:pointer; border:none;}
+  .modal .confirm{background:var(--amber); color:#3a2b00;}
+  .modal .cancel{background:var(--panel2); color:var(--dim); border:1px solid var(--line);}
+
+  .toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--panel2);
+    border:1px solid var(--green-line); color:var(--text); font-size:15px; font-weight:700; padding:12px 20px;
+    border-radius:12px; opacity:0; transition:opacity .25s; pointer-events:none; z-index:60; white-space:nowrap;}
+  .toast.show{opacity:1;}
+
+  .hidden{display:none !important;}
+  @media (max-width:520px){
+    .timer{font-size:40px;}
+    .machine-id h1{font-size:22px;}
+    header{flex-wrap:wrap;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ PIN LOGIN ============ -->
+<div id="pinScreen" class="pin-screen">
+  <h1 id="pinMachine">TRACE</h1>
+  <div class="sub">Enter your operator PIN</div>
+  <div class="pin-dots" id="pinDots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="pad">
+    <button onclick="pinPress('1')">1</button><button onclick="pinPress('2')">2</button><button onclick="pinPress('3')">3</button>
+    <button onclick="pinPress('4')">4</button><button onclick="pinPress('5')">5</button><button onclick="pinPress('6')">6</button>
+    <button onclick="pinPress('7')">7</button><button onclick="pinPress('8')">8</button><button onclick="pinPress('9')">9</button>
+    <button class="util" onclick="pinClear()">Clear</button><button onclick="pinPress('0')">0</button><button class="util" onclick="pinBackspace()">⌫</button>
+  </div>
+  <div class="pin-error" id="pinError"></div>
+</div>
+
+<!-- ============ MAIN ============ -->
+<div id="mainScreen" class="wrap hidden">
+  <header>
+    <div class="machine-id">
+      <h1 id="machineName">—</h1>
+      <span class="sub" id="jobCount"></span>
+    </div>
+    <div class="badges">
+      <span class="badge shift" id="shiftBadge">Shift —</span>
+      <span class="badge op" id="opBadge"></span>
+    </div>
+  </header>
+
+  <div id="runningSection" class="hidden">
+    <div class="section-label">Running now</div>
+    <div class="running-card">
+      <div class="running-top">
+        <div>
+          <div class="running-job" id="runJob">—</div>
+          <div class="running-meta" id="runMeta"></div>
+        </div>
+        <div>
+          <div class="timer mono" id="runTimer">0:00:00</div>
+          <div class="timer-sub" id="runStarted"></div>
+        </div>
+      </div>
+      <div class="running-actions">
+        <button class="big finish" onclick="finishRun()">✓ Finish</button>
+        <button class="big issue" onclick="openIssue()">⚠ Issue</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="idleSection" class="hidden">
+    <div class="section-label">Running now</div>
+    <div class="idle-card">Nothing running. Start the next job below.</div>
+  </div>
+
+  <div class="section-label">Up next</div>
+  <div id="jobList"></div>
+
+  <footer>
+    <span id="footStatus">—</span>
+    <span id="footUpdated"></span>
+  </footer>
+</div>
+
+<!-- ============ ISSUE MODAL ============ -->
+<div class="overlay" id="issueOverlay">
+  <div class="modal">
+    <h2>⚠ Report an issue</h2>
+    <p>The timer stops and the job goes back to the queue. What happened?</p>
+    <textarea id="issueNote" placeholder="Plate scratch, web break, wrong material..."></textarea>
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeIssue()">Cancel</button>
+      <button class="confirm" onclick="submitIssue()">Stop &amp; report</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_BASE = "https://api.traceinventory.org";
+const TOKEN_KEY = "trace_op_token";
+const NAME_KEY  = "trace_op_name";
+
+const MACHINE_LABELS = { "QUEUE": "Tauro" };
+
+const params  = new URLSearchParams(location.search);
+const MACHINE = (params.get("machine") || "QUEUE").trim();
+const MACHINE_LABEL = MACHINE_LABELS[MACHINE] || MACHINE;
+
+let pin = "";
+let state = { jobs: [], running: null, shift: null };
+let timerInterval = null;
+let pollInterval = null;
+
+/* ---------- helpers ---------- */
+function $(id){ return document.getElementById(id); }
+function token(){ return localStorage.getItem(TOKEN_KEY); }
+function opName(){ return localStorage.getItem(NAME_KEY) || "Operator"; }
+
+function toast(msg){
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(()=> t.classList.remove("show"), 2600);
+}
+
+async function api(path, opts = {}){
+  const headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
+  if (token()) headers["Authorization"] = "Bearer " + token();
+  const res = await fetch(API_BASE + path, Object.assign({}, opts, { headers }));
+  if (res.status === 401) { logout(); throw new Error("Session expired"); }
+  const data = await res.json().catch(()=> ({}));
+  if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+  return data;
+}
+
+/* ---------- PIN ---------- */
+function renderDots(){
+  const dots = $("pinDots").children;
+  for (let i = 0; i < 4; i++) dots[i].classList.toggle("filled", i < pin.length);
+}
+function pinPress(d){
+  if (pin.length >= 4) return;
+  pin += d;
+  renderDots();
+  $("pinError").textContent = "";
+  if (pin.length === 4) submitPin();
+}
+function pinClear(){ pin = ""; renderDots(); }
+function pinBackspace(){ pin = pin.slice(0, -1); renderDots(); }
+
+async function submitPin(){
+  try {
+    const res = await fetch(API_BASE + "/auth/pin-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || "Invalid PIN");
+    localStorage.setItem(TOKEN_KEY, data.token);
+    localStorage.setItem(NAME_KEY, data.user.name);
+    pin = ""; renderDots();
+    showMain();
+  } catch (e) {
+    pin = ""; renderDots();
+    $("pinError").textContent = e.message === "Failed to fetch" ? "No connection to TRACE" : e.message;
+  }
+}
+
+function logout(){
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(NAME_KEY);
+  clearInterval(pollInterval);
+  clearInterval(timerInterval);
+  $("mainScreen").classList.add("hidden");
+  $("pinScreen").classList.remove("hidden");
+}
+
+/* ---------- main ---------- */
+function showMain(){
+  $("pinScreen").classList.add("hidden");
+  $("mainScreen").classList.remove("hidden");
+  $("machineName").textContent = MACHINE_LABEL;
+  $("opBadge").innerHTML = escapeHtml(opName()) + ' <button onclick="logout()">sign out</button>';
+  loadJobs();
+  clearInterval(pollInterval);
+  pollInterval = setInterval(loadJobs, 20000);
+}
+
+async function loadJobs(){
+  try {
+    const data = await api("/operator/" + encodeURIComponent(MACHINE) + "/jobs");
+    state.jobs = data.jobs || [];
+    state.running = data.running || null;
+    state.shift = data.shift;
+    render();
+    $("footUpdated").textContent = "Updated " + new Date().toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+  } catch (e) {
+    if (e.message !== "Session expired") $("footStatus").textContent = "⚠ " + e.message;
+  }
+}
+
+function render(){
+  $("shiftBadge").textContent = "Shift " + (state.shift ?? "—");
+  const runningItem = state.running ? state.jobs.find(j => j.item_id === state.running.item_id) : null;
+
+  if (state.running) {
+    $("runningSection").classList.remove("hidden");
+    $("idleSection").classList.add("hidden");
+    const jobLabel = runningItem
+      ? "#" + runningItem.job_number + (runningItem.mo ? " · MO-" + runningItem.mo : "")
+      : "Run #" + state.running.run_id;
+    $("runJob").textContent = jobLabel;
+    $("runMeta").textContent = runningItem
+      ? "Qty " + (runningItem.qty ?? 0) + (runningItem.notes ? " · " + runningItem.notes : "")
+      : "";
+    $("runStarted").textContent = "started " + new Date(state.running.started_at).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})
+      + (state.running.operator ? " · " + state.running.operator : "");
+    startTimer(new Date(state.running.started_at));
+  } else {
+    $("runningSection").classList.add("hidden");
+    $("idleSection").classList.remove("hidden");
+    stopTimer();
+  }
+
+  const queued = state.jobs.filter(j => !state.running || j.item_id !== state.running.item_id);
+  $("jobCount").textContent = queued.length + " in queue";
+  $("footStatus").textContent = state.running ? "1 job in progress" : "No job running";
+
+  const list = $("jobList");
+  list.innerHTML = "";
+  if (queued.length === 0) {
+    list.innerHTML = '<div class="idle-card">Queue is empty.</div>';
+    return;
+  }
+  queued.forEach((job, idx) => {
+    const isNext = idx === 0;
+    const canStart = isNext && !state.running;
+    const row = document.createElement("div");
+    row.className = "job-row" + (isNext ? " next" : "");
+    row.innerHTML =
+      '<span class="rank-chip">' + (idx + 1) + '</span>' +
+      '<div class="job-info" style="flex:1;">' +
+        '<div class="jr-title">#' + escapeHtml(job.job_number) + (job.mo ? ' <span class="mo">MO-' + escapeHtml(job.mo) + '</span>' : '') + '</div>' +
+        '<div class="jr-meta">Qty ' + (job.qty ?? 0) + (job.status ? ' · ' + escapeHtml(job.status) : '') + '</div>' +
+        (job.notes ? '<div class="jr-notes">' + escapeHtml(job.notes) + '</div>' : '') +
+      '</div>' +
+      '<button class="start' + (canStart ? '' : ' locked') + '" data-id="' + job.item_id + '">▶ Start</button>';
+    const btn = row.querySelector("button.start");
+    if (canStart) btn.addEventListener("click", () => startRun(job));
+    else btn.title = state.running ? "Finish the running job first" : "Only the next job can start";
+    list.appendChild(row);
+  });
+}
+
+/* ---------- actions ---------- */
+async function startRun(job){
+  try {
+    const data = await api("/runs/start", {
+      method: "POST",
+      body: JSON.stringify({ item_id: job.item_id, operator: opName() })
+    });
+    toast("▶ Started #" + job.job_number);
+    await loadJobs();
+  } catch (e) {
+    toast("⚠ " + e.message);
+    loadJobs();
+  }
+}
+
+async function finishRun(){
+  if (!state.running) return;
+  try {
+    const data = await api("/runs/finish", {
+      method: "POST",
+      body: JSON.stringify({ run_id: state.running.run_id })
+    });
+    const secs = data.run?.duration_seconds ?? 0;
+    toast("✓ Finished in " + fmtDuration(secs));
+    await loadJobs();
+  } catch (e) {
+    toast("⚠ " + e.message);
+    loadJobs();
+  }
+}
+
+function openIssue(){ $("issueNote").value = ""; $("issueOverlay").classList.add("show"); }
+function closeIssue(){ $("issueOverlay").classList.remove("show"); }
+
+async function submitIssue(){
+  if (!state.running) { closeIssue(); return; }
+  const note = $("issueNote").value.trim();
+  try {
+    await api("/runs/issue", {
+      method: "POST",
+      body: JSON.stringify({ run_id: state.running.run_id, note })
+    });
+    closeIssue();
+    toast("⚠ Issue logged, job back in queue");
+    await loadJobs();
+  } catch (e) {
+    closeIssue();
+    toast("⚠ " + e.message);
+    loadJobs();
+  }
+}
+
+/* ---------- timer ---------- */
+function startTimer(startedAt){
+  stopTimer();
+  const tick = () => {
+    const secs = Math.max(0, Math.floor((Date.now() - startedAt.getTime()) / 1000));
+    $("runTimer").textContent = fmtDuration(secs);
+  };
+  tick();
+  timerInterval = setInterval(tick, 1000);
+}
+function stopTimer(){ clearInterval(timerInterval); timerInterval = null; }
+
+function fmtDuration(secs){
+  const h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60), s = secs % 60;
+  return h + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+}
+
+function escapeHtml(str){
+  return String(str ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+}
+
+/* ---------- boot ---------- */
+$("pinMachine").textContent = "TRACE · " + MACHINE_LABEL;
+if (token()) showMain();
+</script>
+</body>
+</html>
