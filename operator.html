@@ -67,18 +67,15 @@
     justify-content:space-between; font-size:13px; color:var(--faint); flex-wrap:wrap; gap:8px;}
 
   /* ===== PIN screen ===== */
-  .pin-screen{max-width:340px; margin:8vh auto 0; text-align:center;}
-  .pin-screen h1{font-size:22px; font-weight:800; margin:0 0 4px;}
-  .pin-screen .sub{color:var(--dim); font-size:14px; margin-bottom:26px;}
-  .pin-dots{display:flex; justify-content:center; gap:14px; margin-bottom:26px;}
-  .dot{width:16px; height:16px; border-radius:50%; border:2px solid var(--line); background:transparent;}
-  .dot.filled{background:var(--green); border-color:var(--green);}
-  .pad{display:grid; grid-template-columns:repeat(3,1fr); gap:12px;}
-  .pad button{font-size:24px; font-weight:700; padding:20px 0; border-radius:14px; border:1px solid var(--line);
-    background:var(--panel); color:var(--text); cursor:pointer;}
-  .pad button:active{background:var(--panel2); transform:scale(.97);}
-  .pad button.util{font-size:15px; color:var(--dim);}
+  .pin-screen{max-width:340px; margin:8vh auto 0; text-align:center; padding:0 20px;}
+  .pin-logo{width:240px; max-width:80%; filter:brightness(1.45); margin-bottom:6px;}
+  .pin-screen h1{font-size:18px; font-weight:800; margin:0 0 4px; color:var(--dim);}
+  .pin-screen .sub{color:var(--faint); font-size:14px; margin-bottom:26px;}
+  .pin-input{width:100%; font-size:34px; font-weight:800; text-align:center; letter-spacing:.5em; text-indent:.5em;
+    padding:16px 0; border-radius:14px; border:1px solid var(--line); background:var(--panel); color:var(--text); outline:none;}
+  .pin-input:focus{border-color:var(--green-line);}
   .pin-error{color:var(--red); font-size:14px; min-height:20px; margin-top:16px; font-weight:600;}
+  .header-logo{height:26px; filter:brightness(1.45); display:block;}
 
   /* ===== issue overlay ===== */
   .overlay{position:fixed; inset:0; background:rgba(0,0,0,.7); display:none; align-items:center; justify-content:center; padding:20px; z-index:50;}
@@ -110,17 +107,11 @@
 
 <!-- ============ PIN LOGIN ============ -->
 <div id="pinScreen" class="pin-screen">
-  <h1 id="pinMachine">TRACE</h1>
-  <div class="sub">Enter your operator PIN</div>
-  <div class="pin-dots" id="pinDots">
-    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
-  </div>
-  <div class="pad">
-    <button onclick="pinPress('1')">1</button><button onclick="pinPress('2')">2</button><button onclick="pinPress('3')">3</button>
-    <button onclick="pinPress('4')">4</button><button onclick="pinPress('5')">5</button><button onclick="pinPress('6')">6</button>
-    <button onclick="pinPress('7')">7</button><button onclick="pinPress('8')">8</button><button onclick="pinPress('9')">9</button>
-    <button class="util" onclick="pinClear()">Clear</button><button onclick="pinPress('0')">0</button><button class="util" onclick="pinBackspace()">⌫</button>
-  </div>
+  <img src="assets/trace-logo.png" alt="TRACE" class="pin-logo">
+  <h1 id="pinMachine">Operator</h1>
+  <div class="sub">Enter the floor PIN</div>
+  <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off"
+         class="pin-input" id="pinInput" placeholder="••••">
   <div class="pin-error" id="pinError"></div>
 </div>
 
@@ -128,6 +119,7 @@
 <div id="mainScreen" class="wrap hidden">
   <header>
     <div class="machine-id">
+      <img src="assets/trace-logo.png" alt="TRACE" class="header-logo">
       <h1 id="machineName">—</h1>
       <span class="sub" id="jobCount"></span>
     </div>
@@ -225,19 +217,11 @@ async function api(path, opts = {}){
 }
 
 /* ---------- PIN ---------- */
-function renderDots(){
-  const dots = $("pinDots").children;
-  for (let i = 0; i < 4; i++) dots[i].classList.toggle("filled", i < pin.length);
-}
-function pinPress(d){
-  if (pin.length >= 4) return;
-  pin += d;
-  renderDots();
+$("pinInput").addEventListener("input", function(){
+  this.value = this.value.replace(/\D/g, "").slice(0, 4);
   $("pinError").textContent = "";
-  if (pin.length === 4) submitPin();
-}
-function pinClear(){ pin = ""; renderDots(); }
-function pinBackspace(){ pin = pin.slice(0, -1); renderDots(); }
+  if (this.value.length === 4) { pin = this.value; submitPin(); }
+});
 
 async function submitPin(){
   try {
@@ -250,11 +234,12 @@ async function submitPin(){
     if (!res.ok || !data.ok) throw new Error(data.error || "Invalid PIN");
     localStorage.setItem(TOKEN_KEY, data.token);
     localStorage.setItem(NAME_KEY, data.user.name);
-    pin = ""; renderDots();
+    pin = ""; $("pinInput").value = "";
     showMain();
   } catch (e) {
-    pin = ""; renderDots();
+    pin = ""; $("pinInput").value = "";
     $("pinError").textContent = e.message === "Failed to fetch" ? "No connection to TRACE" : e.message;
+    $("pinInput").focus();
   }
 }
 
@@ -418,7 +403,7 @@ function escapeHtml(str){
 }
 
 /* ---------- boot ---------- */
-$("pinMachine").textContent = "TRACE · " + MACHINE_LABEL;
+$("pinMachine").textContent = MACHINE_LABEL + " Operator";
 if (token()) showMain();
 </script>
 </body>
