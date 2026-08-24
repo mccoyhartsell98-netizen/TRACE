@@ -1,117 +1,191 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
+<html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>TRACE · Operator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#0b0e12; --panel:#12161c; --panel2:#171c24; --line:#232a34;
     --text:#e8edf2; --dim:#8a94a3; --faint:#5a6472;
-    --green:#8aff8a; --green-dim:rgba(138,255,138,.12); --green-line:rgba(138,255,138,.35);
-    --amber:#ffd166; --amber-dim:rgba(255,209,102,.12); --amber-line:rgba(255,209,102,.35);
+    --green:#8aff8a; --green-dim:rgba(138,255,138,.10); --green-line:rgba(138,255,138,.45);
+    --amber:#ffd166; --amber-dim:rgba(255,209,102,.10); --amber-line:rgba(255,209,102,.45);
     --blue:#4fc3f7; --red:#ff6b6b;
   }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; border-radius:0;}
   html,body{margin:0; padding:0; background:var(--bg); color:var(--text);
-    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; min-height:100vh;}
+    font-family:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; min-height:100vh;}
   .mono{font-family:ui-monospace,"Cascadia Mono","JetBrains Mono",Menlo,Consolas,monospace; font-variant-numeric:tabular-nums;}
+  a{color:var(--blue);} a:hover{color:var(--text);}
+  button{font-family:inherit;}
+  button:focus-visible, input:focus-visible, textarea:focus-visible{outline:2px solid var(--green); outline-offset:2px;}
 
-  .wrap{max-width:760px; margin:0 auto; padding:16px 16px 40px;}
+  .wrap{max-width:760px; margin:0 auto; padding:0 16px 40px;}
 
   /* ===== header ===== */
-  header{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0 18px;}
-  .machine-id{display:flex; align-items:baseline; gap:10px;}
-  .machine-id h1{margin:0; font-size:26px; font-weight:800; letter-spacing:.5px;}
-  .machine-id .sub{font-size:13px; color:var(--dim);}
-  .badges{display:flex; gap:8px; align-items:center;}
-  .badge{font-size:13px; font-weight:700; padding:6px 12px; border-radius:999px; white-space:nowrap;}
-  .badge.shift{background:rgba(79,195,247,.12); color:var(--blue); border:1px solid rgba(79,195,247,.35);}
-  .badge.op{background:var(--panel2); color:var(--dim); border:1px solid var(--line);}
-  .badge.op button{background:none; border:none; color:var(--faint); font-size:12px; margin-left:6px; cursor:pointer; padding:0;}
+  header{display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:14px 0; border-bottom:2px solid var(--line);}
+  .machine-id{display:flex; align-items:baseline; gap:12px; min-width:0;}
+  .header-logo{height:22px; filter:brightness(1.55) saturate(1.1); display:block; align-self:center;}
+  .machine-id h1{margin:0; font-size:24px; font-weight:800; letter-spacing:.04em; text-transform:uppercase;}
+  .machine-id .sub{font-size:12px; font-weight:600; color:var(--dim); letter-spacing:.08em; text-transform:uppercase; white-space:nowrap;}
+  .badges{display:flex; gap:8px; align-items:stretch;}
+  .badge{font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+    padding:8px 12px; white-space:nowrap; display:flex; align-items:center; gap:8px;}
+  .badge.shift{background:rgba(79,195,247,.10); color:var(--blue); border:1px solid rgba(79,195,247,.4);}
+  .badge.op{background:var(--panel); color:var(--dim); border:1px solid var(--line);}
+  .badge.op button{background:none; border:none; color:var(--faint); font-size:11px; font-weight:700;
+    letter-spacing:.08em; text-transform:uppercase; cursor:pointer; padding:0; border-left:1px solid var(--line); padding-left:8px; min-height:32px;}
+  .badge.op button:hover{color:var(--text);}
+
+  /* ===== section labels ===== */
+  .section-label{display:flex; align-items:center; gap:12px; font-size:12px; font-weight:700;
+    letter-spacing:.16em; text-transform:uppercase; color:var(--faint); margin:24px 0 12px;}
+  .section-label::after{content:""; flex:1; height:1px; background:var(--line);}
+  .section-label .dot{width:8px; height:8px; background:var(--faint);}
+  .section-label.live{color:var(--green);}
+  .section-label.live .dot{background:var(--green); animation:pulse 1.6s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:.25;}}
 
   /* ===== running card ===== */
-  .section-label{font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); margin:18px 0 10px;}
-  .running-card{background:var(--panel); border:2px solid var(--green-line); border-radius:16px; padding:18px;}
-  .running-top{display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap;}
-  .running-job{font-size:20px; font-weight:800;}
-  .running-meta{font-size:14px; color:var(--dim); margin-top:6px; line-height:1.5;}
-  .timer{font-size:52px; font-weight:700; color:var(--green); line-height:1; text-align:right;}
-  .timer-sub{font-size:12px; color:var(--faint); text-align:right; margin-top:6px;}
-  .running-actions{display:flex; gap:10px; margin-top:18px;}
-  button.big{flex:1; font-size:18px; font-weight:800; padding:18px 16px; border-radius:14px; border:none; cursor:pointer;}
-  button.finish{background:var(--green); color:#06280e;}
-  button.finish:active{transform:scale(.98);}
-  button.issue{flex:0 0 auto; background:var(--amber-dim); color:var(--amber); border:1px solid var(--amber-line);}
-  button.issue:active{transform:scale(.98);}
+  .running-card{background:var(--panel); border:2px solid var(--green-line);}
+  .running-top{display:flex; justify-content:space-between; align-items:stretch; gap:0; flex-wrap:wrap;}
+  .running-id{padding:18px; flex:1 1 200px; min-width:0;}
+  .running-job{font-size:22px; font-weight:800; letter-spacing:.01em;}
+  .running-job .mo{color:var(--blue);}
+  .running-meta{font-size:14px; color:var(--dim); margin-top:8px; line-height:1.5;}
+  .running-clock{padding:18px; flex:1 1 240px; border-left:1px solid var(--line); display:flex;
+    flex-direction:column; justify-content:center; align-items:flex-start;}
+  .timer{font-size:64px; font-weight:700; color:var(--green); line-height:1; letter-spacing:-.01em;}
+  .timer-sub{font-size:12px; font-weight:600; color:var(--faint); letter-spacing:.08em; text-transform:uppercase; margin-top:10px;}
+  .running-actions{display:flex; border-top:2px solid var(--green-line);}
+  button.big{font-size:18px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+    padding:20px 18px; border:none; cursor:pointer; text-align:left; min-height:64px;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;}
+  button.finish{flex:1; background:var(--green); color:#06280e;}
+  button.finish:hover{background:#9dff9d;}
+  button.finish:active{background:#74e874;}
+  button.pause{flex:0 0 auto; background:rgba(79,195,247,.08); color:var(--blue); border-left:2px solid var(--green-line);}
+  button.pause:hover{background:rgba(79,195,247,.16);}
+  button.pause:active{background:rgba(79,195,247,.24);}
+  .timer.paused{color:var(--amber);}
+  .running-card.paused{border-color:var(--amber-line);}
+  .running-card.paused .running-actions{border-top-color:var(--amber-line);}
+  button.issue{flex:0 0 auto; background:var(--amber-dim); color:var(--amber); border-left:2px solid var(--green-line); padding-right:24px;}
+  button.issue:hover{background:rgba(255,209,102,.18);}
+  button.issue:active{background:rgba(255,209,102,.26);}
+  .btn-glyph{font-size:16px; opacity:.85;}
 
   /* ===== idle card ===== */
-  .idle-card{background:var(--panel); border:1px dashed var(--line); border-radius:16px; padding:22px; text-align:center; color:var(--dim); font-size:15px;}
+  .idle-card{background:var(--panel); border:1px dashed var(--line); padding:24px 18px; color:var(--dim); font-size:15px;}
 
   /* ===== queue list ===== */
-  .job-row{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 16px;
-    display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px;}
-  .job-row.next{border-color:var(--green-line);}
-  .job-info .jr-title{font-size:16px; font-weight:800;}
+  #jobList{border:1px solid var(--line); background:var(--panel);}
+  .job-row{display:flex; align-items:center; gap:14px; padding:14px 16px; border-bottom:1px solid var(--line);}
+  .job-row:last-child{border-bottom:none;}
+  .job-row.next{background:var(--green-dim); border-left:2px solid var(--green-line); padding-left:14px;}
+  .rank-chip{flex:0 0 34px; font-size:16px; font-weight:700; color:var(--faint); text-align:left;}
+  .job-row.next .rank-chip{color:var(--green);}
+  .job-info{flex:1; min-width:0;}
+  .job-info .jr-title{font-size:17px; font-weight:800;}
   .job-info .jr-title .mo{color:var(--blue); font-weight:700;}
   .job-info .jr-meta{font-size:13px; color:var(--dim); margin-top:4px; line-height:1.45;}
   .job-info .jr-notes{font-size:13px; color:var(--faint); margin-top:2px;}
-  .rank-chip{flex:0 0 auto; font-size:12px; font-weight:800; color:var(--faint); border:1px solid var(--line);
-    border-radius:8px; padding:4px 8px; margin-right:4px;}
-  button.start{flex:0 0 auto; font-size:16px; font-weight:800; padding:14px 22px; border-radius:12px;
-    border:1px solid var(--green-line); background:var(--green-dim); color:var(--green); cursor:pointer;}
-  button.start:active{transform:scale(.98);}
+  button.start{flex:0 0 auto; font-size:15px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+    min-height:52px; padding:0 20px; border:1px solid var(--green-line); background:var(--green-dim);
+    color:var(--green); cursor:pointer; display:flex; align-items:center; gap:10px;}
+  button.start:hover{background:rgba(138,255,138,.18);}
+  button.start:active{background:rgba(138,255,138,.26);}
   button.start.locked{opacity:.35; border-color:var(--line); background:var(--panel2); color:var(--dim); cursor:not-allowed;}
 
-  footer{margin-top:22px; padding-top:14px; border-top:1px solid var(--line); display:flex;
-    justify-content:space-between; font-size:13px; color:var(--faint); flex-wrap:wrap; gap:8px;}
+  footer{margin-top:24px; padding-top:12px; border-top:2px solid var(--line); display:flex;
+    justify-content:space-between; font-size:12px; font-weight:600; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--faint); flex-wrap:wrap; gap:8px;}
 
   /* ===== PIN screen ===== */
-  .pin-screen{max-width:340px; margin:8vh auto 0; text-align:center; padding:0 20px;}
-  .pin-logo{width:240px; max-width:80%; filter:brightness(1.45); margin-bottom:6px;}
-  .pin-screen h1{font-size:18px; font-weight:800; margin:0 0 4px; color:var(--dim);}
-  .pin-screen .sub{color:var(--faint); font-size:14px; margin-bottom:26px;}
-  .pin-input{width:100%; font-size:34px; font-weight:800; text-align:center; letter-spacing:.5em; text-indent:.5em;
-    padding:16px 0; border-radius:14px; border:1px solid var(--line); background:var(--panel); color:var(--text); outline:none;}
-  .pin-input:focus{border-color:var(--green-line);}
+  .pin-screen{max-width:360px; margin:10vh auto 0; padding:0 24px;}
+  .pin-logo{width:220px; max-width:80%; filter:brightness(1.55) saturate(1.1); margin-bottom:20px; display:block;}
+  .pin-screen h1{font-size:14px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; margin:0 0 4px; color:var(--text);}
+  .pin-screen .sub{color:var(--faint); font-size:13px; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
+    margin-bottom:24px; padding-bottom:16px; border-bottom:2px solid var(--line);}
+  .pin-input{width:100%; font-size:28px; font-weight:700; text-align:center; letter-spacing:.18em; text-indent:.18em;
+    padding:18px 0; border:1px solid var(--line); background:var(--panel); color:var(--text); outline:none;
+    font-family:ui-monospace,Menlo,Consolas,monospace; font-variant-numeric:tabular-nums;}
+  .pin-input:focus{border-color:var(--green-line); outline:none;}
   .pin-error{color:var(--red); font-size:14px; min-height:20px; margin-top:16px; font-weight:600;}
-  .header-logo{height:26px; filter:brightness(1.45); display:block;}
 
   /* ===== issue overlay ===== */
-  .overlay{position:fixed; inset:0; background:rgba(0,0,0,.7); display:none; align-items:center; justify-content:center; padding:20px; z-index:50;}
+  .overlay{position:fixed; inset:0; background:rgba(0,0,0,.75); display:none; align-items:center; justify-content:center; padding:20px; z-index:50;}
   .overlay.show{display:flex;}
-  .modal{background:var(--panel); border:1px solid var(--amber-line); border-radius:16px; padding:20px; max-width:420px; width:100%;}
-  .modal h2{margin:0 0 6px; font-size:18px; color:var(--amber);}
-  .modal p{margin:0 0 14px; font-size:14px; color:var(--dim);}
-  .modal textarea{width:100%; min-height:90px; background:var(--panel2); border:1px solid var(--line); border-radius:10px;
-    color:var(--text); font-size:15px; padding:12px; resize:vertical; font-family:inherit;}
-  .modal .modal-actions{display:flex; gap:10px; margin-top:14px;}
-  .modal button{flex:1; font-size:16px; font-weight:700; padding:14px; border-radius:12px; cursor:pointer; border:none;}
-  .modal .confirm{background:var(--amber); color:#3a2b00;}
-  .modal .cancel{background:var(--panel2); color:var(--dim); border:1px solid var(--line);}
+  .modal{background:var(--panel); border:2px solid var(--amber-line); max-width:440px; width:100%;}
+  .modal .modal-head{padding:18px 20px 0;}
+  .modal h2{margin:0 0 6px; font-size:15px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--amber);}
+  .modal p{margin:0 0 14px; font-size:14px; color:var(--dim); line-height:1.5;}
+  .modal textarea{display:block; width:calc(100% - 40px); margin:0 20px; min-height:100px; background:var(--panel2);
+    border:1px solid var(--line); color:var(--text); font-size:16px; padding:12px; resize:vertical; font-family:inherit;}
+  .modal textarea:focus{border-color:var(--amber-line); outline:none;}
+  .modal.finish-modal{border-color:var(--green-line);}
+  .modal.finish-modal h2{color:var(--green);}
+  .qty-input{display:block; width:calc(100% - 40px); margin:0 20px; font-size:32px; font-weight:700;
+    padding:14px 16px; background:var(--panel2); border:1px solid var(--line); color:var(--text);
+    font-family:ui-monospace,Menlo,Consolas,monospace; font-variant-numeric:tabular-nums;}
+  .qty-input:focus{border-color:var(--green-line); outline:none;}
+  .modal.finish-modal .modal-actions{border-top-color:var(--green-line);}
+  .modal.finish-modal .confirm{background:var(--green); color:#06280e; border-left-color:var(--green-line);}
+  .modal.finish-modal .confirm:hover{background:#9dff9d;}
+  .modal.finish-modal .confirm:active{background:#74e874;}
+  .modal .modal-actions{display:flex; margin-top:18px; border-top:2px solid var(--amber-line);}
+  .modal button{font-size:15px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+    min-height:56px; padding:14px 18px; cursor:pointer; border:none; text-align:left;}
+  .modal .cancel{flex:0 0 auto; background:var(--panel2); color:var(--dim);}
+  .modal .cancel:hover{color:var(--text);}
+  .modal .confirm{flex:1; background:var(--amber); color:#3a2b00; border-left:2px solid var(--amber-line);}
+  .modal .confirm:hover{background:#ffdc85;}
+  .modal .confirm:active{background:#f0c14f;}
 
   .toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--panel2);
-    border:1px solid var(--green-line); color:var(--text); font-size:15px; font-weight:700; padding:12px 20px;
-    border-radius:12px; opacity:0; transition:opacity .25s; pointer-events:none; z-index:60; white-space:nowrap;}
+    border:1px solid var(--green-line); border-left:4px solid var(--green); color:var(--text); font-size:15px;
+    font-weight:700; padding:14px 20px; opacity:0; transition:opacity .25s; pointer-events:none; z-index:60;
+    max-width:calc(100vw - 32px); text-align:left;}
   .toast.show{opacity:1;}
 
   .hidden{display:none !important;}
-  @media (max-width:520px){
-    .timer{font-size:40px;}
-    .machine-id h1{font-size:22px;}
-    header{flex-wrap:wrap;}
+  @media (max-width:560px){
+    .wrap{padding:0 12px 32px;}
+    header{flex-wrap:wrap; padding:12px 0; gap:10px;}
+    .machine-id{flex-wrap:wrap; row-gap:2px;}
+    .machine-id h1{font-size:20px;}
+    .header-logo{height:18px;}
+    .badges{width:100%; justify-content:flex-start;}
+    .badge{font-size:11px; padding:7px 10px;}
+    .timer{font-size:44px;}
+    .running-id{padding:14px;}
+    .running-clock{border-left:none; border-top:1px solid var(--line); padding:14px; flex-basis:100%;}
+    button.big{font-size:16px; padding:16px 14px; min-height:56px;}
+    .job-row{flex-wrap:wrap; gap:8px 12px; padding:12px;}
+    .job-row.next{padding-left:10px;}
+    .rank-chip{flex:0 0 28px; font-size:14px;}
+    .job-info{flex:1 1 calc(100% - 40px);}
+    .job-info .jr-title{font-size:16px;}
+    button.start{flex:1 1 100%; justify-content:space-between; min-height:48px; padding:0 16px;}
+    .job-row .start.locked{display:none;}
+    .pin-screen{margin-top:7vh;}
+    .pin-input{font-size:30px; padding:16px 0;}
+    footer{font-size:11px;}
   }
 </style>
 </head>
 <body>
+
 
 <!-- ============ PIN LOGIN ============ -->
 <div id="pinScreen" class="pin-screen">
   <img src="assets/trace-logo.png" alt="TRACE" class="pin-logo">
   <h1 id="pinMachine">Operator</h1>
   <div class="sub">Enter the floor PIN</div>
-  <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off"
-         class="pin-input" id="pinInput" placeholder="••••">
+  <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" class="pin-input" id="pinInput" placeholder="Enter code">
   <div class="pin-error" id="pinError"></div>
 </div>
 
@@ -130,27 +204,28 @@
   </header>
 
   <div id="runningSection" class="hidden">
-    <div class="section-label">Running now</div>
+    <div class="section-label live"><span class="dot"></span>Running now</div>
     <div class="running-card">
       <div class="running-top">
-        <div>
+        <div class="running-id">
           <div class="running-job" id="runJob">—</div>
           <div class="running-meta" id="runMeta"></div>
         </div>
-        <div>
+        <div class="running-clock">
           <div class="timer mono" id="runTimer">0:00:00</div>
-          <div class="timer-sub" id="runStarted"></div>
+          <div class="timer-sub mono" id="runStarted"></div>
         </div>
       </div>
       <div class="running-actions">
-        <button class="big finish" onclick="finishRun()">✓ Finish</button>
-        <button class="big issue" onclick="openIssue()">⚠ Issue</button>
+        <button class="big finish" onclick="finishRun()"><span>Finish</span><span class="btn-glyph">✓</span></button>
+        <button class="big pause" id="pauseBtn" onclick="togglePause()"><span>Pause</span><span class="btn-glyph">⏸</span></button>
+        <button class="big issue" onclick="openIssue()"><span>Issue</span><span class="btn-glyph">⚠</span></button>
       </div>
     </div>
   </div>
 
   <div id="idleSection" class="hidden">
-    <div class="section-label">Running now</div>
+    <div class="section-label"><span class="dot"></span>Running now</div>
     <div class="idle-card">Nothing running. Start the next job below.</div>
   </div>
 
@@ -166,12 +241,29 @@
 <!-- ============ ISSUE MODAL ============ -->
 <div class="overlay" id="issueOverlay">
   <div class="modal">
-    <h2>⚠ Report an issue</h2>
-    <p>The timer stops and the job goes back to the queue. What happened?</p>
+    <div class="modal-head">
+      <h2>⚠ Report an issue</h2>
+      <p>The timer stops and the job goes back to the queue. What happened?</p>
+    </div>
     <textarea id="issueNote" placeholder="Plate scratch, web break, wrong material..."></textarea>
     <div class="modal-actions">
       <button class="cancel" onclick="closeIssue()">Cancel</button>
       <button class="confirm" onclick="submitIssue()">Stop &amp; report</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ FINISH MODAL ============ -->
+<div class="overlay" id="finishOverlay">
+  <div class="modal finish-modal">
+    <div class="modal-head">
+      <h2>✓ Finish job</h2>
+      <p id="finishMeta">How many did you run?</p>
+    </div>
+    <input type="number" inputmode="numeric" min="0" class="qty-input" id="finishQty" placeholder="Qty ran">
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeFinish()">Cancel</button>
+      <button class="confirm" onclick="submitFinish()">Finish</button>
     </div>
   </div>
 </div>
@@ -182,6 +274,7 @@
 const API_BASE = "https://api.traceinventory.org";
 const TOKEN_KEY = "trace_op_token";
 const NAME_KEY  = "trace_op_name";
+const TZ = "America/New_York";
 
 const MACHINE_LABELS = { "QUEUE": "Tauro" };
 
@@ -198,6 +291,8 @@ let pollInterval = null;
 function $(id){ return document.getElementById(id); }
 function token(){ return localStorage.getItem(TOKEN_KEY); }
 function opName(){ return localStorage.getItem(NAME_KEY) || "Operator"; }
+function parseUTC(s){ return new Date(/Z|[+-]\d{2}:?\d{2}$/.test(s) ? s : s + "Z"); }
+function fmtTime(d){ return d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit", timeZone: TZ}); }
 
 function toast(msg){
   const t = $("toast");
@@ -218,9 +313,12 @@ async function api(path, opts = {}){
 
 /* ---------- PIN ---------- */
 $("pinInput").addEventListener("input", function(){
-  this.value = this.value.replace(/\D/g, "").slice(0, 4);
+  this.value = this.value.replace(/\D/g, "").slice(0, 6);
   $("pinError").textContent = "";
-  if (this.value.length === 4) { pin = this.value; submitPin(); }
+  if (this.value.length === 6) { pin = this.value; submitPin(); }
+});
+$("pinInput").addEventListener("keydown", function(e){
+  if (e.key === "Enter" && this.value.length >= 4) { pin = this.value; submitPin(); }
 });
 
 async function submitPin(){
@@ -270,7 +368,7 @@ async function loadJobs(){
     state.running = data.running || null;
     state.shift = data.shift;
     render();
-    $("footUpdated").textContent = "Updated " + new Date().toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+    $("footUpdated").textContent = "Updated " + fmtTime(new Date());
   } catch (e) {
     if (e.message !== "Session expired") $("footStatus").textContent = "⚠ " + e.message;
   }
@@ -283,16 +381,25 @@ function render(){
   if (state.running) {
     $("runningSection").classList.remove("hidden");
     $("idleSection").classList.add("hidden");
-    const jobLabel = runningItem
-      ? "#" + runningItem.job_number + (runningItem.mo ? " · MO-" + runningItem.mo : "")
-      : "Run #" + state.running.run_id;
-    $("runJob").textContent = jobLabel;
+    if (runningItem) {
+      $("runJob").innerHTML = "#" + escapeHtml(runningItem.job_number)
+        + (runningItem.mo ? ' <span class="mo">MO-' + escapeHtml(runningItem.mo) + '</span>' : '');
+    } else {
+      $("runJob").textContent = "Run #" + state.running.run_id;
+    }
     $("runMeta").textContent = runningItem
       ? "Qty " + (runningItem.qty ?? 0) + (runningItem.notes ? " · " + runningItem.notes : "")
       : "";
-    $("runStarted").textContent = "started " + new Date(state.running.started_at).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})
+    const startedAt = parseUTC(state.running.started_at);
+    const isPaused = !!state.running.paused_at;
+    $("runStarted").textContent = (isPaused ? "PAUSED · started " : "started ") + fmtTime(startedAt)
       + (state.running.operator ? " · " + state.running.operator : "");
-    startTimer(new Date(state.running.started_at));
+    $("runTimer").classList.toggle("paused", isPaused);
+    document.querySelector(".running-card").classList.toggle("paused", isPaused);
+    $("pauseBtn").innerHTML = isPaused
+      ? '<span>Resume</span><span class="btn-glyph">▶</span>'
+      : '<span>Pause</span><span class="btn-glyph">⏸</span>';
+    startTimer();
   } else {
     $("runningSection").classList.add("hidden");
     $("idleSection").classList.remove("hidden");
@@ -306,22 +413,24 @@ function render(){
   const list = $("jobList");
   list.innerHTML = "";
   if (queued.length === 0) {
+    list.style.border = "none";
     list.innerHTML = '<div class="idle-card">Queue is empty.</div>';
     return;
   }
+  list.style.border = "";
   queued.forEach((job, idx) => {
     const isNext = idx === 0;
     const canStart = isNext && !state.running;
     const row = document.createElement("div");
     row.className = "job-row" + (isNext ? " next" : "");
     row.innerHTML =
-      '<span class="rank-chip">' + (idx + 1) + '</span>' +
-      '<div class="job-info" style="flex:1;">' +
+      '<span class="rank-chip mono">' + String(idx + 1).padStart(2, "0") + '</span>' +
+      '<div class="job-info">' +
         '<div class="jr-title">#' + escapeHtml(job.job_number) + (job.mo ? ' <span class="mo">MO-' + escapeHtml(job.mo) + '</span>' : '') + '</div>' +
         '<div class="jr-meta">Qty ' + (job.qty ?? 0) + (job.status ? ' · ' + escapeHtml(job.status) : '') + '</div>' +
         (job.notes ? '<div class="jr-notes">' + escapeHtml(job.notes) + '</div>' : '') +
       '</div>' +
-      '<button class="start' + (canStart ? '' : ' locked') + '" data-id="' + job.item_id + '">▶ Start</button>';
+      '<button class="start' + (canStart ? '' : ' locked') + '" data-id="' + job.item_id + '"><span>Start</span><span class="btn-glyph">▶</span></button>';
     const btn = row.querySelector("button.start");
     if (canStart) btn.addEventListener("click", () => startRun(job));
     else btn.title = state.running ? "Finish the running job first" : "Only the next job can start";
@@ -344,15 +453,50 @@ async function startRun(job){
   }
 }
 
-async function finishRun(){
+function finishRun(){
   if (!state.running) return;
+  const runningItem = state.jobs.find(j => j.item_id === state.running.item_id);
+  $("finishMeta").textContent = "How many did you run?"
+    + (runningItem && runningItem.qty != null ? " Ordered: " + runningItem.qty + "." : "");
+  $("finishQty").value = runningItem && runningItem.qty != null ? runningItem.qty : "";
+  $("finishOverlay").classList.add("show");
+  setTimeout(()=> { $("finishQty").focus(); $("finishQty").select(); }, 50);
+}
+function closeFinish(){
+  $("finishOverlay").classList.remove("show");
+}
+
+async function submitFinish(){
+  if (!state.running) { closeFinish(); return; }
+  const qty = parseInt($("finishQty").value, 10);
+  if (isNaN(qty) || qty < 0) { $("finishQty").focus(); return; }
   try {
     const data = await api("/runs/finish", {
       method: "POST",
+      body: JSON.stringify({ run_id: state.running.run_id, actual_qty: qty })
+    });
+    closeFinish();
+    const secs = data.run?.duration_seconds ?? 0;
+    toast("✓ Finished " + qty.toLocaleString() + " in " + fmtDuration(secs));
+    await loadJobs();
+  } catch (e) {
+    closeFinish();
+    toast("⚠ " + e.message);
+    loadJobs();
+  }
+}
+
+$("finishQty").addEventListener("keydown", e => { if (e.key === "Enter") submitFinish(); });
+
+async function togglePause(){
+  if (!state.running) return;
+  const paused = !!state.running.paused_at;
+  try {
+    await api(paused ? "/runs/resume" : "/runs/pause", {
+      method: "POST",
       body: JSON.stringify({ run_id: state.running.run_id })
     });
-    const secs = data.run?.duration_seconds ?? 0;
-    toast("✓ Finished in " + fmtDuration(secs));
+    toast(paused ? "▶ Resumed" : "⏸ Paused");
     await loadJobs();
   } catch (e) {
     toast("⚠ " + e.message);
@@ -382,14 +526,20 @@ async function submitIssue(){
 }
 
 /* ---------- timer ---------- */
-function startTimer(startedAt){
+function runElapsedSecs(){
+  const r = state.running;
+  if (!r) return 0;
+  const started = parseUTC(r.started_at).getTime();
+  const pausedBank = (r.paused_seconds || 0) * 1000;
+  const frozenSince = r.paused_at ? parseUTC(r.paused_at).getTime() : null;
+  const endpoint = frozenSince ?? Date.now();
+  return Math.max(0, Math.floor((endpoint - started - pausedBank) / 1000));
+}
+function startTimer(){
   stopTimer();
-  const tick = () => {
-    const secs = Math.max(0, Math.floor((Date.now() - startedAt.getTime()) / 1000));
-    $("runTimer").textContent = fmtDuration(secs);
-  };
+  const tick = () => { $("runTimer").textContent = fmtDuration(runElapsedSecs()); };
   tick();
-  timerInterval = setInterval(tick, 1000);
+  if (!state.running || !state.running.paused_at) timerInterval = setInterval(tick, 1000);
 }
 function stopTimer(){ clearInterval(timerInterval); timerInterval = null; }
 
@@ -406,5 +556,6 @@ function escapeHtml(str){
 $("pinMachine").textContent = MACHINE_LABEL + " Operator";
 if (token()) showMain();
 </script>
-</body>
-</html>
+
+
+</body></html>
