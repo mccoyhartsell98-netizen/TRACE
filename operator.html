@@ -15,6 +15,9 @@
     --blue:#4fc3f7; --red:#ff6b6b;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; border-radius:0;}
+  html{height:100%;}
+  body.locked{position:fixed; inset:0; overflow:hidden; height:100dvh; width:100%;}
+  body{overflow-y:auto; overscroll-behavior-y:none;}
   html,body{margin:0; padding:0; background:var(--bg); color:var(--text);
     font-family:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; min-height:100vh;}
   body{background:
@@ -247,9 +250,9 @@
         </div>
       </div>
       <div class="running-actions">
-        <button class="big finish" onclick="finishRun()"><span>Finish</span><span class="btn-glyph">✓</span></button>
-        <button class="big pause" id="pauseBtn" onclick="togglePause()"><span>Pause</span><span class="btn-glyph">⏸</span></button>
-        <button class="big issue" onclick="openIssue()"><span>Issue</span><span class="btn-glyph">⚠</span></button>
+        <button class="big finish" onclick="finishRun()"><span>Finish</span></button>
+        <button class="big pause" id="pauseBtn" onclick="togglePause()"><span>Pause</span></button>
+        <button class="big issue" onclick="openIssue()"><span>Issue</span></button>
       </div>
     </div>
   </div>
@@ -272,7 +275,7 @@
 <div class="overlay" id="issueOverlay">
   <div class="modal">
     <div class="modal-head">
-      <h2>⚠ Report an issue</h2>
+      <h2>Report an issue</h2>
       <p>The timer stops and the job goes back to the queue. What happened?</p>
     </div>
     <textarea id="issueNote" placeholder="Plate scratch, web break, wrong material..."></textarea>
@@ -287,7 +290,7 @@
 <div class="overlay" id="finishOverlay">
   <div class="modal finish-modal">
     <div class="modal-head">
-      <h2>✓ Finish job</h2>
+      <h2>Finish job</h2>
       <p id="finishMeta">How many did you run? Finish ends the job. Hand off keeps it in queue for the next shift.</p>
     </div>
     <input type="number" inputmode="numeric" min="0" class="qty-input" id="finishQty" placeholder="Qty ran">
@@ -384,10 +387,12 @@ function logout(){
   clearInterval(timerInterval);
   $("mainScreen").classList.add("hidden");
   $("pinScreen").classList.remove("hidden");
+  document.body.classList.add("locked");
 }
 
 /* ---------- main ---------- */
 function showMain(){
+  document.body.classList.remove("locked");
   $("pinScreen").classList.add("hidden");
   $("mainScreen").classList.remove("hidden");
   $("machineName").textContent = MACHINE_LABEL;
@@ -406,7 +411,7 @@ async function loadJobs(){
     render();
     $("footUpdated").textContent = "Updated " + fmtTime(new Date());
   } catch (e) {
-    if (e.message !== "Session expired") $("footStatus").textContent = "⚠ " + e.message;
+    if (e.message !== "Session expired") $("footStatus").textContent = "Error: " + e.message;
   }
 }
 
@@ -433,8 +438,8 @@ function render(){
     $("runTimer").classList.toggle("paused", isPaused);
     document.querySelector(".running-card").classList.toggle("paused", isPaused);
     $("pauseBtn").innerHTML = isPaused
-      ? '<span>Resume</span><span class="btn-glyph">▶</span>'
-      : '<span>Pause</span><span class="btn-glyph">⏸</span>';
+      ? '<span>Resume</span>'
+      : '<span>Pause</span>';
     startTimer();
   } else {
     $("runningSection").classList.add("hidden");
@@ -466,7 +471,7 @@ function render(){
         '<div class="jr-meta">Qty ' + (job.qty ?? 0) + (job.status ? ' · ' + escapeHtml(job.status) : '') + '</div>' +
         (job.notes ? '<div class="jr-notes">' + escapeHtml(job.notes) + '</div>' : '') +
       '</div>' +
-      '<button class="start' + (canStart ? '' : ' locked') + '" data-id="' + job.item_id + '"><span>Start</span><span class="btn-glyph">▶</span></button>';
+      '<button class="start' + (canStart ? '' : ' locked') + '" data-id="' + job.item_id + '"><span>Start</span></button>';
     const btn = row.querySelector("button.start");
     if (canStart) btn.addEventListener("click", () => startRun(job));
     else btn.title = state.running ? "Finish the running job first" : "Only the next job can start";
@@ -481,10 +486,10 @@ async function startRun(job){
       method: "POST",
       body: JSON.stringify({ item_id: job.item_id, operator: opName() })
     });
-    toast("▶ Started #" + job.job_number);
+    toast("Started #" + job.job_number);
     await loadJobs();
   } catch (e) {
-    toast("⚠ " + e.message);
+    toast("Error: " + e.message);
     loadJobs();
   }
 }
@@ -513,11 +518,11 @@ async function submitFinish(){
     });
     closeFinish();
     const secs = data.run?.duration_seconds ?? 0;
-    toast("✓ Finished " + qty.toLocaleString() + " in " + fmtDuration(secs));
+    toast("Finished " + qty.toLocaleString() + " in " + fmtDuration(secs));
     await loadJobs();
   } catch (e) {
     closeFinish();
-    toast("⚠ " + e.message);
+    toast("Error: " + e.message);
     loadJobs();
   }
 }
@@ -532,11 +537,11 @@ async function submitHandoff(){
       body: JSON.stringify({ run_id: state.running.run_id, actual_qty: qty })
     });
     closeFinish();
-    toast("⇄ Handed off · " + qty.toLocaleString() + " boxes credited to Shift " + (state.shift ?? ""));
+    toast("Handed off · " + qty.toLocaleString() + " boxes credited to Shift " + (state.shift ?? ""));
     await loadJobs();
   } catch (e) {
     closeFinish();
-    toast("⚠ " + e.message);
+    toast("Error: " + e.message);
     loadJobs();
   }
 }
@@ -551,10 +556,10 @@ async function togglePause(){
       method: "POST",
       body: JSON.stringify({ run_id: state.running.run_id })
     });
-    toast(paused ? "▶ Resumed" : "⏸ Paused");
+    toast(paused ? "Resumed" : "Paused");
     await loadJobs();
   } catch (e) {
-    toast("⚠ " + e.message);
+    toast("Error: " + e.message);
     loadJobs();
   }
 }
@@ -571,11 +576,11 @@ async function submitIssue(){
       body: JSON.stringify({ run_id: state.running.run_id, note })
     });
     closeIssue();
-    toast("⚠ Issue logged, job back in queue");
+    toast("Issue logged, job back in queue");
     await loadJobs();
   } catch (e) {
     closeIssue();
-    toast("⚠ " + e.message);
+    toast("Error: " + e.message);
     loadJobs();
   }
 }
@@ -609,6 +614,7 @@ function escapeHtml(str){
 
 /* ---------- boot ---------- */
 $("pinMachine").textContent = MACHINE_LABEL + " Operator";
+document.body.classList.add("locked");
 if (token()) showMain();
 </script>
 
