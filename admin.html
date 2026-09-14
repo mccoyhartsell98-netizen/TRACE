@@ -3344,7 +3344,8 @@ function setAuth({ token, email, refreshToken }) {
 function authHeaders(extra = {}) {
   return {
     ...extra,
-    ...(AUTH.token ? { "Authorization": `Bearer ${AUTH.token}` } : {})
+    ...(AUTH.token ? { "Authorization": `Bearer ${AUTH.token}` } : {}),
+    ...(AUTH.email ? { "x-user": AUTH.email } : {})
   };
 }
 
@@ -5869,8 +5870,9 @@ async function runMachineExpiryCheck(){
 
   for(const item of expired){
     try{
-      await apiFetch(`/items/${item.id}`, { method: "DELETE", body: JSON.stringify({ delete_reason: "auto_expired" }) });
-      clearMachineTimestamp(item.id);
+      // DISARMED 2026-09-14: expiry no longer deletes items — flag instead of erase
+      // await apiFetch(`/items/${item.id}`, { method: "DELETE", body: JSON.stringify({ delete_reason: "auto_expired" }) });
+      // clearMachineTimestamp(item.id);
       console.log(`✅ Soft-expired: ${item.job} from ${item.machine}`);
     }catch(e){
       console.warn(`⚠️ Could not expire ${item.job}:`, e.message);
