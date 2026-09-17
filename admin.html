@@ -5599,7 +5599,8 @@ function renderQueuePage(){
       showPage("palletLabelsPage");
       document.getElementById("plJob").value = item.job || "";
       document.getElementById("plTotalQty").value = item.qty || "";
-      document.getElementById("plBox").value = "";
+      const plBoxMatch = String(item.notes || "").match(/Box:\s*([^,\n]+)/i);
+      document.getElementById("plBox").value = plBoxMatch ? plBoxMatch[1].trim() : "";
       document.getElementById("plSource").value = "";
       document.getElementById("plQtyPerPallet").value = "";
       document.getElementById("plPreview").textContent = "";
