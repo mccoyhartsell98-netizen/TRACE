@@ -9294,5 +9294,99 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 </script>
+
+<script>
+/* ===== HISTORY / ACCOUNTABILITY VIEWER ===== */
+(function(){
+  function fmtTime(t){ const d=new Date(t); return d.toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); }
+  function describe(r){
+    if(r.action==='created') return `created ${r.job_number} (${r.new_value||''})`;
+    if(r.action==='deleted') return `deleted ${r.job_number} (${r.old_value||'no reason'})`;
+    if(r.action==='moved') return `moved ${r.job_number}: location ${r.old_value} \u2192 ${r.new_value}`;
+    if(r.field) return `${r.action.replace('_',' ')} on ${r.job_number}: "${r.old_value||'\u2014'}" \u2192 "${r.new_value||'\u2014'}"`;
+    return `${r.action} ${r.job_number||''}`;
+  }
+  async function loadSummary(){
+    const days = document.getElementById('histDays').value || 30;
+    const res = await apiFetch(`/history/summary?days=${days}`);
+    const tb = document.getElementById('histSummaryBody');
+    tb.innerHTML = res.actors.map(a=>`
+      <tr>
+        <td style="padding:6px 10px;">${a.actor}</td>
+        <td style="padding:6px 10px;">${fmtTime(a.last_action)}</td>
+        <td style="padding:6px 10px;text-align:right;">${a.total_actions}</td>
+        <td style="padding:6px 10px;text-align:right;${Number(a.last_7_days)===0?'color:rgba(255,140,120,.9);font-weight:700;':''}">${a.last_7_days}</td>
+      </tr>`).join('');
+  }
+  async function loadTimeline(){
+    const job = document.getElementById('histJob').value.trim();
+    const actor = document.getElementById('histActor').value.trim();
+    const days = document.getElementById('histDays').value || 30;
+    const params = new URLSearchParams();
+    if(job) params.set('job', job);
+    if(actor) params.set('actor', actor);
+    params.set('days', days);
+    const res = await apiFetch(`/history?${params}`);
+    const el = document.getElementById('histTimeline');
+    if(!res.rows.length){ el.innerHTML = '<div style="opacity:.6;padding:14px;">No history found for that filter.</div>'; return; }
+    el.innerHTML = res.rows.map(r=>`
+      <div style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;gap:12px;align-items:baseline;">
+        <span style="opacity:.55;font-size:12px;white-space:nowrap;">${fmtTime(r.at)}</span>
+        <span style="color:rgba(180,205,255,.95);font-weight:700;font-size:13px;white-space:nowrap;">${r.actor}</span>
+        <span style="font-size:13px;">${describe(r)}</span>
+      </div>`).join('');
+  }
+  function openHistory(){
+    let ov = document.getElementById('historyOverlay');
+    if(!ov){
+      ov = document.createElement('div');
+      ov.id = 'historyOverlay';
+      ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(5,8,18,.92);overflow:auto;padding:30px 20px;';
+      ov.innerHTML = `
+        <div style="max-width:1000px;margin:0 auto;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h2 style="margin:0;font-size:18px;letter-spacing:.08em;text-transform:uppercase;">History &amp; Accountability</h2>
+            <button class="ghost" onclick="document.getElementById('historyOverlay').style.display='none'">Close</button>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+            <input id="histJob" placeholder="Job #" style="padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:inherit;">
+            <input id="histActor" placeholder="Person" style="padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:inherit;">
+            <select id="histDays" style="padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(20,26,44,1);color:inherit;">
+              <option value="1">Today</option><option value="7">7 days</option>
+              <option value="30" selected>30 days</option><option value="90">90 days</option>
+            </select>
+            <button class="ghost" id="histSearchBtn">Search</button>
+          </div>
+          <h3 style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;opacity:.7;">Activity by Person</h3>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:22px;">
+            <thead><tr style="opacity:.6;text-align:left;">
+              <th style="padding:6px 10px;">Person</th><th style="padding:6px 10px;">Last Action</th>
+              <th style="padding:6px 10px;text-align:right;">Total</th><th style="padding:6px 10px;text-align:right;">Last 7 Days</th>
+            </tr></thead>
+            <tbody id="histSummaryBody"></tbody>
+          </table>
+          <h3 style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;opacity:.7;">Timeline</h3>
+          <div id="histTimeline" style="border:1px solid rgba(255,255,255,.08);border-radius:10px;"></div>
+        </div>`;
+      document.body.appendChild(ov);
+      document.getElementById('histSearchBtn').addEventListener('click', ()=>{ loadSummary(); loadTimeline(); });
+      document.getElementById('histJob').addEventListener('keydown', e=>{ if(e.key==='Enter'){ loadSummary(); loadTimeline(); }});
+      document.getElementById('histActor').addEventListener('keydown', e=>{ if(e.key==='Enter'){ loadSummary(); loadTimeline(); }});
+    }
+    ov.style.display = 'block';
+    loadSummary(); loadTimeline();
+  }
+  function addButton(){
+    const ref = document.getElementById('queueShortcutBtn');
+    if(!ref || document.getElementById('historyBtn')) return;
+    const b = document.createElement('button');
+    b.className = 'ghost'; b.id = 'historyBtn'; b.textContent = 'History';
+    b.addEventListener('click', openHistory);
+    ref.parentNode.insertBefore(b, ref.nextSibling);
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addButton);
+  else addButton();
+})();
+</script>
 </body>
 </html>
