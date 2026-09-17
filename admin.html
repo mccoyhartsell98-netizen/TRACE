@@ -4135,7 +4135,7 @@ function renderMoDropdown(results){
     row.style.cssText = "padding:12px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);";
     row.innerHTML = `
       <div style="font-weight:900;font-size:14px;color:#fff;">${escapeHtml(m.mo || "")} <span style="color:rgba(140,170,255,.8);font-weight:700;">&bull; ${escapeHtml(m.job || "")}</span></div>
-      <div style="font-size:12px;color:var(--muted);margin-top:3px;">${escapeHtml(m.description || "")} ${m.planned_qty ? `&bull; Planned: ${escapeHtml(String(m.planned_qty))} ${escapeHtml(m.uom || "")}` : ""}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:3px;">${escapeHtml(m.description || "")} ${m.planned_qty ? `&bull; Planned: ${escapeHtml(String(m.planned_qty))} ${escapeHtml(m.uom || "")}` : ""} ${m.box ? `&bull; <span style="color:rgba(255,205,120,.9);font-weight:700;">Box: ${escapeHtml(m.box)}</span>` : ""}</div>
     `;
     row.addEventListener("mouseenter", () => row.style.background = "rgba(58,122,254,.18)");
     row.addEventListener("mouseleave", () => row.style.background = "transparent");
@@ -4143,7 +4143,10 @@ function renderMoDropdown(results){
       els.mo.value = cleanJob(String(m.mo || "").replace(/^MO-?/i, ""));
       if(m.job) els.job.value = cleanJob(String(m.job).replace(/^PPB-?/i, ""));
       if(m.planned_qty) els.qty.value = String(m.planned_qty);
-      if(m.description && els.notes && !els.notes.value) els.notes.value = String(m.description).slice(0, 120);
+      if(els.notes && !els.notes.value){
+        if(m.box) els.notes.value = "Box: " + String(m.box).slice(0, 100);
+        else if(m.description) els.notes.value = String(m.description).slice(0, 120);
+      }
       hideMoDropdown();
       els.qty?.focus();
     });
