@@ -4042,12 +4042,15 @@ async function queueCurrentJob(){
 
 // DUPLICATE CHECK
 if(!selectedId){
-  const existing = inventory.find(x => x.job === job);
-  if(existing){
-    const loc = existing.machine ? `Machine: ${existing.machine}` : (existing.lane || "Unknown");
+  const existingAll = inventory.filter(x =>
+    x.job === job &&
+    x.lane && !x.machine
+  );
+  if(existingAll.length){
+    const locList = existingAll.map(x => `Lane ${x.lane}: Qty ${x.qty}`).join("\n");
     const ok = await uiConfirm(
       "Heads Up",
-      `Item #${job} already exists in ${loc} with Qty: ${existing.qty}.\n\nContinuing will add a new queue entry with the qty you entered.`,
+      `Item #${job} already exists in ${existingAll.length} lane(s):\n\n${locList}\n\nContinuing will add a new queue entry with the qty you entered.`,
       "Continue",
       "Cancel"
     );
