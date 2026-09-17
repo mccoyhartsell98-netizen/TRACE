@@ -5373,7 +5373,20 @@ function renderHistoryPage(){
 document.getElementById("queuePageBack").addEventListener("click", () => hidePage("queuePage"));
 document.getElementById("queueSearch2").addEventListener("input", renderQueuePage);
 
+async function refreshServerQueueOrder(){
+  try {
+    const r = await fetch(API_BASE + "/queue-order", { cache: "no-store", headers: authHeaders() });
+    const d = await r.json();
+    if (d.ok && Array.isArray(d.order)) {
+      const changed = JSON.stringify(d.order) !== JSON.stringify(window._serverQueueOrder || []);
+      window._serverQueueOrder = d.order;
+      if (changed) renderQueuePage();
+    }
+  } catch(e) { console.warn("queue-order refresh failed:", e); }
+}
+
 function renderQueuePage(){
+  refreshServerQueueOrder();
   const q = normalize(document.getElementById("queueSearch2")?.value || "");
   const listAll = inventory
     .filter(x => String(x.machine || "").toUpperCase() === QUEUE_MACHINE_NAME)
@@ -5383,20 +5396,10 @@ function renderQueuePage(){
       return aTime - bTime;
     });
 
-   // Restore order from localStorage, then apply in-memory override
-  const savedOrder = loadQueueOrder();
-  if (savedOrder.length && (!window._queueOrder || !window._queueOrder.length)) {
-    window._queueOrder = savedOrder;
-  }
-  if (window._queueOrder && window._queueOrder.length) {
-    const idSet = new Set(listAll.map(x => String(x.id)));
-    const ordered = window._queueOrder
-      .filter(id => idSet.has(id))
-      .map(id => listAll.find(x => String(x.id) === id))
-      .filter(Boolean);
-    const unordered = listAll.filter(x => !window._queueOrder.includes(String(x.id)));
-    listAll.length = 0;
-    listAll.push(...ordered, ...unordered);
+  // Kat's order is law: apply server queue_order (factorySync keeps it in ctcfactory rank)
+  if (window._serverQueueOrder && window._serverQueueOrder.length) {
+    const pos = new Map(window._serverQueueOrder.map((id, i) => [String(id), i]));
+    listAll.sort((a, b) => (pos.get(String(a.id)) ?? 999999) - (pos.get(String(b.id)) ?? 999999));
   }
 
   let list = listAll;
@@ -5432,7 +5435,7 @@ function renderQueuePage(){
   list.forEach((item, idx) => {
     const div = document.createElement("div");
     div.className = "queueCard";
-    div.draggable = !q;
+    div.draggable = false; // Kat's order is law - queue follows ctcfactory rank
     div.dataset.id = String(item.id);
 
     const posBadge = !q
