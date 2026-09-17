@@ -9391,5 +9391,64 @@ document.addEventListener("DOMContentLoaded", () => {
   else addButton();
 })();
 </script>
+
+<script>
+/* ===== QUEUE PRINT LIST ===== */
+(function(){
+  function printQueue(){
+    const list = inventory
+      .filter(x => String(x.machine || "").toUpperCase() === QUEUE_MACHINE_NAME);
+    if (window._serverQueueOrder && window._serverQueueOrder.length) {
+      const pos = new Map(window._serverQueueOrder.map((id, i) => [String(id), i]));
+      list.sort((a, b) => (pos.get(String(a.id)) ?? 999999) - (pos.get(String(b.id)) ?? 999999));
+    }
+    const now = new Date().toLocaleString([], {month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+    const rows = list.map((x, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td><strong>${x.job || ''}</strong></td>
+        <td>${x.mo || ''}</td>
+        <td>${x.qty ?? ''}</td>
+        <td>${x.status || ''}</td>
+        <td>${x.notes || ''}</td>
+      </tr>`).join('');
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html><head><title>TRACE Print Dept. Queue</title>
+      <style>
+        body{font-family:Arial,sans-serif;color:#000;margin:24px;}
+        h1{font-size:18px;margin:0 0 2px 0;}
+        .sub{font-size:12px;color:#444;margin-bottom:14px;}
+        table{width:100%;border-collapse:collapse;font-size:13px;}
+        th,td{border:1px solid #999;padding:6px 8px;text-align:left;}
+        th{background:#eee;}
+        tr:nth-child(even) td{background:#f7f7f7;}
+        @media print{ body{margin:8px;} }
+      </style></head><body>
+      <h1>TRACE &mdash; Print Dept. Queue</h1>
+      <div class="sub">${list.length} job(s) &bull; ctcfactory rank order &bull; printed ${now}</div>
+      <table>
+        <thead><tr><th>#</th><th>Job</th><th>MO</th><th>Qty</th><th>Status</th><th>Notes</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      </body></html>`);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 300);
+  }
+  function addPrintBtn(){
+    const heads = document.querySelectorAll('h2');
+    let target = null;
+    heads.forEach(h => { if (/Print Dept\. Queue/i.test(h.textContent)) target = h; });
+    if (!target || document.getElementById('printQueueBtn')) return;
+    const b = document.createElement('button');
+    b.className = 'ghost'; b.id = 'printQueueBtn'; b.textContent = 'Print List';
+    b.style.marginLeft = '12px';
+    b.addEventListener('click', printQueue);
+    target.parentNode.insertBefore(b, target.nextSibling);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addPrintBtn);
+  else addPrintBtn();
+})();
+</script>
 </body>
 </html>
