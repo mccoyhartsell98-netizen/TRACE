@@ -5668,17 +5668,37 @@ function renderQueuePage(){
     }
 
     
-    // Duplicate-in-lane badge: same job already sitting in a warehouse lane
+    // Duplicate badges: same job already sitting in a warehouse lane or on a machine
+    const dupBadge = (text, colors) => {
+      const el = document.createElement("div");
+      el.style.cssText = `margin:8px 8px 0 0;padding:4px 10px;border-radius:8px;display:inline-block;background:${colors.bg};border:1px solid ${colors.border};color:${colors.text};font-size:12px;font-weight:700;letter-spacing:.02em;`;
+      el.textContent = text;
+      div.appendChild(el);
+    };
+    const laneLabel = (l) => "Lane " + String(l).replace(/^\s*lane\s*/i, "");
+
     const laneDups = inventory.filter(x =>
       x.job === item.job &&
       String(x.id) !== String(item.id) &&
       x.lane && !x.machine
     );
     if (laneDups.length) {
-      const dupEl = document.createElement("div");
-      dupEl.style.cssText = "margin:8px 0 0 0;padding:4px 10px;border-radius:8px;display:inline-block;background:rgba(255,180,60,.12);border:1px solid rgba(255,180,60,.35);color:rgba(255,205,120,.95);font-size:12px;font-weight:700;letter-spacing:.02em;";
-      dupEl.textContent = "\u26a0 Duplicate: " + laneDups.map(d => d.qty + " in Lane " + d.lane).join(", ");
-      div.appendChild(dupEl);
+      dupBadge(
+        "\u26a0 Duplicate: " + laneDups.map(d => d.qty + " in " + laneLabel(d.lane)).join(", "),
+        { bg: "rgba(255,180,60,.12)", border: "rgba(255,180,60,.35)", text: "rgba(255,205,120,.95)" }
+      );
+    }
+
+    const machineDups = inventory.filter(x =>
+      x.job === item.job &&
+      String(x.id) !== String(item.id) &&
+      x.machine
+    );
+    if (machineDups.length) {
+      dupBadge(
+        "\u26a0 At Machine: " + machineDups.map(d => d.qty + " on " + d.machine).join(", "),
+        { bg: "rgba(40,120,180,.15)", border: "rgba(127,211,255,.4)", text: "rgba(160,225,255,.95)" }
+      );
     }
     container.appendChild(div);
   });
