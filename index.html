@@ -303,7 +303,7 @@ $("pinSubmit").onclick=async()=>{
   $("pinMsg").textContent="Checking…";
 
   if (!isOnline) {
-    const cached = offlinePinLogin(pinBuf);
+    const cached = await offlinePinLogin(pinBuf);
     if (cached) {
       pinAttempts=0;
       localStorage.setItem("tt", cached.token);
@@ -328,13 +328,13 @@ $("pinSubmit").onclick=async()=>{
     pinAttempts=0;
     localStorage.setItem("tt",d.token);
     localStorage.setItem("tu",JSON.stringify(d.user));
-    cachePinLogin(pinBuf, d.user, d.token);
+    await cachePinLogin(pinBuf, d.user, d.token);
     pinBuf="";renderPin();$("pinMsg").textContent="";
     enterHub(d.user);
   }catch(e){
     if (e.message === "Failed to fetch" || e instanceof TypeError) {
       isOnline = false;
-      const cached = offlinePinLogin(pinBuf);
+      const cached = await offlinePinLogin(pinBuf);
       if (cached) {
         pinAttempts=0;
         localStorage.setItem("tt", cached.token);
@@ -514,16 +514,16 @@ async function enterHub(user){
 
 function setActive(item){
   activeItem=item;
-  const loc=item.machine?`Machine ${item.machine}`:(item.lane||"No location");
-  const moStr = item.mo ? `MO ${item.mo} &bull; ` : `<span style="color:#ff7f7f;font-size:12px;">MO missing</span><span style="color:#eaf2ff;"> &bull; </span>`;
+  const loc=item.machine?`Machine ${escapeHtml(item.machine)}`:(escapeHtml(item.lane)||"No location");
+  const moStr = item.mo ? `MO ${escapeHtml(item.mo)} &bull; ` : `<span style="color:#ff7f7f;font-size:12px;">MO missing</span><span style="color:#eaf2ff;"> &bull; </span>`;
   let movedLine = "";
   if(item.updated_at){
     const d = new Date(item.updated_at);
     const timeStr = d.toLocaleString([], {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"});
-    const who = item.updated_by ? ` by ${item.updated_by}` : "";
+    const who = item.updated_by ? ` by ${escapeHtml(item.updated_by)}` : "";
     movedLine = `<br><span style="color:rgba(234,242,255,.55);font-size:12px;">Last moved${who} • ${timeStr}</span>`;
   }
-  $("jobLine").innerHTML=`<span style="color:#eaf2ff;font-weight:700;">Job ${item.job} &bull; </span>${moStr}<span style="color:#eaf2ff;font-weight:700;">QTY ${item.qty}</span><br><span style="color:#6dbf8a;font-size:15px;">Location: ${loc}</span>${movedLine}`;
+  $("jobLine").innerHTML=`<span style="color:#eaf2ff;font-weight:700;">Job ${escapeHtml(item.job)} &bull; </span>${moStr}<span style="color:#eaf2ff;font-weight:700;">QTY ${escapeHtml(item.qty)}</span><br><span style="color:#6dbf8a;font-size:15px;">Location: ${loc}</span>${movedLine}`;
   $("jobStatus").textContent=item.status||"active";
   const statusColors={
     "Printed":"#1a3a1a;color:#7fff7f",
@@ -795,10 +795,10 @@ async function post(body,token){
 function showWhich(matches, onPick){
   const g=$("whichGrid");g.innerHTML="";
   matches.forEach(item=>{
-    const loc=item.machine?`Machine ${item.machine}`:(item.lane||"No location");
+    const loc=item.machine?`Machine ${escapeHtml(item.machine)}`:(escapeHtml(item.lane)||"No location");
     const b=document.createElement("button");
     b.className="sbtn";
-    b.innerHTML=`<div style="font-size:14px;font-weight:900">${loc}</div><div style="font-size:11px;margin-top:3px;opacity:.7">QTY ${item.qty}</div>`;
+    b.innerHTML=`<div style="font-size:14px;font-weight:900">${loc}</div><div style="font-size:11px;margin-top:3px;opacity:.7">QTY ${escapeHtml(item.qty)}</div>`;
     b.onclick=()=>{$("ovWhich").classList.add("hide");onPick(item);};
     g.appendChild(b);
   });
@@ -899,8 +899,8 @@ function showLaneView(laneNum){
       div.className = "laneViewItem";
       div.innerHTML = `
         <div class="lvi-info">
-          <div class="lvi-job">Item #${item.job}</div>
-          <div class="lvi-meta">${item.mo ? `MO: ${item.mo} • ` : ""}Qty: ${item.qty} • ${item.status || "—"}</div>
+          <div class="lvi-job">Item #${escapeHtml(item.job)}</div>
+          <div class="lvi-meta">${item.mo ? `MO: ${escapeHtml(item.mo)} • ` : ""}Qty: ${escapeHtml(item.qty)} • ${escapeHtml(item.status) || "—"}</div>
         </div>
         <button class="lvi-btn" data-lv-move="1">Move</button>
       `;
@@ -1055,14 +1055,52 @@ async function checkConnection() {
   }
 }
 
-// ── OFFLINE PIN CACHE ──
-const PIN_CACHE_KEY = "trace_pin_cache";
-const PIN_CACHE_MAX_AGE_MS = 12 * 3600000; // 12h — matches kiosk token lifetime
+// TR-4. Values from the database were written straight into innerHTML here.
+// The same escapeHtml admin.html already uses, so both pages behave alike.
+function escapeHtml(s){
+  return String(s ?? "")
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
 
-function cachePinLogin(pin, user, token) {
-  const cached = getPinCache();
-  cached[pin] = { user, token, cachedAt: new Date().toISOString() };
-  localStorage.setItem(PIN_CACHE_KEY, JSON.stringify(cached));
+// ── OFFLINE PIN CACHE ──
+// TR-8. Every PIN used on this kiosk was stored here in clear text, as the key
+// of the cache object, alongside the user and token, and never removed - anyone
+// with devtools at the kiosk could read their colleagues' PINs.
+//
+// The PIN is now a PBKDF2 hash. A 4-digit PIN is only 10,000 combinations, so a
+// plain hash would be broken instantly. 600,000 iterations costs about 200ms a
+// guess, so trying all 10,000 takes over half an hour instead of no time at all.
+//
+// Be clear about what this is: a four-digit PIN cannot be made strong by
+// hashing. This raises the cost of reading a colleague's PIN off the kiosk from
+// trivial to tedious. The real fix is not storing it, which means dropping
+// offline sign-in - Kat's own alternative, and a decision about whether the
+// floor needs to sign in when the network is down.
+const PIN_CACHE_KEY = "trace_pin_cache_v2";   // v2: the v1 plaintext cache is deleted below
+const PIN_SALT_KEY = "trace_pin_salt";
+const PIN_CACHE_MAX_AGE_MS = 12 * 3600000; // 12h — matches kiosk token lifetime
+const PIN_KDF_ITERATIONS = 600000;
+
+try { localStorage.removeItem("trace_pin_cache"); } catch(e) {}
+
+function pinSalt() {
+  let s = localStorage.getItem(PIN_SALT_KEY);
+  if (!s) {
+    s = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(16))));
+    localStorage.setItem(PIN_SALT_KEY, s);
+  }
+  return Uint8Array.from(atob(s), c => c.charCodeAt(0));
+}
+
+async function pinKey(pin) {
+  // crypto.subtle needs a secure context. On anything but https there is no
+  // offline cache rather than a plaintext one.
+  if (!crypto?.subtle) return null;
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(String(pin)), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt: pinSalt(), iterations: PIN_KDF_ITERATIONS, hash: "SHA-256" }, key, 256);
+  return btoa(String.fromCharCode(...new Uint8Array(bits)));
 }
 
 function getPinCache() {
@@ -1070,8 +1108,27 @@ function getPinCache() {
   catch(e) { return {}; }
 }
 
-function offlinePinLogin(pin) {
-  const cached = getPinCache()[pin];
+async function cachePinLogin(pin, user, token) {
+  const k = await pinKey(pin);
+  if (!k) return;
+  const cached = getPinCache();
+  cached[k] = { user, token, cachedAt: new Date().toISOString() };
+  localStorage.setItem(PIN_CACHE_KEY, JSON.stringify(purgeStale(cached)));
+}
+
+// Expired entries were left behind for ever. They are dropped on every write.
+function purgeStale(cache) {
+  const out = {};
+  for (const [k, v] of Object.entries(cache)) {
+    if (Date.now() - new Date(v.cachedAt).getTime() <= PIN_CACHE_MAX_AGE_MS) out[k] = v;
+  }
+  return out;
+}
+
+async function offlinePinLogin(pin) {
+  const k = await pinKey(pin);
+  if (!k) return null;
+  const cached = getPinCache()[k];
   if (!cached) return null;
   // Reject stale entries — a cached token older than 12h is expired and every queued move would 401
   if (Date.now() - new Date(cached.cachedAt).getTime() > PIN_CACHE_MAX_AGE_MS) return null;
